@@ -1,0 +1,1162 @@
+
+<!-- Task Details & Modals -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Task Details | On-chain Task Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Custom scrollbar for a premium feel */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c0c7d1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #707881; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c0c7d1",
+                        "on-surface-variant": "#40474f",
+                        "on-tertiary-container": "#e9dbff",
+                        "surface-bright": "#f7f9fd",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#600ecc",
+                        "inverse-surface": "#2d3134",
+                        "on-secondary-container": "#004f7b",
+                        "surface-tint": "#575e70",
+                        "tertiary-container": "#7939e5",
+                        "error-container": "#ffdad6",
+                        "on-background": "#181c1f",
+                        "secondary-container": "#7bc2ff",
+                        "secondary-fixed-dim": "#94ccff",
+                        "surface-container": "#eceef2",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed": "#250059",
+                        "error": "#ba1a1a",
+                        "background": "#f7f9fd",
+                        "surface-container-highest": "#e0e3e6",
+                        "surface": "#f7f9fd",
+                        "surface-container-low": "#f2f4f8",
+                        "tertiary-fixed": "#ebddff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed": "#dce2f7",
+                        "on-primary-fixed-variant": "#404758",
+                        "inverse-primary": "#c0c6db",
+                        "on-surface": "#181c1f",
+                        "on-secondary-fixed": "#001d32",
+                        "secondary": "#006399",
+                        "tertiary-fixed-dim": "#d3bbff",
+                        "surface-dim": "#d8dade",
+                        "on-tertiary-fixed-variant": "#5b00c5",
+                        "surface-variant": "#e0e3e6",
+                        "on-secondary-fixed-variant": "#004b74",
+                        "on-primary": "#ffffff",
+                        "primary": "#454c5d",
+                        "primary-container": "#5d6476",
+                        "outline": "#707881",
+                        "primary-fixed-dim": "#c0c6db",
+                        "on-primary-fixed": "#141b2b",
+                        "inverse-on-surface": "#eff1f5",
+                        "secondary-fixed": "#cde5ff",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#e6e8ec",
+                        "on-primary-container": "#dbe1f6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-[#111827] dark:bg-black bg-gray-900/95 backdrop-blur-xl shadow-[0_12px_40px_rgba(17,24,39,0.08)] sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-white">On-chain Task Tracker</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-gray-400 hover:text-white font-sans tracking-tight Inter font-medium transition-all duration-200" href="#">Home</a>
+<a class="text-white border-b-2 border-white pb-1 font-sans tracking-tight Inter font-medium transition-all duration-200" href="#">Tasks</a>
+<a class="text-gray-400 hover:text-white font-sans tracking-tight Inter font-medium transition-all duration-200" href="#">History</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary-container text-on-primary-container px-5 py-2 rounded-lg font-medium active:scale-95 transition-transform hover:bg-white/10 transition-all duration-200">
+                    Connect Wallet
+                </button>
+</div>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto px-6 py-8">
+<!-- Navigation Back -->
+<div class="mb-6">
+<button class="flex items-center gap-2 text-secondary font-medium hover:underline group">
+<span class="material-symbols-outlined text-[20px] group-hover:-translate-x-1 transition-transform" data-icon="arrow_back">arrow_back</span>
+                Back to Tasks
+            </button>
+</div>
+<!-- Feedback Banner -->
+<div class="bg-[#fef9c3] border-l-4 border-[#854d0e] p-4 rounded-lg mb-8 flex items-start gap-3 shadow-sm">
+<span class="material-symbols-outlined text-[#854d0e]" data-icon="warning">warning</span>
+<p class="text-[#854d0e] font-medium text-sm">此任務有獎勵金 (0.5 ETH)，需完成 Fund 後才能 Approve</p>
+</div>
+<!-- Detail Card (Asymmetric Editorial Layout) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+<!-- Left Column: Primary Content -->
+<div class="lg:col-span-2 space-y-8">
+<div class="bg-surface-container-lowest rounded-xl p-8 shadow-[0_12px_40px_rgba(17,24,39,0.04)]">
+<div class="flex flex-wrap items-center gap-3 mb-6">
+<h1 class="text-[24px] font-bold text-on-surface tracking-tight">Implement Smart Contract Multi-Sig Protocol</h1>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-[#dbeafe] text-[#1d4ed8] text-[12px] font-bold rounded-full uppercase tracking-wider">IN_PROGRESS</span>
+<span class="px-3 py-1 bg-surface-container-high text-on-surface text-[12px] font-bold rounded-full flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-on-surface"></span>
+                                ON-CHAIN
+                            </span>
+</div>
+</div>
+<div class="space-y-4">
+<h3 class="text-on-surface font-semibold text-lg">Description</h3>
+<p class="text-on-surface-variant text-[15px] leading-[1.7] max-w-none">
+                            The objective is to implement a robust multi-signature wallet protocol that allows multiple parties to agree on transactions before execution. This smart contract should support dynamic threshold adjustments, time-locked withdrawals, and emergency pause functionality. The code must be fully tested using Foundry or Hardhat and should adhere to ERC standards where applicable. Documentation for the security model is mandatory.
+                        </p>
+</div>
+<div class="mt-12 pt-8 border-t border-surface-container-low flex flex-wrap justify-end gap-3">
+<button class="px-6 py-2 text-on-surface-variant hover:text-on-surface font-semibold transition-colors">Edit</button>
+<button class="px-6 py-2 text-error hover:bg-error-container/20 rounded-lg font-semibold transition-colors">Cancel</button>
+<button class="px-8 py-2 bg-surface-container-lowest text-primary border border-primary/10 rounded-lg font-semibold shadow-sm hover:shadow-md transition-all">Fund</button>
+<button class="px-8 py-2 bg-primary text-on-primary rounded-lg font-semibold shadow-sm hover:bg-primary-container transition-all">Approve</button>
+</div>
+</div>
+</div>
+<!-- Right Column: Meta Information -->
+<div class="lg:col-span-1 space-y-6">
+<div class="bg-surface-container-low rounded-xl p-6 space-y-6">
+<h2 class="text-sm font-bold uppercase tracking-widest text-on-surface-variant">Task Metadata</h2>
+<div class="grid grid-cols-1 gap-6">
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Priority</label>
+<div class="flex items-center gap-2 text-on-surface font-semibold">
+<span class="w-2 h-2 rounded-full bg-error"></span>
+                                High
+                            </div>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Reward</label>
+<p class="text-on-surface font-bold text-xl">0.5 ETH</p>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Owner</label>
+<p class="text-secondary font-mono text-sm break-all">0x71C765...d897</p>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Assignee</label>
+<p class="text-on-surface font-mono text-sm break-all">0x3A2190...4fB2</p>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Due Date</label>
+<p class="text-on-surface text-sm">Oct 24, 2024</p>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Created At</label>
+<p class="text-on-surface text-sm">Sep 12, 2024</p>
+</div>
+</div>
+<div class="space-y-1">
+<label class="text-[11px] font-bold text-on-surface-variant/70 uppercase tracking-widest">Fund Tx Hash</label>
+<div class="flex items-center gap-2 group cursor-pointer">
+<p class="text-on-surface-variant font-mono text-[12px] truncate">0x9a2b...f7c1d3e5</p>
+<span class="material-symbols-outlined text-sm text-secondary" data-icon="open_in_new">open_in_new</span>
+</div>
+</div>
+</div>
+</div>
+<div class="relative overflow-hidden rounded-xl h-40 bg-primary-container">
+<img class="w-full h-full object-cover opacity-60" data-alt="abstract digital representation of a blockchain ledger with nodes connecting in a dark blue and white space with soft neon glow" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4I5t9F-7lSEfY5fwRh9Zgz4XU9BXw7UD406_BTqBwI-HjEJKkd8D20DPr9HZ3Mj3x2V0LztTLhtVLp9JBOzEZp_DtNB7H5sjt8ljpY_99OVKyOhqJpRKrEGjyuqyliG9oVZg2BovEf7eE9QrQz_n_N0BAoea4K0iL9qKQTnXqVpaCB3VcTHOWfDVjcCkrItpwhIv-hdA_cs9uS6JxXALs9N9KYlehKKzOMwN5ONDkib5lzV-oLGHTwY9vQbj5ZivIfMheRSx2_Drv"/>
+<div class="absolute inset-0 p-6 flex flex-col justify-end">
+<span class="text-white/70 text-[10px] font-bold uppercase tracking-widest">Network Context</span>
+<p class="text-white font-medium text-sm">Ethereum Mainnet · Block #1928374</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Modal Overlay (Active for Demo) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111827]/40 backdrop-blur-sm">
+<div class="bg-surface-container-lowest w-full max-w-[600px] rounded-xl shadow-[0_24px_80px_rgba(17,24,39,0.15)] overflow-hidden">
+<div class="px-6 py-5 flex items-center justify-between border-b border-surface-container-low">
+<h2 class="text-[22px] font-bold text-on-surface">Edit Task</h2>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="close">close</span>
+</button>
+</div>
+<form class="p-6 space-y-6">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Title</label>
+<input class="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 focus:ring-2 focus:ring-secondary/20 transition-all text-on-surface" type="text" value="Implement Smart Contract Multi-Sig Protocol"/>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Description</label>
+<textarea class="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 focus:ring-2 focus:ring-secondary/20 transition-all text-on-surface" rows="4">The objective is to implement a robust multi-signature wallet protocol that allows multiple parties to agree on transactions before execution.</textarea>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Priority</label>
+<select class="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 focus:ring-2 focus:ring-secondary/20 transition-all text-on-surface">
+<option>Low</option>
+<option>Medium</option>
+<option selected="">High</option>
+</select>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Due Date</label>
+<input class="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 focus:ring-2 focus:ring-secondary/20 transition-all text-on-surface" type="date" value="2024-10-24"/>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-xs font-bold uppercase tracking-widest text-on-surface-variant">Reward Amount (ETH)</label>
+<div class="relative">
+<input class="w-full bg-surface-container-highest border-none rounded-md px-4 py-3 focus:ring-2 focus:ring-secondary/20 transition-all text-on-surface" step="0.01" type="number" value="0.5"/>
+<span class="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-on-surface-variant">ETH</span>
+</div>
+</div>
+<div class="pt-6 flex justify-end gap-3">
+<button class="px-6 py-2.5 text-on-surface-variant font-semibold hover:text-on-surface transition-colors" type="button">Cancel</button>
+<button class="px-10 py-2.5 bg-primary text-on-primary rounded-lg font-bold shadow-sm hover:bg-primary-container transition-all" type="submit">Submit</button>
+</div>
+</form>
+</div>
+</div>
+<!-- Footer -->
+<footer class="bg-[#f7f9fd] dark:bg-gray-950 border-t border-gray-100 dark:border-gray-900 w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-6 mt-12">
+<div class="flex flex-col gap-2">
+<span class="text-lg font-black text-gray-900 dark:text-white">The Immutable Ledger.</span>
+<p class="text-sm font-medium text-gray-500 dark:text-gray-400 Inter">© 2024 The Immutable Ledger. Institutional Curator.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">Documentation</a>
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">On-chain Registry</a>
+</div>
+</footer>
+<!-- BottomNavBar (Mobile only) -->
+<div class="md:hidden fixed bottom-0 left-0 w-full z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg flex justify-around items-center px-4 pb-safe pt-2 shadow-[0_-4px_20px_rgba(17,24,39,0.02)]">
+<div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="home">home</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-[#111827] text-white rounded-2xl px-4 py-1 scale-110 duration-300">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">Tasks</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">History</span>
+</div>
+<div class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">Wallet</span>
+</div>
+</div>
+</body></html>
+
+<!-- Blockchain Logs -->
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Blockchain Logs | On-chain Task Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "outline-variant": "#c0c7d1",
+                      "on-surface-variant": "#40474f",
+                      "on-tertiary-container": "#e9dbff",
+                      "surface-bright": "#f7f9fd",
+                      "on-error-container": "#93000a",
+                      "tertiary": "#600ecc",
+                      "inverse-surface": "#2d3134",
+                      "on-secondary-container": "#004f7b",
+                      "surface-tint": "#575e70",
+                      "tertiary-container": "#7939e5",
+                      "error-container": "#ffdad6",
+                      "on-background": "#181c1f",
+                      "secondary-container": "#7bc2ff",
+                      "secondary-fixed-dim": "#94ccff",
+                      "surface-container": "#eceef2",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary-fixed": "#250059",
+                      "error": "#ba1a1a",
+                      "background": "#f7f9fd",
+                      "surface-container-highest": "#e0e3e6",
+                      "surface": "#f7f9fd",
+                      "surface-container-low": "#f2f4f8",
+                      "tertiary-fixed": "#ebddff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed": "#dce2f7",
+                      "on-primary-fixed-variant": "#404758",
+                      "inverse-primary": "#c0c6db",
+                      "on-surface": "#181c1f",
+                      "on-secondary-fixed": "#001d32",
+                      "secondary": "#006399",
+                      "tertiary-fixed-dim": "#d3bbff",
+                      "surface-dim": "#d8dade",
+                      "on-tertiary-fixed-variant": "#5b00c5",
+                      "surface-variant": "#e0e3e6",
+                      "on-secondary-fixed-variant": "#004b74",
+                      "on-primary": "#ffffff",
+                      "primary": "#454c5d",
+                      "primary-container": "#5d6476",
+                      "outline": "#707881",
+                      "primary-fixed-dim": "#c0c6db",
+                      "on-primary-fixed": "#141b2b",
+                      "inverse-on-surface": "#eff1f5",
+                      "secondary-fixed": "#cde5ff",
+                      "on-error": "#ffffff",
+                      "surface-container-high": "#e6e8ec",
+                      "on-primary-container": "#dbe1f6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "fontFamily": {
+                      "headline": ["Inter"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-header {
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(12px);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c0c7d1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface antialiased min-h-screen pb-20 md:pb-0">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 bg-[#111827] dark:bg-black shadow-[0_12px_40px_rgba(17,24,39,0.08)] backdrop-blur-xl">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-white">On-chain Task Tracker</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-gray-400 hover:text-white transition-all duration-200 font-sans tracking-tight Inter font-medium" href="#">Home</a>
+<a class="text-gray-400 hover:text-white transition-all duration-200 font-sans tracking-tight Inter font-medium" href="#">Tasks</a>
+<a class="text-white border-b-2 border-white pb-1 font-sans tracking-tight Inter font-medium" href="#">History</a>
+</nav>
+</div>
+<button class="bg-white text-[#111827] px-5 py-2 rounded-lg font-bold text-sm active:scale-95 transition-transform hover:bg-white/90">
+                Connect Wallet
+            </button>
+</div>
+</header>
+<main class="pt-24 pb-12 px-6 max-w-screen-xl mx-auto">
+<!-- Page Header -->
+<section class="mb-10">
+<h1 class="text-4xl font-extrabold tracking-tight text-on-surface mb-2">Transaction History</h1>
+<p class="text-on-surface-variant text-lg font-medium flex items-center gap-2">
+                All on-chain transactions recorded by the platform 
+                <span class="text-outline text-sm font-normal">| 平台上记录的所有链上交易</span>
+</p>
+</section>
+<!-- Stats Overview (Asymmetric Layout) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+<div class="lg:col-span-2 bg-surface-container-lowest p-6 rounded-xl shadow-[0_12px_40px_rgba(17,24,39,0.04)] flex flex-col justify-between overflow-hidden relative">
+<div class="relative z-10">
+<p class="text-sm font-bold uppercase tracking-widest text-secondary mb-1">Network Status</p>
+<h2 class="text-3xl font-black text-on-surface">Mainnet Optimized</h2>
+<p class="text-on-surface-variant mt-2 max-w-md">The Immutable Ledger ensures every transaction is verified and immutable across the decentralized registry.</p>
+</div>
+<div class="mt-8 flex gap-8 relative z-10">
+<div>
+<p class="text-xs font-bold text-outline-variant uppercase">Total Logs</p>
+<p class="text-2xl font-bold text-on-surface">12,842</p>
+</div>
+<div>
+<p class="text-xs font-bold text-outline-variant uppercase">Success Rate</p>
+<p class="text-2xl font-bold text-on-surface">99.9%</p>
+</div>
+</div>
+<!-- Abstract visual element -->
+<div class="absolute right-0 top-0 h-full w-1/3 opacity-10 pointer-events-none">
+<div class="h-full w-full bg-gradient-to-br from-primary to-secondary transform skew-x-12"></div>
+</div>
+</div>
+<div class="bg-primary text-white p-6 rounded-xl shadow-lg flex flex-col justify-center items-center text-center">
+<div class="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+</div>
+<p class="text-on-primary-container font-medium text-sm">Gas Saved (Last 30d)</p>
+<p class="text-3xl font-black mt-1">1.42 ETH</p>
+<button class="mt-4 text-xs font-bold uppercase tracking-widest bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition-all">View Analytics</button>
+</div>
+</div>
+<!-- Transaction Table Section -->
+<div class="bg-white rounded-xl shadow-[0_12px_40px_rgba(17,24,39,0.04)] overflow-hidden border border-gray-100">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-gray-50 border-b border-gray-200">
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Time</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Task ID</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Action</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Tx Hash</th>
+<th class="px-6 py-4 text-xs font-bold text-on-surface-variant uppercase tracking-wider">Status</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-gray-100">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4 whitespace-nowrap text-sm text-on-surface-variant font-medium">2 mins ago</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-on-surface">0x7a...4e21</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#e0f2fe] text-[#0369a1]">FUND</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm">
+<a class="text-secondary hover:underline font-mono" href="#">0x4b2...9f01</a>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dcfce7] text-[#166534]">SUCCESS</span>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4 whitespace-nowrap text-sm text-on-surface-variant font-medium">15 mins ago</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-on-surface">0x1d...8c92</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dcfce7] text-[#15803d]">APPROVE_TASK</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm">
+<a class="text-secondary hover:underline font-mono" href="#">0x9a1...12bc</a>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dcfce7] text-[#166534]">SUCCESS</span>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4 whitespace-nowrap text-sm text-on-surface-variant font-medium">42 mins ago</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-on-surface">0xfe...bb03</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#fef9c3] text-[#854d0e]">CLAIM_REWARD</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm">
+<a class="text-secondary hover:underline font-mono" href="#">0xcc4...77de</a>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#ffdad6] text-[#93000a]">FAILED</span>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4 whitespace-nowrap text-sm text-on-surface-variant font-medium">1 hour ago</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-on-surface">0x55...32d4</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#f3e8ff] text-[#7e22ce]">ASSIGN_WORKER</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm">
+<a class="text-secondary hover:underline font-mono" href="#">0x122...bb3a</a>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dcfce7] text-[#166534]">SUCCESS</span>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low transition-colors duration-150">
+<td class="px-6 py-4 whitespace-nowrap text-sm text-on-surface-variant font-medium">3 hours ago</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm font-mono text-on-surface">0x82...aacc</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#e0f2fe] text-[#0369a1]">FUND</span>
+</td>
+<td class="px-6 py-4 whitespace-nowrap text-sm">
+<a class="text-secondary hover:underline font-mono" href="#">0x7d2...ef01</a>
+</td>
+<td class="px-6 py-4 whitespace-nowrap">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#dcfce7] text-[#166534]">SUCCESS</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 bg-gray-50 flex items-center justify-between border-t border-gray-100">
+<span class="text-sm text-on-surface-variant">Showing 5 of 1,240 transactions</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 text-sm font-bold text-primary bg-white border border-gray-200 rounded hover:bg-gray-50 disabled:opacity-50">Previous</button>
+<button class="px-3 py-1 text-sm font-bold text-primary bg-white border border-gray-200 rounded hover:bg-gray-50">Next</button>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-[0_-4px_20px_rgba(17,24,39,0.02)]">
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#111827] text-white rounded-2xl px-4 py-1 scale-110 duration-300" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter">Wallet</span>
+</a>
+</nav>
+<!-- Footer -->
+<footer class="w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-6 bg-[#f7f9fd] dark:bg-gray-950 border-t border-gray-100 dark:border-gray-900">
+<div class="flex flex-col items-center md:items-start gap-2">
+<span class="text-lg font-black text-gray-900 dark:text-white">The Immutable Ledger</span>
+<p class="text-sm font-medium Inter text-gray-500 dark:text-gray-400">© 2024 The Immutable Ledger. Institutional Curator.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">Documentation</a>
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">On-chain Registry</a>
+</div>
+</footer>
+</body></html>
+
+<!-- Dashboard -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>On-chain Task Tracker | Institutional Ledger</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c0c7d1",
+                    "on-surface-variant": "#40474f",
+                    "on-tertiary-container": "#e9dbff",
+                    "surface-bright": "#f7f9fd",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#600ecc",
+                    "inverse-surface": "#2d3134",
+                    "on-secondary-container": "#004f7b",
+                    "surface-tint": "#575e70",
+                    "tertiary-container": "#7939e5",
+                    "error-container": "#ffdad6",
+                    "on-background": "#181c1f",
+                    "secondary-container": "#7bc2ff",
+                    "secondary-fixed-dim": "#94ccff",
+                    "surface-container": "#eceef2",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed": "#250059",
+                    "error": "#ba1a1a",
+                    "background": "#f7f9fd",
+                    "surface-container-highest": "#e0e3e6",
+                    "surface": "#f7f9fd",
+                    "surface-container-low": "#f2f4f8",
+                    "tertiary-fixed": "#ebddff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#dce2f7",
+                    "on-primary-fixed-variant": "#404758",
+                    "inverse-primary": "#c0c6db",
+                    "on-surface": "#181c1f",
+                    "on-secondary-fixed": "#001d32",
+                    "secondary": "#006399",
+                    "tertiary-fixed-dim": "#d3bbff",
+                    "surface-dim": "#d8dade",
+                    "on-tertiary-fixed-variant": "#5b00c5",
+                    "surface-variant": "#e0e3e6",
+                    "on-secondary-fixed-variant": "#004b74",
+                    "on-primary": "#ffffff",
+                    "primary": "#454c5d",
+                    "primary-container": "#5d6476",
+                    "outline": "#707881",
+                    "primary-fixed-dim": "#c0c6db",
+                    "on-primary-fixed": "#141b2b",
+                    "inverse-on-surface": "#eff1f5",
+                    "secondary-fixed": "#cde5ff",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#e6e8ec",
+                    "on-primary-container": "#dbe1f6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .signature-gradient {
+            background: linear-gradient(135deg, #111827 0%, #5d6476 100%);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c0c7d1; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-[#f7f9fd] text-on-surface min-h-screen pb-20 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-[#111827] dark:bg-black fixed top-0 full-width z-50 w-full shadow-[0_12px_40px_rgba(17,24,39,0.08)] bg-gray-900/95 backdrop-blur-xl">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+<div class="text-xl font-bold tracking-tighter text-white font-headline">
+                On-chain Task Tracker
+            </div>
+<nav class="hidden md:flex items-center gap-8 text-sans tracking-tight font-medium">
+<a class="text-white border-b-2 border-white pb-1 transition-all duration-200" href="/">Home</a>
+<a class="text-gray-400 hover:text-white hover:bg-white/10 px-3 py-1 rounded transition-all duration-200" href="#">Tasks</a>
+<a class="text-gray-400 hover:text-white hover:bg-white/10 px-3 py-1 rounded transition-all duration-200" href="#">History</a>
+</nav>
+<button class="bg-white text-[#111827] px-6 py-2 rounded-lg font-bold text-sm hover:bg-white/90 active:scale-95 transition-all">
+                Connect Wallet
+            </button>
+</div>
+</header>
+<main class="max-w-[1200px] mx-auto px-6 pt-24 pb-12">
+<!-- Hero Banner Section -->
+<section class="mb-12">
+<div class="bg-surface-container-lowest rounded-xl p-8 md:p-12 shadow-[0_12px_40px_rgba(17,24,39,0.04)] relative overflow-hidden group">
+<div class="relative z-10 max-w-2xl">
+<h1 class="text-[36px] font-extrabold text-on-surface leading-tight tracking-tight mb-4">
+                        Manage your on-chain tasks with clarity
+                    </h1>
+<p class="text-[18px] text-on-surface-variant leading-[1.6] mb-8 font-medium">
+                        建立任務、追蹤完成狀態，並完成鏈上獎勵結算。
+                    </p>
+<button class="signature-gradient text-on-primary px-8 py-4 rounded-lg font-bold flex items-center gap-2 group-hover:shadow-lg transition-all duration-300">
+                        View Tasks
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<!-- Abstract Decorative Element -->
+<div class="absolute right-0 top-0 w-1/3 h-full opacity-10 pointer-events-none">
+<div class="absolute inset-0 bg-primary-container blur-[100px] rounded-full translate-x-1/2 -translate-y-1/2"></div>
+</div>
+</div>
+</section>
+<!-- Summary Cards Grid -->
+<section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_12px_rgba(17,24,39,0.02)] border-l-4 border-primary">
+<div class="text-[16px] text-on-surface-variant font-semibold mb-2">Total Tasks</div>
+<div class="text-[32px] text-on-surface font-black">128</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_12px_rgba(17,24,39,0.02)] border-l-4 border-[#166534]">
+<div class="text-[16px] text-on-surface-variant font-semibold mb-2">Completed</div>
+<div class="text-[32px] text-on-surface font-black">94</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_12px_rgba(17,24,39,0.02)] border-l-4 border-secondary">
+<div class="text-[16px] text-on-surface-variant font-semibold mb-2">Pending</div>
+<div class="text-[32px] text-on-surface font-black">34</div>
+</div>
+</section>
+<!-- Main Content Area: Editorial Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+<!-- Left Column: Recent Tasks -->
+<section class="lg:col-span-8">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-2xl font-bold tracking-tight text-on-surface">Recent Tasks</h2>
+<button class="text-secondary font-bold text-sm flex items-center gap-1 hover:underline">
+                        View All Tasks
+                        <span class="material-symbols-outlined text-xs">open_in_new</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- Task Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_12px_rgba(17,24,39,0.02)] hover:shadow-[0_12px_40px_rgba(17,24,39,0.04)] transition-all group">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-2">
+<span class="bg-[#dbeafe] text-[#1d4ed8] px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest">IN_PROGRESS</span>
+<span class="bg-surface-container-high text-on-surface px-3 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1">
+<span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+                                        ON-CHAIN
+                                    </span>
+</div>
+<h3 class="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">Governance Proposal Audit</h3>
+<p class="text-on-surface-variant text-sm mt-1">Reviewing smart contract changes for the Q3 treasury distribution protocol.</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="signature-gradient text-on-primary px-4 py-2 rounded-lg text-sm font-bold active:scale-95 transition-transform">
+                                    Complete
+                                </button>
+</div>
+</div>
+</div>
+<!-- Task Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_12px_rgba(17,24,39,0.02)] hover:shadow-[0_12px_40px_rgba(17,24,39,0.04)] transition-all group">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-2">
+<span class="bg-[#e0f2fe] text-[#0369a1] px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest">OPEN</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface group-hover:text-primary transition-colors">Bridge Liquidity Verification</h3>
+<p class="text-on-surface-variant text-sm mt-1">Cross-reference total locked value on L1 against minted assets on L2 nodes.</p>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 rounded-lg bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">edit</span>
+</button>
+<button class="signature-gradient text-on-primary px-4 py-2 rounded-lg text-sm font-bold active:scale-95 transition-transform">
+                                    Start
+                                </button>
+</div>
+</div>
+</div>
+<!-- Task Card 3 (Completed) -->
+<div class="bg-surface-container-lowest/60 rounded-xl p-6 shadow-[0_4px_12px_rgba(17,24,39,0.02)] transition-all group opacity-80">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex-1">
+<div class="flex items-center gap-3 mb-2">
+<span class="bg-[#dcfce7] text-[#166534] px-3 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest">COMPLETED</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface line-through decoration-on-surface-variant/30">Node Validator Update</h3>
+<p class="text-on-surface-variant text-sm mt-1">System upgrade successfully pushed to all institutional validation clusters.</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[#166534] flex items-center gap-1 font-bold text-sm">
+<span class="material-symbols-outlined text-lg">check_circle</span>
+                                    Settled
+                                </span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Column: Sidebar Meta Info -->
+<aside class="lg:col-span-4 space-y-6">
+<!-- Wallet/On-chain Meta -->
+<div class="bg-surface-container-low p-6 rounded-xl">
+<h3 class="font-bold text-on-surface mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+                        Wallet Snapshot
+                    </h3>
+<div class="space-y-4">
+<div class="flex justify-between items-center pb-3 border-b border-outline-variant/10">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Address</span>
+<span class="text-sm font-mono bg-surface-container-highest px-2 py-0.5 rounded">0x71...4F92</span>
+</div>
+<div class="flex justify-between items-center pb-3 border-b border-outline-variant/10">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Network</span>
+<span class="text-sm font-bold text-on-surface">Mainnet</span>
+</div>
+<div class="flex justify-between items-center">
+<span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Rewards Due</span>
+<span class="text-sm font-black text-secondary">4.28 ETH</span>
+</div>
+</div>
+</div>
+<!-- Empty State Preview -->
+<div class="bg-surface-container-lowest border border-dashed border-outline-variant p-8 rounded-xl text-center">
+<div class="w-12 h-12 bg-surface-container-low rounded-full flex items-center justify-center mx-auto mb-4">
+<span class="material-symbols-outlined text-on-surface-variant">post_add</span>
+</div>
+<h4 class="font-bold text-on-surface">No filter tasks found</h4>
+<p class="text-sm text-on-surface-variant mt-2 leading-relaxed">
+                        Start by creating your first on-chain task.<br/>
+                        建立任務、追蹤完成狀態。
+                    </p>
+<button class="mt-4 text-primary font-bold text-sm flex items-center gap-1 mx-auto hover:underline transition-all">
+                        Create Task
+                        <span class="material-symbols-outlined text-xs">add</span>
+</button>
+</div>
+</aside>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-[#f7f9fd] dark:bg-gray-950 border-t border-gray-100 dark:border-gray-900 mt-20">
+<div class="w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-6 max-w-screen-2xl mx-auto">
+<div class="flex flex-col items-center md:items-start">
+<div class="text-lg font-black text-gray-900 dark:text-white mb-2">The Immutable Ledger</div>
+<div class="text-sm font-medium text-gray-500 dark:text-gray-400">© 2024 The Immutable Ledger. Institutional Curator.</div>
+</div>
+<div class="flex gap-8">
+<a class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all" href="#">Documentation</a>
+<a class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all" href="#">Privacy Policy</a>
+<a class="text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all" href="#">On-chain Registry</a>
+</div>
+</div>
+</footer>
+<!-- BottomNavBar (Mobile Only) -->
+<div class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-[0_-4px_20px_rgba(17,24,39,0.02)] border-t border-gray-100 dark:border-gray-800">
+<a class="flex flex-col items-center justify-center bg-[#111827] text-white rounded-2xl px-4 py-1 active:scale-110 duration-300 transition-transform" href="/">
+<span class="material-symbols-outlined">home</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+<span class="text-[10px] font-bold uppercase tracking-widest mt-1">Wallet</span>
+</a>
+</div>
+</body></html>
+
+<!-- Task List -->
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tasks - On-chain Task Tracker</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "outline-variant": "#c0c7d1",
+                    "on-surface-variant": "#40474f",
+                    "on-tertiary-container": "#e9dbff",
+                    "surface-bright": "#f7f9fd",
+                    "on-error-container": "#93000a",
+                    "tertiary": "#600ecc",
+                    "inverse-surface": "#2d3134",
+                    "on-secondary-container": "#004f7b",
+                    "surface-tint": "#575e70",
+                    "tertiary-container": "#7939e5",
+                    "error-container": "#ffdad6",
+                    "on-background": "#181c1f",
+                    "secondary-container": "#7bc2ff",
+                    "secondary-fixed-dim": "#94ccff",
+                    "surface-container": "#eceef2",
+                    "on-secondary": "#ffffff",
+                    "on-tertiary-fixed": "#250059",
+                    "error": "#ba1a1a",
+                    "background": "#f7f9fd",
+                    "surface-container-highest": "#e0e3e6",
+                    "surface": "#f7f9fd",
+                    "surface-container-low": "#f2f4f8",
+                    "tertiary-fixed": "#ebddff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#dce2f7",
+                    "on-primary-fixed-variant": "#404758",
+                    "inverse-primary": "#c0c6db",
+                    "on-surface": "#181c1f",
+                    "on-secondary-fixed": "#001d32",
+                    "secondary": "#006399",
+                    "tertiary-fixed-dim": "#d3bbff",
+                    "surface-dim": "#d8dade",
+                    "on-tertiary-fixed-variant": "#5b00c5",
+                    "surface-variant": "#e0e3e6",
+                    "on-secondary-fixed-variant": "#004b74",
+                    "on-primary": "#ffffff",
+                    "primary": "#454c5d",
+                    "primary-container": "#5d6476",
+                    "outline": "#707881",
+                    "primary-fixed-dim": "#c0c6db",
+                    "on-primary-fixed": "#141b2b",
+                    "inverse-on-surface": "#eff1f5",
+                    "secondary-fixed": "#cde5ff",
+                    "on-error": "#ffffff",
+                    "surface-container-high": "#e6e8ec",
+                    "on-primary-container": "#dbe1f6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Inter", "sans-serif"],
+                    "body": ["Inter", "sans-serif"],
+                    "label": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fd; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="text-on-surface selection:bg-secondary-container/30">
+<!-- TopAppBar -->
+<header class="bg-[#111827] dark:bg-black fixed top-0 w-full z-50 bg-gray-900/95 backdrop-blur-xl shadow-[0_12px_40px_rgba(17,24,39,0.08)]">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tighter text-white">On-chain Task Tracker</span>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-gray-400 hover:text-white font-sans tracking-tight Inter font-medium transition-all duration-200" href="/">Home</a>
+<a class="text-white border-b-2 border-white pb-1 font-sans tracking-tight Inter font-medium transition-all duration-200" href="/tasks">Tasks</a>
+<a class="text-gray-400 hover:text-white font-sans tracking-tight Inter font-medium transition-all duration-200" href="/history">History</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden lg:flex items-center gap-3 bg-white/10 px-4 py-2 rounded-lg border border-white/10">
+<span class="font-mono text-xs text-white/70">0x1234…abcd</span>
+<div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+</div>
+<button class="bg-[#111827] text-white border border-white/20 hover:bg-white/10 transition-all duration-200 px-6 py-2 rounded-lg text-sm font-bold tracking-tight active:scale-95">Disconnect</button>
+</div>
+</div>
+</header>
+<main class="pt-28 pb-20 px-6 max-w-[1200px] mx-auto min-h-screen">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
+<div class="space-y-1">
+<h1 class="text-[32px] font-extrabold tracking-tighter text-[#181c1f]">Tasks</h1>
+<p class="text-on-surface-variant flex items-center gap-2">
+                    Review your current on-chain task records. 
+                    <span class="text-xs opacity-50 font-medium">查看您当前的链上任务记录。</span>
+</p>
+</div>
+<button class="bg-[#111827] text-white px-8 py-3 rounded-lg font-bold flex items-center gap-2 hover:bg-[#5d6476] transition-all duration-300 shadow-sm active:scale-95">
+<span class="material-symbols-outlined text-[20px]" data-icon="add_circle">add_circle</span>
+                Create Task
+            </button>
+</div>
+<!-- Feedback Banner -->
+<div class="mb-8 p-4 bg-[#dcfce7] border border-[#166534]/10 rounded-[12px] flex items-center gap-3 animate-fade-in">
+<span class="material-symbols-outlined text-[#166534]" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<p class="text-[#166534] font-medium text-sm">Successfully synced with Ethereum Mainnet. All records are up to date.</p>
+</div>
+<!-- Filter Tabs -->
+<div class="flex items-center gap-3 mb-8 overflow-x-auto no-scrollbar py-2">
+<button class="px-6 py-2 bg-[#111827] text-white rounded-full text-sm font-bold transition-all shadow-md">All</button>
+<button class="px-6 py-2 bg-white text-[#374151] border border-[#d1d5db] rounded-full text-sm font-medium hover:border-[#111827] transition-all">Completed</button>
+<button class="px-6 py-2 bg-white text-[#374151] border border-[#d1d5db] rounded-full text-sm font-medium hover:border-[#111827] transition-all">Pending</button>
+</div>
+<!-- Task Grid -->
+<div class="grid grid-cols-1 gap-4">
+<!-- Task Card 1: OPEN -->
+<div class="bg-white p-6 rounded-xl border-none shadow-[0_12px_40px_rgba(17,24,39,0.04)] hover:shadow-[0_12px_40px_rgba(17,24,39,0.08)] transition-all flex flex-col md:flex-row justify-between gap-6 group">
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-3">
+<h2 class="text-[20px] font-bold text-[#181c1f]">Smart Contract Audit: Liquidity Module</h2>
+<span class="px-3 py-1 bg-[#e0f2fe] text-[#0369a1] text-[10px] font-black uppercase tracking-widest rounded-full">OPEN</span>
+</div>
+<p class="text-on-surface-variant line-clamp-2 leading-relaxed text-sm">Review the newly deployed liquidity provision module for vulnerability patterns and gas optimization. Must submit formal report.</p>
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-on-surface-variant/70 pt-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="priority_high">priority_high</span>
+                            High Priority
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="payments">payments</span>
+                            1.25 ETH Reward
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="event">event</span>
+                            Due: Oct 24, 2024
+                        </div>
+</div>
+</div>
+<div class="flex items-center md:items-end justify-end gap-3 self-end md:self-center">
+<button class="px-5 py-2.5 text-sm font-bold text-[#111827] hover:bg-surface-container-low rounded-lg transition-all">Edit</button>
+<button class="px-6 py-2.5 text-sm font-bold bg-[#111827] text-white rounded-lg hover:bg-[#5d6476] transition-all shadow-sm active:scale-95">Accept Task</button>
+</div>
+</div>
+<!-- Task Card 2: IN PROGRESS -->
+<div class="bg-white p-6 rounded-xl border-none shadow-[0_12px_40px_rgba(17,24,39,0.04)] hover:shadow-[0_12px_40px_rgba(17,24,39,0.08)] transition-all flex flex-col md:flex-row justify-between gap-6">
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-3">
+<h2 class="text-[20px] font-bold text-[#181c1f]">DAO Governance Proposal Draft</h2>
+<span class="px-3 py-1 bg-[#dbeafe] text-[#1d4ed8] text-[10px] font-black uppercase tracking-widest rounded-full">IN_PROGRESS</span>
+</div>
+<p class="text-on-surface-variant line-clamp-2 leading-relaxed text-sm">Collaborative drafting of the Q4 expansion proposal. Focus on treasury allocation for cross-chain infrastructure.</p>
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-on-surface-variant/70 pt-2">
+<div class="flex items-center gap-1.5 text-secondary">
+<span class="material-symbols-outlined text-sm" data-icon="bolt">bolt</span>
+                            Medium Priority
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="payments">payments</span>
+                            0.50 ETH Reward
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="event">event</span>
+                            Due: Oct 12, 2024
+                        </div>
+</div>
+</div>
+<div class="flex items-center md:items-end justify-end gap-3 self-end md:self-center">
+<button class="px-5 py-2.5 text-sm font-bold text-[#111827] hover:bg-surface-container-low rounded-lg transition-all">Cancel</button>
+<button class="px-6 py-2.5 text-sm font-bold bg-[#111827] text-white rounded-lg hover:bg-[#5d6476] transition-all shadow-sm active:scale-95">Submit Proof</button>
+</div>
+</div>
+<!-- Task Card 3: ON-CHAIN -->
+<div class="bg-surface-container-low p-6 rounded-xl border-none shadow-none flex flex-col md:flex-row justify-between gap-6 opacity-90">
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-3">
+<h2 class="text-[20px] font-bold text-[#181c1f]">Bug Bounty: Front-end Interface</h2>
+<span class="px-3 py-1 bg-surface-container-high text-[#181c1f] text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1.5">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            ON-CHAIN
+                        </span>
+</div>
+<p class="text-on-surface-variant line-clamp-2 leading-relaxed text-sm">Critical UI vulnerability found in the staking modal. Reported and verified on-chain via Immunefi integration.</p>
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-on-surface-variant/70 pt-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="tag">tag</span>
+                            ID: 9928-XA
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="payments">payments</span>
+                            2.00 ETH Reward
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="history">history</span>
+                            Verified 2h ago
+                        </div>
+</div>
+</div>
+<div class="flex items-center md:items-end justify-end gap-3 self-end md:self-center">
+<button class="px-6 py-2.5 text-sm font-bold text-secondary flex items-center gap-1.5 hover:underline">
+                        View Details
+                        <span class="material-symbols-outlined text-sm" data-icon="open_in_new">open_in_new</span>
+</button>
+</div>
+</div>
+<!-- Task Card 4: COMPLETED -->
+<div class="bg-white p-6 rounded-xl border-none shadow-[0_12px_40px_rgba(17,24,39,0.04)] flex flex-col md:flex-row justify-between gap-6">
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-3">
+<h2 class="text-[20px] font-bold text-[#181c1f]">Community Translation (Mandarin)</h2>
+<span class="px-3 py-1 bg-[#dcfce7] text-[#166534] text-[10px] font-black uppercase tracking-widest rounded-full">COMPLETED</span>
+</div>
+<p class="text-on-surface-variant line-clamp-2 leading-relaxed text-sm">Full translation of the developer documentation and API reference for the APAC expansion phase.</p>
+<div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-on-surface-variant/70 pt-2">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="verified">verified</span>
+                            On-chain Verified
+                        </div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-sm" data-icon="payments">payments</span>
+                            0.15 ETH Reward
+                        </div>
+</div>
+</div>
+<div class="flex items-center md:items-end justify-end gap-3 self-end md:self-center">
+<span class="text-xs font-bold text-[#166534] bg-[#dcfce7]/50 px-4 py-2 rounded-lg">Funds Released</span>
+</div>
+</div>
+</div>
+<!-- Pagination / Footer Info -->
+<div class="mt-12 flex justify-center">
+<div class="flex items-center gap-1 p-1 bg-surface-container-low rounded-xl">
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white transition-all">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg bg-[#111827] text-white font-bold">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white font-medium">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white font-medium">3</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white transition-all">
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-[#f7f9fd] dark:bg-gray-950 w-full py-12 px-8 flex flex-col md:flex-row justify-between items-center gap-6 border-t border-gray-100 dark:border-gray-900">
+<div class="flex flex-col gap-2 items-center md:items-start">
+<span class="text-lg font-black text-gray-900 dark:text-white">The Immutable Ledger</span>
+<p class="text-sm font-medium Inter text-gray-500 dark:text-gray-400">© 2024 The Immutable Ledger. Institutional Curator.</p>
+</div>
+<div class="flex gap-8">
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">Documentation</a>
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">Privacy Policy</a>
+<a class="text-sm font-medium Inter text-gray-500 dark:text-gray-400 hover:text-[#111827] dark:hover:text-white underline transition-all opacity-80 hover:opacity-100" href="#">On-chain Registry</a>
+</div>
+</footer>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe pt-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg shadow-[0_-4px_20px_rgba(17,24,39,0.02)] border-t border-gray-100 dark:border-gray-800">
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 transition-colors" href="/">
+<span class="material-symbols-outlined text-[24px]" data-icon="home">home</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-[#111827] text-white rounded-2xl px-4 py-1 transition-transform scale-110 duration-300" href="/tasks">
+<span class="material-symbols-outlined text-[24px]" data-icon="assignment">assignment</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter mt-1">Tasks</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 transition-colors" href="/history">
+<span class="material-symbols-outlined text-[24px]" data-icon="history">history</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter mt-1">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 px-4 py-1 transition-colors" href="/wallet">
+<span class="material-symbols-outlined text-[24px]" data-icon="account_balance_wallet">account_balance_wallet</span>
+<span class="text-[10px] font-bold uppercase tracking-widest Inter mt-1">Wallet</span>
+</a>
+</nav>
+</body></html>

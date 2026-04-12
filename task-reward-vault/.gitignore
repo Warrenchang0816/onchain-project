@@ -1,0 +1,14 @@
+# 環境變數（含私鑰，絕對不可提交）
+.env
+
+# Hardhat 編譯產物與快取
+artifacts/
+cache/
+typechain-types/
+
+# Node modules
+node_modules/
+
+# 覆蓋報告
+coverage/
+coverage.json

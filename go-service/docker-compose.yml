@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  go-service:
+    build: .
+    image: go-service:1.0.0
+    container_name: go-service
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      APP_PORT: ${APP_PORT}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: "disable"
+      APP_CHAIN_ID: ${APP_CHAIN_ID}
+      APP_RPC_URL: ${APP_RPC_URL}
+      APP_REWARD_VAULT_ADDRESS: ${APP_REWARD_VAULT_ADDRESS}
+      APP_PLATFORM_FEE_BPS: ${APP_PLATFORM_FEE_BPS}
+      APP_GOD_MODE_WALLET_ADDRESS: ${APP_GOD_MODE_WALLET_ADDRESS}
+      APP_PLATFORM_TREASURY_ADDRESS: ${APP_PLATFORM_TREASURY_ADDRESS}
+      APP_PLATFORM_OPERATOR_PRIVATE_KEY: ${APP_PLATFORM_OPERATOR_PRIVATE_KEY}
