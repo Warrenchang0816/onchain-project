@@ -4,8 +4,9 @@ pragma solidity ^0.8.24;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract TaskRewardVault is AccessControl {
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
+    bytes32 public constant OPERATOR_ROLE  = keccak256("OPERATOR_ROLE");
+    bytes32 public constant TREASURY_ROLE  = keccak256("TREASURY_ROLE");
+    bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
 
     uint256 public immutable feeBps;
     address public feeTreasury;
@@ -39,6 +40,7 @@ contract TaskRewardVault is AccessControl {
     event RewardClaimed(bytes32 indexed taskId, address indexed worker, uint256 workerAmount, uint256 platformFee);
     event TaskRefunded(bytes32 indexed taskId, address indexed poster, uint256 amount);
     event PlatformFeesWithdrawn(address indexed to, uint256 amount);
+    event EmergencyWithdrawETH(address indexed to, uint256 amount);
 
     constructor(
         address admin,
@@ -52,8 +54,9 @@ contract TaskRewardVault is AccessControl {
         require(_feeBps <= 1000, "fee too high");
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(OPERATOR_ROLE, operator);
-        _grantRole(TREASURY_ROLE, treasury);
+        _grantRole(OPERATOR_ROLE,  operator);
+        _grantRole(TREASURY_ROLE,  treasury);
+        _grantRole(EMERGENCY_ROLE, admin);
 
         feeTreasury = treasury;
         feeBps = _feeBps;
@@ -150,6 +153,25 @@ contract TaskRewardVault is AccessControl {
         require(success, "withdraw failed");
 
         emit PlatformFeesWithdrawn(to, amount);
+    }
+
+    /**
+     * @notice 緊急提領：將合約內所有 ETH 轉至指定地址
+     * @dev 僅限 DEFAULT_ADMIN_ROLE，用於合約升級或緊急情境
+     *      ⚠️ 此函式會提走所有資金，包含尚未結案的任務押金，謹慎使用
+     * @param to 提領目標地址
+     */
+    function emergencyWithdrawETH(address to) external onlyRole(EMERGENCY_ROLE) {
+        require(to != address(0), "invalid to");
+        uint256 balance = address(this).balance;
+        require(balance > 0, "nothing to withdraw");
+
+        accumulatedFees = 0;
+
+        (bool success, ) = payable(to).call{value: balance}("");
+        require(success, "emergency withdraw failed");
+
+        emit EmergencyWithdrawETH(to, balance);
     }
 
     function getTask(bytes32 taskId) external view returns (TaskEscrow memory) {

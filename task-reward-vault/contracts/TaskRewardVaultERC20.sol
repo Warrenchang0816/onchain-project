@@ -5,8 +5,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract TaskRewardVaultERC20 is AccessControl {
-    bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
-    bytes32 public constant TREASURY_ROLE = keccak256("TREASURY_ROLE");
+    bytes32 public constant OPERATOR_ROLE  = keccak256("OPERATOR_ROLE");
+    bytes32 public constant TREASURY_ROLE  = keccak256("TREASURY_ROLE");
+    bytes32 public constant EMERGENCY_ROLE = keccak256("EMERGENCY_ROLE");
 
     uint256 public immutable feeBps;
     address public feeTreasury;
@@ -41,6 +42,7 @@ contract TaskRewardVaultERC20 is AccessControl {
     event RewardClaimed(bytes32 indexed taskId, address indexed worker, address indexed token, uint256 workerAmount, uint256 platformFee);
     event TaskRefunded(bytes32 indexed taskId, address indexed poster, address indexed token, uint256 amount);
     event PlatformFeesWithdrawn(address indexed token, address indexed to, uint256 amount);
+    event EmergencyWithdrawToken(address indexed token, address indexed to, uint256 amount);
 
     constructor(
         address admin,
@@ -54,8 +56,9 @@ contract TaskRewardVaultERC20 is AccessControl {
         require(_feeBps <= 1000, "fee too high");
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(OPERATOR_ROLE, operator);
-        _grantRole(TREASURY_ROLE, treasury);
+        _grantRole(OPERATOR_ROLE,  operator);
+        _grantRole(TREASURY_ROLE,  treasury);
+        _grantRole(EMERGENCY_ROLE, admin);
 
         feeTreasury = treasury;
         feeBps = _feeBps;
@@ -146,5 +149,27 @@ contract TaskRewardVaultERC20 is AccessControl {
         require(IERC20(token).transfer(to, amount), "withdraw failed");
 
         emit PlatformFeesWithdrawn(token, to, amount);
+    }
+
+    /**
+     * @notice 緊急提領：將合約內指定 token 的全部餘額轉至指定地址
+     * @dev 僅限 DEFAULT_ADMIN_ROLE，用於合約升級、意外轉入的 token 救援等緊急情境
+     *      ⚠️ 此函式會提走指定 token 的全部餘額（包含鎖倉中的任務資金），謹慎使用
+     * @param token 要提領的 ERC20 token 合約地址
+     * @param to    提領目標地址
+     */
+    function emergencyWithdrawToken(address token, address to) external onlyRole(EMERGENCY_ROLE) {
+        require(token != address(0), "invalid token");
+        require(to != address(0), "invalid to");
+
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        require(balance > 0, "nothing to withdraw");
+
+        // 重置此 token 的累計手續費，避免狀態不一致
+        accumulatedFeesByToken[token] = 0;
+
+        require(IERC20(token).transfer(to, balance), "emergency withdraw failed");
+
+        emit EmergencyWithdrawToken(token, to, balance);
     }
 }

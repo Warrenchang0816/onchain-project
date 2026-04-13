@@ -74,18 +74,6 @@ const FundTaskButton = ({ task, onSuccess }: FundTaskButtonProps) => {
         if (!address) return;
 
         if (task.paymentAssetType !== "NATIVE") {
-            return null;
-        }
-
-        if (!isAddress(REWARD_VAULT_ADDRESS)) {
-            return null;
-        }
-
-        if (!task.canFund) {
-            return null;
-        }
-
-        if (task.paymentAssetType !== "NATIVE") {
             setErrorMessage("This task uses ERC20 funding and cannot be funded with the native vault flow.");
             return;
         }

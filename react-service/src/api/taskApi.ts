@@ -124,7 +124,8 @@ export async function acceptTask(id: number): Promise<void> {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to accept task: ${response.status}`);
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message || `Failed to accept task: ${response.status}`);
     }
 }
 
@@ -149,7 +150,8 @@ export async function submitTask(id: number, payload: SubmitTaskPayload): Promis
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to submit task: ${response.status}`);
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message || `Failed to submit task: ${response.status}`);
     }
 }
 
@@ -163,7 +165,8 @@ export async function approveTask(id: number): Promise<void> {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to approve task: ${response.status}`);
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.message || `Failed to approve task: ${response.status}`);
     }
 }
 
