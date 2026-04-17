@@ -1,6 +1,7 @@
-import { defineConfig, configVariable } from "hardhat/config";
+import { defineConfig, configVariable, } from "hardhat/config";
 import hardhatViem from "@nomicfoundation/hardhat-viem";
 import hardhatToolboxViem from "@nomicfoundation/hardhat-toolbox-viem";
+import "@nomicfoundation/hardhat-verify";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -8,6 +9,11 @@ dotenv.config();
 
 export default defineConfig({
     plugins: [hardhatViem, hardhatToolboxViem],
+    verify: {
+        etherscan: {
+            apiKey: configVariable("ETHERSCAN_API_KEY"),
+        },
+    },
     solidity: {
         version: "0.8.28",
         settings: {
@@ -26,4 +32,5 @@ export default defineConfig({
             accounts: [configVariable("SEPOLIA_PRIVATE_KEY")],
         },
     },
+
 });

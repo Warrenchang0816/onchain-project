@@ -1,49 +1,56 @@
+# Secrets / local machine config
 .env
+*.local
 .claude/settings.local.json
 
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
+# OS / editor
+.DS_Store
+.idea/
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-.env
-.claude/settings.local.json
+# Logs / temp / backup
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.tmp
+*.bak
+*.orig
+*.rej
 
-.env
-data/
-refs/
+# Python helper scripts
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
 
-# 環境變數（含私鑰，絕對不可提交）
-.env
+# React frontend
+/react-service/node_modules/
+/react-service/dist/
+/react-service/dist-ssr/
 
-# Hardhat 編譯產物與快取
-artifacts/
-cache/
-typechain-types/
+# Go backend
+/go-service/.gocache/
+/go-service/*.log
+/go-service/server.exe
 
-# Node modules
-node_modules/
+# Hardhat / contracts
+/task-reward-vault/node_modules/
+/task-reward-vault/artifacts/
+/task-reward-vault/cache/
+/task-reward-vault/typechain-types/
+/task-reward-vault/coverage/
+/task-reward-vault/coverage.json
 
-# 覆蓋報告
-coverage/
-coverage.json
+# Project-local ignored data
+/data/
+/docs/refs/

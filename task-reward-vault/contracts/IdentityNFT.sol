@@ -1,87 +1,82 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title IdentityNFT
- * @notice 可信房屋媒合平台 — 身份憑證 SBT（Soulbound Token）
+ * @notice 可信房屋媒合平台 — 多角色身份 SBT（ERC-1155 Soulbound Token）
+ *
+ * Token ID 定義：
+ *   1 = NATURAL_PERSON  自然人（eKYC + 錢包綁定）
+ *   2 = OWNER           屋主（產權文件驗證）
+ *   3 = TENANT          租客（收入/工作證明）
+ *   4 = AGENT           仲介（不動產證照）
  *
  * 設計原則：
- *   - KYC 不自建，採第三方身份驗證（第一階段：TWID）
- *   - 平台接收驗證結果後，Mint 一枚 SBT 作為鏈上身份憑證
- *   - SBT = 不可轉讓的 NFT（靈魂綁定）
- *   - 不存原始個資，只存 provider、referenceId、identityHash
- *
- *   一人一帳號規則：
- *   - referenceId（TWID 參考識別碼）全局唯一
- *   - 同一 referenceId 不可 bind 第二個錢包
- *
- *   換錢包流程（Wallet Rebind）：
- *   - 使用者重新透過 TWID 驗證
- *   - OPERATOR 呼叫 rebind()：burn 舊 token → mint 新 token 到新地址
+ *   - SBT：所有 token 不可轉讓（持有人無法 transfer）
+ *   - 一人一自然人：referenceId（identity hash）全局唯一，同一身份不可綁定第二個錢包
+ *   - 一個錢包每種角色最多持有 1 枚
+ *   - OPERATOR 可執行 mint / revoke / rebind（換錢包）
+ *   - 平台不儲存任何個資，僅上鏈 referenceId（身份 hash）
  *
  * 角色：
- *   DEFAULT_ADMIN_ROLE — OZ 角色管理機制（不用於業務操作）
- *   OPERATOR_ROLE      — 平台後端，接收 TWID callback 後 mint / rebind / revoke
- *
- * 流程（對應後端）：
- *   1. 使用者 SIWE 登入 → 後端記錄 wallet
- *   2. 前端跳轉 TWID → 使用者完成身份驗證
- *   3. TWID callback 到後端 → 取得 referenceId + verified 結果
- *   4. 後端 OPERATOR 呼叫 mint()
- *   5. 使用者取得 SBT，KYC 狀態完成
+ *   DEFAULT_ADMIN_ROLE — OZ 角色管理（不用於業務操作）
+ *   OPERATOR_ROLE      — 平台後端，負責 mint / revoke / rebind
  */
-contract IdentityNFT is ERC721, AccessControl {
+contract IdentityNFT is ERC1155, AccessControl {
     bytes32 public constant OPERATOR_ROLE = keccak256("OPERATOR_ROLE");
 
-    uint256 private _nextTokenId;
+    // ── Token ID 常數 ────────────────────────────────────────
+    uint256 public constant NATURAL_PERSON = 1;
+    uint256 public constant OWNER          = 2;
+    uint256 public constant TENANT         = 3;
+    uint256 public constant AGENT          = 4;
 
+    // ── 自然人 SBT 的身份資訊（只存在 tokenId=1）────────────
     struct IdentityInfo {
-        string  provider;       // TWID | bank-kyc | telecom（未來擴充）
-        bytes32 referenceId;    // provider 回傳的參考識別碼（hashed）
-        bytes32 identityHash;   // platform 計算之 hash（不含原始個資）
+        string  provider;       // "eKYC"
+        bytes32 referenceId;    // SHA-256(person_hash + wallet)，不含原始個資
+        bytes32 identityHash;   // 同上（冗餘存放，保持向後相容）
         uint256 mintedAt;
     }
 
-    // tokenId → identity info
-    mapping(uint256 => IdentityInfo) public identities;
+    // wallet → tokenId → IdentityInfo（目前只有 NATURAL_PERSON 有 info）
+    mapping(address => mapping(uint256 => IdentityInfo)) public identities;
 
-    // wallet address → tokenId（0 表示未持有）
-    mapping(address => uint256) public walletToTokenId;
-
-    // referenceId → wallet（確保一人一帳號）
+    // referenceId → wallet（自然人唯一性保證）
     mapping(bytes32 => address) public referenceToWallet;
 
-    // --------------------------------------------------------
-    // Events
-    // --------------------------------------------------------
+    // ── Events ───────────────────────────────────────────────
     event IdentityMinted(
-        uint256 indexed tokenId,
         address indexed owner,
+        uint256 indexed tokenId,
         string  provider,
         bytes32 referenceId,
         uint256 mintedAt
     );
-    event IdentityRebound(
-        uint256 indexed tokenId,
-        address indexed oldOwner,
-        address indexed newOwner,
-        uint256 reboundAt
-    );
-    event IdentityRevoked(
-        uint256 indexed tokenId,
+    event CredentialMinted(
         address indexed owner,
+        uint256 indexed tokenId,
+        uint256 mintedAt
+    );
+    event TokenRevoked(
+        address indexed owner,
+        uint256 indexed tokenId,
         string  reason,
         uint256 revokedAt
     );
+    event WalletRebound(
+        address indexed oldOwner,
+        address indexed newOwner,
+        bytes32 referenceId,
+        uint256 reboundAt
+    );
 
-    // --------------------------------------------------------
-    // Constructor
-    // --------------------------------------------------------
+    // ── Constructor ──────────────────────────────────────────
     constructor(address admin, address operator)
-        ERC721("Platform Identity", "PIDENTITY")
+        ERC1155("")
     {
         require(admin    != address(0), "invalid admin");
         require(operator != address(0), "invalid operator");
@@ -89,41 +84,61 @@ contract IdentityNFT is ERC721, AccessControl {
         _grantRole(OPERATOR_ROLE, operator);
     }
 
-    // --------------------------------------------------------
-    // SBT：禁止一般轉讓
-    // --------------------------------------------------------
+    // ── SBT 核心：禁止一般轉讓 ──────────────────────────────
 
     /**
-     * @dev 覆寫 transferFrom，禁止使用者主動轉讓（SBT 核心限制）
-     *      rebind() 是唯一合法的 "轉移" 路徑，由 OPERATOR 控制
+     * @dev 覆寫 ERC-1155 transfer，所有持有人轉讓全部攔截。
+     *      rebind() 是唯一合法的 "移動" 路徑，由 OPERATOR 控制。
      */
-    function transferFrom(
-        address,
-        address,
-        uint256
-    ) public pure override {
-        revert("IdentityNFT: SBT is non-transferable");
-    }
-
     function safeTransferFrom(
         address,
         address,
+        uint256,
         uint256,
         bytes memory
     ) public pure override {
         revert("IdentityNFT: SBT is non-transferable");
     }
 
-    // --------------------------------------------------------
-    // OPERATOR 操作
-    // --------------------------------------------------------
+    function safeBatchTransferFrom(
+        address,
+        address,
+        uint256[] memory,
+        uint256[] memory,
+        bytes memory
+    ) public pure override {
+        revert("IdentityNFT: SBT is non-transferable");
+    }
+
+    // ── Internal helpers ────────────────────────────────────
 
     /**
-     * @notice Mint 身份 SBT（TWID 驗證通過後由後端呼叫）
+     * @dev SBT 專用 mint — 直接呼叫 _update，不執行 ERC1155Receiver 安全檢查。
+     *
+     * 背景：ERC1155._mint 在 OZ v5 會呼叫 _updateWithAcceptanceCheck，
+     * 進而呼叫 checkOnERC1155Received。對於 EIP-7702 Smart Account（如 MetaMask
+     * Smart Account 模式）這會 revert，因為這類合約未實作 IERC1155Receiver。
+     *
+     * SBT 場景下 receiver check 沒有意義：
+     *   - SBT 不可轉讓，token 不會「永久卡住」，隨時可由 OPERATOR 執行 revoke
+     *   - mint 對象已通過 eKYC，地址合法性由業務層保證
+     */
+    function _mintSBT(address to, uint256 tokenId) private {
+        uint256[] memory ids = new uint256[](1);
+        uint256[] memory amounts = new uint256[](1);
+        ids[0] = tokenId;
+        amounts[0] = 1;
+        _update(address(0), to, ids, amounts);
+    }
+
+    // ── OPERATOR 操作 ────────────────────────────────────────
+
+    /**
+     * @notice Mint 自然人 SBT（eKYC 通過後由後端呼叫）
      * @param to           使用者錢包地址
-     * @param provider     驗證 provider（如 "TWID"）
-     * @param referenceId  TWID 回傳的參考識別碼（bytes32 hash）
-     * @param identityHash platform 端計算的 identity hash
+     * @param provider     驗證來源，如 "eKYC"
+     * @param referenceId  SHA-256(person_hash + wallet)（bytes32）
+     * @param identityHash 同 referenceId（保持 interface 相容）
      */
     function mint(
         address         to,
@@ -135,40 +150,94 @@ contract IdentityNFT is ERC721, AccessControl {
         require(referenceId  != bytes32(0), "invalid referenceId");
         require(identityHash != bytes32(0), "invalid identityHash");
 
-        // 一人一帳號：同一 referenceId 不可綁定第二個 wallet
+        // 一人一帳號：同一身份不可綁定第二個錢包
         require(
             referenceToWallet[referenceId] == address(0),
             "identity already bound to another wallet"
         );
-        // 一個 wallet 只能有一個 SBT
+        // 一個錢包只能有一枚自然人 SBT
         require(
-            walletToTokenId[to] == 0,
-            "wallet already has an identity token"
+            balanceOf(to, NATURAL_PERSON) == 0,
+            "wallet already has a natural person token"
         );
 
-        uint256 tokenId = ++_nextTokenId;
-
-        identities[tokenId] = IdentityInfo({
+        identities[to][NATURAL_PERSON] = IdentityInfo({
             provider:     provider,
             referenceId:  referenceId,
             identityHash: identityHash,
             mintedAt:     block.timestamp
         });
-
-        walletToTokenId[to]          = tokenId;
         referenceToWallet[referenceId] = to;
 
-        _safeMint(to, tokenId);
+        _mintSBT(to, NATURAL_PERSON);
 
-        emit IdentityMinted(tokenId, to, provider, referenceId, block.timestamp);
-        return tokenId;
+        emit IdentityMinted(to, NATURAL_PERSON, provider, referenceId, block.timestamp);
+        return NATURAL_PERSON;
     }
 
     /**
-     * @notice 換錢包（Wallet Rebind）
-     * 使用者重新透過 TWID 驗證後，OPERATOR 將 SBT 從舊錢包遷移到新錢包
-     * @param referenceId 原 TWID reference（用於查找舊 token）
-     * @param newOwner    新錢包地址
+     * @notice Mint 角色憑證 SBT（屋主 / 租客 / 仲介，行政審核通過後呼叫）
+     * @param to      使用者錢包地址（需已持有 NATURAL_PERSON）
+     * @param tokenId 2=OWNER | 3=TENANT | 4=AGENT
+     */
+    function mintCredential(
+        address to,
+        uint256 tokenId
+    ) external onlyRole(OPERATOR_ROLE) {
+        require(to != address(0), "invalid address");
+        require(
+            tokenId == OWNER || tokenId == TENANT || tokenId == AGENT,
+            "invalid credential tokenId"
+        );
+        // 必須先持有自然人 SBT
+        require(
+            balanceOf(to, NATURAL_PERSON) > 0,
+            "must hold NATURAL_PERSON token first"
+        );
+        // 每種角色每個錢包最多一枚
+        require(
+            balanceOf(to, tokenId) == 0,
+            "credential already issued"
+        );
+
+        _mintSBT(to, tokenId);
+
+        emit CredentialMinted(to, tokenId, block.timestamp);
+    }
+
+    /**
+     * @notice 撤銷任意 token（違規處置）
+     * @param wallet  持有人錢包
+     * @param tokenId 要撤銷的 token ID
+     * @param reason  撤銷原因（上鏈記錄）
+     */
+    function revoke(
+        address         wallet,
+        uint256         tokenId,
+        string calldata reason
+    ) external onlyRole(OPERATOR_ROLE) {
+        require(wallet != address(0), "invalid wallet");
+        require(balanceOf(wallet, tokenId) > 0, "token not held");
+
+        _burn(wallet, tokenId, 1);
+
+        // 若撤銷自然人 SBT，同步清除 referenceId 索引
+        if (tokenId == NATURAL_PERSON) {
+            bytes32 refId = identities[wallet][NATURAL_PERSON].referenceId;
+            if (refId != bytes32(0)) {
+                referenceToWallet[refId] = address(0);
+            }
+            delete identities[wallet][NATURAL_PERSON];
+        }
+
+        emit TokenRevoked(wallet, tokenId, reason, block.timestamp);
+    }
+
+    /**
+     * @notice 換錢包（Wallet Rebind）— 重新 eKYC 後由 OPERATOR 執行
+     *         將指定 referenceId 下的所有 token 遷移至新錢包
+     * @param referenceId  原 identity hash（用於查找舊持有人）
+     * @param newOwner     新錢包地址
      */
     function rebind(
         bytes32 referenceId,
@@ -178,75 +247,67 @@ contract IdentityNFT is ERC721, AccessControl {
         require(referenceId != bytes32(0), "invalid referenceId");
 
         address oldOwner = referenceToWallet[referenceId];
-        require(oldOwner != address(0),  "identity not found");
-        require(oldOwner != newOwner,    "same wallet");
-        require(walletToTokenId[newOwner] == 0, "new wallet already has identity");
+        require(oldOwner != address(0), "identity not found");
+        require(oldOwner != newOwner,   "same wallet");
+        require(
+            balanceOf(newOwner, NATURAL_PERSON) == 0,
+            "new wallet already has identity"
+        );
 
-        uint256 tokenId = walletToTokenId[oldOwner];
-        require(tokenId != 0, "token not found");
+        // 轉移自然人 SBT
+        _burn(oldOwner, NATURAL_PERSON, 1);
+        _mintSBT(newOwner, NATURAL_PERSON);
 
-        // 直接修改持有人（繞過 SBT 限制，只有 OPERATOR 可執行）
-        _transfer(oldOwner, newOwner, tokenId);
+        // 移轉角色憑證
+        uint256[3] memory roleIds = [OWNER, TENANT, AGENT];
+        for (uint256 i = 0; i < roleIds.length; i++) {
+            if (balanceOf(oldOwner, roleIds[i]) > 0) {
+                _burn(oldOwner, roleIds[i], 1);
+                _mintSBT(newOwner, roleIds[i]);
+            }
+        }
 
-        // 更新索引
-        walletToTokenId[newOwner] = tokenId;
-        walletToTokenId[oldOwner] = 0;
+        // 更新 identity info 與索引
+        identities[newOwner][NATURAL_PERSON] = identities[oldOwner][NATURAL_PERSON];
+        delete identities[oldOwner][NATURAL_PERSON];
         referenceToWallet[referenceId] = newOwner;
 
-        emit IdentityRebound(tokenId, oldOwner, newOwner, block.timestamp);
+        emit WalletRebound(oldOwner, newOwner, referenceId, block.timestamp);
     }
 
-    /**
-     * @notice 撤銷 SBT（違規處置）
-     * @param referenceId 原 TWID reference
-     * @param reason      撤銷原因（上鏈記錄）
-     */
-    function revoke(
-        bytes32         referenceId,
-        string calldata reason
-    ) external onlyRole(OPERATOR_ROLE) {
-        require(referenceId != bytes32(0), "invalid referenceId");
+    // ── View ─────────────────────────────────────────────────
 
-        address owner   = referenceToWallet[referenceId];
-        require(owner != address(0), "identity not found");
-
-        uint256 tokenId = walletToTokenId[owner];
-        require(tokenId != 0, "token not found");
-
-        emit IdentityRevoked(tokenId, owner, reason, block.timestamp);
-
-        // 清除索引
-        walletToTokenId[owner]           = 0;
-        referenceToWallet[referenceId]   = address(0);
-
-        _burn(tokenId);
-    }
-
-    // --------------------------------------------------------
-    // View
-    // --------------------------------------------------------
-
+    /// @notice 是否通過自然人認證
     function isVerified(address wallet) external view returns (bool) {
-        return walletToTokenId[wallet] != 0;
+        return balanceOf(wallet, NATURAL_PERSON) > 0;
     }
 
+    /// @notice 取得自然人 identity info
     function getIdentityByWallet(address wallet) external view returns (IdentityInfo memory) {
-        uint256 tokenId = walletToTokenId[wallet];
-        require(tokenId != 0, "no identity token");
-        return identities[tokenId];
+        require(balanceOf(wallet, NATURAL_PERSON) > 0, "no identity token");
+        return identities[wallet][NATURAL_PERSON];
     }
 
-    function getIdentityByToken(uint256 tokenId) external view returns (IdentityInfo memory) {
-        return identities[tokenId];
+    /// @notice 批次查詢某錢包持有哪些憑證（回傳各 tokenId 的 balance）
+    function getCredentials(address wallet)
+        external
+        view
+        returns (uint256 naturalPerson, uint256 owner, uint256 tenant, uint256 agent)
+    {
+        return (
+            balanceOf(wallet, NATURAL_PERSON),
+            balanceOf(wallet, OWNER),
+            balanceOf(wallet, TENANT),
+            balanceOf(wallet, AGENT)
+        );
     }
 
-    // --------------------------------------------------------
-    // supportsInterface（ERC721 + AccessControl）
-    // --------------------------------------------------------
+    // ── supportsInterface ────────────────────────────────────
+
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721, AccessControl)
+        override(ERC1155, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);

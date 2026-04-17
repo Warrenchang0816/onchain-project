@@ -1,0 +1,140 @@
+table_name,column_name,data_type,nullable,default,key_type,references,used_by,definition
+users,id,BIGSERIAL,NO,,PK,,user_repo,User primary key
+users,wallet_address,VARCHAR(255),NO,,UNIQUE,,auth+onboarding+user,Canonical wallet address for login and session ownership
+users,kyc_status,VARCHAR(20),NO,UNVERIFIED,INDEX,,user_repo+user_service,Current KYC status: UNVERIFIED|PENDING|VERIFIED|REJECTED
+users,identity_hash,VARCHAR(64),YES,NULL,INDEX,,auth_login+user_repo,Identity binding hash for one-person-one-wallet account mapping
+users,identity_nft_token_id,BIGINT,YES,NULL,,,user_service+indexer,IdentityNFT token id after verification
+users,kyc_mint_tx_hash,VARCHAR(128),YES,NULL,,,user_service+indexer,Transaction hash for IdentityNFT mint
+users,kyc_submitted_at,TIMESTAMPTZ,YES,NULL,,,user_repo,Time when formal KYC entered pending flow
+users,kyc_verified_at,TIMESTAMPTZ,YES,NULL,,,user_repo+indexer,Time when KYC became verified
+users,created_at,TIMESTAMPTZ,NO,NOW(),,,system,Row creation timestamp
+users,updated_at,TIMESTAMPTZ,NO,NOW(),,,system,Row update timestamp
+users,email,VARCHAR(255),YES,NULL,UNIQUE,,onboarding+login,Verified email used during onboarding and account contact
+users,phone,VARCHAR(20),YES,NULL,UNIQUE,,onboarding,Verified phone used during onboarding and account contact
+users,display_name,VARCHAR(100),YES,NULL,,,onboarding,User-facing display name confirmed from OCR data
+users,email_verified,BOOLEAN,NO,FALSE,,,onboarding,Whether email OTP verification completed
+users,phone_verified,BOOLEAN,NO,FALSE,,,onboarding,Whether SMS OTP verification completed
+users,person_hash,VARCHAR(64),YES,NULL,UNIQUE,,onboarding+login,One-person uniqueness hash derived from ID number
+users,password_hash,VARCHAR(255),YES,NULL,,,auth_login,Bcrypt password hash for post-KYC login
+indexer_checkpoints,contract_name,VARCHAR(64),NO,,PK,,indexer,Contract worker name
+indexer_checkpoints,last_processed_block,BIGINT,NO,0,,,indexer,Last fully processed blockchain block number
+indexer_checkpoints,updated_at,TIMESTAMPTZ,NO,NOW(),,,indexer,Checkpoint update timestamp
+processed_events,tx_hash,VARCHAR(128),NO,,PK(partial),,indexer,Processed event transaction hash
+processed_events,log_index,INT,NO,,PK(partial),,indexer,Processed event log index within transaction
+processed_events,contract_name,VARCHAR(64),NO,,, ,indexer,Contract name that emitted the event
+processed_events,event_name,VARCHAR(64),NO,,, ,indexer,Decoded event name
+processed_events,block_number,BIGINT,NO,,, ,indexer,Block number containing the event
+processed_events,processed_at,TIMESTAMPTZ,NO,NOW(),,,indexer,When the event was marked processed
+tasks,id,BIGSERIAL,NO,,PK,,task_repo,Task primary key
+tasks,task_id,VARCHAR(64),NO,,UNIQUE,,task_repo+blockchain_logs,Public task identifier referenced by blockchain logs
+tasks,wallet_address,VARCHAR(255),NO,,INDEX,,task_module,Creator wallet address
+tasks,assignee_wallet_address,VARCHAR(64),YES,NULL,,,task_module,Accepted assignee wallet address
+tasks,title,VARCHAR(255),NO,,, ,task_module,Task title
+tasks,description,TEXT,NO,'' ,,task_module,Task description
+tasks,status,VARCHAR(50),NO,OPEN,INDEX,,task_module,Workflow status: OPEN|IN_PROGRESS|SUBMITTED|APPROVED|CANCELLED|COMPLETED
+tasks,priority,VARCHAR(50),NO,MEDIUM,,,task_module,Task priority label
+tasks,reward_amount,NUMERIC(20;8),NO,0,,,task_module,Reward amount stored as decimal string/number
+tasks,fee_bps,INTEGER,NO,500,,,task_module,Platform fee in basis points
+tasks,chain_id,BIGINT,YES,NULL,,,task_module,Chain id used for on-chain funding record
+tasks,vault_contract_address,VARCHAR(128),YES,NULL,,,task_module,TaskRewardVault contract address for this task
+tasks,contract_task_id,VARCHAR(128),YES,NULL,,,task_module,On-chain task id returned by contract
+tasks,onchain_status,VARCHAR(32),NO,NOT_FUNDED,INDEX,,task_module,On-chain lifecycle status
+tasks,fund_tx_hash,VARCHAR(128),YES,NULL,,,task_module,Funding transaction hash
+tasks,approve_tx_hash,VARCHAR(128),YES,NULL,,,task_module,Approval transaction hash
+tasks,claim_tx_hash,VARCHAR(128),YES,NULL,,,task_module,Claim transaction hash
+tasks,cancel_tx_hash,VARCHAR(128),YES,NULL,,,task_module,Cancel/refund transaction hash
+tasks,due_date,TIMESTAMPTZ,YES,NULL,,,task_module,Task due date
+tasks,created_at,TIMESTAMPTZ,NO,NOW(),,,system,Row creation timestamp
+tasks,updated_at,TIMESTAMPTZ,NO,NOW(),,,system,Row update timestamp
+task_submissions,id,BIGSERIAL,NO,,PK,,task_repo,Submission primary key
+task_submissions,task_id,BIGINT,NO,,FK,tasks(id),task_repo,Parent task row id
+task_submissions,result_content,TEXT,NO,'' ,,task_repo,Main submission content
+task_submissions,result_file_url,VARCHAR(512),YES,NULL,,,task_repo,Optional uploaded result file URL
+task_submissions,result_hash,VARCHAR(128),YES,NULL,,,task_repo,Optional result integrity hash
+task_submissions,submitted_at,TIMESTAMPTZ,NO,NOW(),,,task_repo,Submission timestamp
+task_blockchain_logs,id,BIGSERIAL,NO,,PK,,blockchain_log_repo,Blockchain log primary key
+task_blockchain_logs,task_id,VARCHAR(64),NO,,FK,tasks(task_id),task_module+logs_page,Public task id linked to the task row
+task_blockchain_logs,action,VARCHAR(50),NO,,, ,task_module+logs_page,Recorded blockchain action type
+task_blockchain_logs,tx_hash,VARCHAR(128),NO,,INDEX,,task_module+logs_page,Blockchain transaction hash
+task_blockchain_logs,chain_id,BIGINT,NO,,, ,task_module+logs_page,Blockchain network id
+task_blockchain_logs,contract_address,VARCHAR(128),NO,,, ,task_module+logs_page,Contract address used for the action
+task_blockchain_logs,status,VARCHAR(32),NO,,, ,task_module+logs_page,Action status at log time
+task_blockchain_logs,created_at,TIMESTAMPTZ,NO,NOW(),,,task_module+logs_page,Log creation timestamp
+auth_nonce,id,BIGSERIAL,NO,,PK,,auth_module,Nonce primary key
+auth_nonce,wallet_address,VARCHAR(255),NO,,INDEX,,auth_module+onboarding,Wallet address that requested the nonce
+auth_nonce,nonce,VARCHAR(255),NO,,, ,auth_module+onboarding,SIWE nonce string
+auth_nonce,issued_at,TIMESTAMPTZ,NO,NOW(),,,auth_module+onboarding,Logical nonce issuance time
+auth_nonce,expired_at,TIMESTAMPTZ,NO,,, ,auth_module+onboarding,Nonce expiry time
+auth_nonce,used,BOOLEAN,NO,FALSE,,,auth_module+onboarding,Whether nonce has been consumed
+auth_nonce,created_at,TIMESTAMPTZ,NO,NOW(),,,auth_module,Row creation timestamp
+auth_nonce,updated_at,TIMESTAMPTZ,NO,NOW(),,,auth_module,Row update timestamp
+wallet_session,id,BIGSERIAL,NO,,PK,,session_repo,Session primary key
+wallet_session,session_token,VARCHAR(128),NO,,UNIQUE,,auth_module+onboarding,Opaque session token stored in cookie
+wallet_session,wallet_address,VARCHAR(255),NO,,INDEX,,auth_module+onboarding,Wallet address bound to the session
+wallet_session,chain_id,VARCHAR(32),NO,,, ,auth_module+onboarding,Chain id stored with the session
+wallet_session,expired_at,TIMESTAMPTZ,NO,,, ,auth_module+onboarding,Session expiry time
+wallet_session,revoked,BOOLEAN,NO,FALSE,,,auth_module+onboarding,Whether session was revoked
+wallet_session,created_at,TIMESTAMPTZ,NO,NOW(),,,session_repo,Row creation timestamp
+wallet_session,updated_at,TIMESTAMPTZ,NO,NOW(),,,session_repo,Row update timestamp
+kyc_submissions,id,BIGSERIAL,NO,,PK,,kyc_repo,Formal KYC submission primary key
+kyc_submissions,user_id,BIGINT,NO,,FK,users(id),kyc_repo,Owning user row id
+kyc_submissions,wallet_address,VARCHAR(255),NO,,INDEX,,kyc_repo,Wallet snapshot at submission time
+kyc_submissions,id_front_path,VARCHAR(512),YES,NULL,,,kyc_repo,MinIO path for front-side ID image
+kyc_submissions,id_back_path,VARCHAR(512),YES,NULL,,,kyc_repo,MinIO path for back-side ID image
+kyc_submissions,selfie_path,VARCHAR(512),YES,NULL,,,kyc_repo,MinIO path for selfie image
+kyc_submissions,ocr_name,VARCHAR(100),YES,NULL,,,kyc_repo,OCR extracted name
+kyc_submissions,identity_hash,VARCHAR(64),YES,NULL,UNIQUE,,kyc_repo,Submission identity hash for uniqueness and audit
+kyc_submissions,ocr_birth_date,VARCHAR(30),YES,NULL,,,kyc_repo,OCR extracted birth date
+kyc_submissions,ocr_issue_date,VARCHAR(30),YES,NULL,,,kyc_repo,OCR extracted issue date
+kyc_submissions,ocr_issue_location,VARCHAR(100),YES,NULL,,,kyc_repo,OCR extracted issue location
+kyc_submissions,ocr_address,VARCHAR(255),YES,NULL,,,kyc_repo,OCR extracted address
+kyc_submissions,ocr_father_name,VARCHAR(100),YES,NULL,,,kyc_repo,OCR extracted father name
+kyc_submissions,ocr_mother_name,VARCHAR(100),YES,NULL,,,kyc_repo,OCR extracted mother name
+kyc_submissions,ocr_spouse_name,VARCHAR(100),YES,NULL,,,kyc_repo,OCR extracted spouse name
+kyc_submissions,face_match_score,NUMERIC(5;2),YES,NULL,,,kyc_repo,Face comparison score from Rekognition
+kyc_submissions,ocr_success,BOOLEAN,NO,FALSE,,,kyc_repo,Whether OCR extraction was considered successful
+kyc_submissions,review_status,VARCHAR(20),NO,PENDING,INDEX,,kyc_repo+admin,Combined pipeline/review status field
+kyc_submissions,reviewer_note,TEXT,NO,'' ,,kyc_repo+admin,Admin or system note for the review
+kyc_submissions,reviewed_by_wallet,VARCHAR(255),YES,NULL,,,kyc_repo+admin,Admin wallet that reviewed the submission
+kyc_submissions,submitted_at,TIMESTAMPTZ,NO,NOW(),,,kyc_repo,Submission creation time
+kyc_submissions,reviewed_at,TIMESTAMPTZ,YES,NULL,,,kyc_repo+admin,Time of latest review decision
+kyc_sessions,id,UUID,NO,gen_random_uuid(),PK,,onboarding,Onboarding session id
+kyc_sessions,email,VARCHAR(255),YES,NULL,INDEX,,onboarding,Email captured for this onboarding session
+kyc_sessions,phone,VARCHAR(20),YES,NULL,,,onboarding,Phone captured for this onboarding session
+kyc_sessions,email_verified,BOOLEAN,NO,FALSE,,,onboarding,Whether email OTP was verified
+kyc_sessions,phone_verified,BOOLEAN,NO,FALSE,,,onboarding,Whether SMS OTP was verified
+kyc_sessions,person_hash,VARCHAR(64),YES,NULL,INDEX,,onboarding,Person uniqueness hash before wallet bind
+kyc_sessions,confirmed_name,VARCHAR(100),YES,NULL,,,onboarding,User-confirmed name used for account creation
+kyc_sessions,confirmed_birth_date,VARCHAR(20),YES,NULL,,,onboarding,User-confirmed birth date
+kyc_sessions,ocr_address,VARCHAR(255),YES,NULL,,,onboarding,OCR extracted address held in session
+kyc_sessions,ocr_id_number_hint,VARCHAR(10),YES,NULL,,,onboarding,Masked ID hint for UX only
+kyc_sessions,id_front_path,VARCHAR(512),YES,NULL,,,onboarding,MinIO path for front-side ID image
+kyc_sessions,id_back_path,VARCHAR(512),YES,NULL,,,onboarding,MinIO path for back-side ID image
+kyc_sessions,selfie_path,VARCHAR(512),YES,NULL,,,onboarding,MinIO path for selfie image
+kyc_sessions,second_doc_path,VARCHAR(512),YES,NULL,,,onboarding,MinIO path for second supporting document
+kyc_sessions,face_match_score,NUMERIC(5;2),YES,NULL,,,onboarding,Face comparison score during onboarding
+kyc_sessions,ocr_success,BOOLEAN,NO,FALSE,,,onboarding,Whether OCR extraction succeeded
+kyc_sessions,step,VARCHAR(30),NO,STARTED,INDEX,,onboarding,Current onboarding step marker
+kyc_sessions,bound_user_id,BIGINT,YES,NULL,FK,users(id),onboarding,User row created after wallet bind
+kyc_sessions,expires_at,TIMESTAMPTZ,NO,,INDEX,,onboarding,Session expiry time
+kyc_sessions,created_at,TIMESTAMPTZ,NO,NOW(),,,onboarding,Session creation time
+otp_codes,id,BIGSERIAL,NO,,PK,,otp_repo,OTP primary key
+otp_codes,target,VARCHAR(255),NO,,INDEX,,onboarding,OTP target email or phone
+otp_codes,channel,VARCHAR(10),NO,,, ,onboarding,Delivery channel: email|sms
+otp_codes,code,VARCHAR(6),NO,,, ,onboarding,One-time passcode
+otp_codes,session_id,UUID,YES,NULL,FK,kyc_sessions(id),onboarding,Optional linked onboarding session
+otp_codes,used,BOOLEAN,NO,FALSE,,,onboarding,Whether OTP has been consumed
+otp_codes,expires_at,TIMESTAMPTZ,NO,,, ,onboarding,OTP expiry time
+otp_codes,created_at,TIMESTAMPTZ,NO,NOW(),,,onboarding,OTP creation time
+user_credentials,id,BIGSERIAL,NO,,PK,,credential_repo,Credential primary key
+user_credentials,user_id,BIGINT,NO,,FK,users(id),credential_repo,Owning user row id
+user_credentials,credential_type,VARCHAR(20),NO,,, ,credential_repo,Credential role: OWNER|TENANT|AGENT
+user_credentials,doc_path,VARCHAR(512),YES,NULL,,,credential_repo,Supporting document path in MinIO
+user_credentials,review_status,VARCHAR(20),NO,PENDING,INDEX,,credential_repo,Credential review status
+user_credentials,reviewer_note,TEXT,NO,'' ,,credential_repo,Review note or rejection reason
+user_credentials,reviewed_by_wallet,VARCHAR(255),YES,NULL,,,credential_repo,Reviewer wallet address
+user_credentials,nft_token_id,INT,YES,NULL,,,credential_repo,ERC-1155 token id minted for the credential
+user_credentials,tx_hash,VARCHAR(66),YES,NULL,,,credential_repo,Mint transaction hash
+user_credentials,verified_at,TIMESTAMPTZ,YES,NULL,,,credential_repo,Verification timestamp
+user_credentials,created_at,TIMESTAMPTZ,NO,NOW(),,,credential_repo,Row creation timestamp
+user_credentials,updated_at,TIMESTAMPTZ,NO,NOW(),,,credential_repo,Row update timestamp

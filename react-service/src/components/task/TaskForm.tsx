@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react";
-import type { Task } from "../../types/task";
+import type { Listing } from "../../types/listing";
 import type {
-    CreateTaskPayload,
-    UpdateTaskPayload,
-} from "../../api/taskApi";
+    CreateListingPayload,
+    UpdateListingPayload,
+} from "../../api/listingApi";
 import AppButton from "../common/AppButton";
 
 type TaskFormMode = "create" | "edit";
 
 interface TaskFormProps {
     mode: TaskFormMode;
-    initialTask?: Task | null;
+    initialTask?: Listing | null;
     onSubmit: (
-        payload: CreateTaskPayload | UpdateTaskPayload,
+        payload: CreateListingPayload | UpdateListingPayload,
     ) => Promise<void>;
     onCancel: () => void;
 }
@@ -56,7 +56,7 @@ const TOKEN_OPTIONS = {
     },
 };
 
-const resolveTokenKeyFromTask = (task: Task): "NATIVE" | "USDT" | "PTK" => {
+const resolveTokenKeyFromTask = (task: Listing): "NATIVE" | "USDT" | "PTK" => {
     if (task.paymentAssetType === "NATIVE") {
         return "NATIVE";
     }
@@ -72,6 +72,9 @@ const resolveTokenKeyFromTask = (task: Task): "NATIVE" | "USDT" | "PTK" => {
     return "NATIVE";
 };
 
+// This form is the current compatibility editor for listing/base content fields.
+// The backend record is still task-shaped, so we keep the component name stable
+// while presenting housing-platform language in the UI.
 const TaskForm = ({
     mode,
     initialTask,
@@ -119,7 +122,7 @@ const TaskForm = ({
             if (mode === "create") {
                 const selectedToken = TOKEN_OPTIONS[formValues.paymentTokenKey];
 
-                const payload: CreateTaskPayload = {
+                const payload: CreateListingPayload = {
                     title: formValues.title.trim(),
                     description: formValues.description.trim(),
                     priority: formValues.priority,
@@ -137,7 +140,7 @@ const TaskForm = ({
                 return;
             }
 
-            const payload: UpdateTaskPayload = {
+            const payload: UpdateListingPayload = {
                 title: formValues.title.trim(),
                 description: formValues.description.trim(),
                 priority: formValues.priority,
@@ -155,7 +158,7 @@ const TaskForm = ({
     return (
         <form className="task-form" onSubmit={handleSubmit}>
             <div className="form-field">
-                <label htmlFor="title">Title</label>
+                <label htmlFor="title">房源標題</label>
                 <input
                     id="title"
                     name="title"
@@ -167,7 +170,7 @@ const TaskForm = ({
             </div>
 
             <div className="form-field">
-                <label htmlFor="description">Description</label>
+                <label htmlFor="description">房源說明</label>
                 <textarea
                     id="description"
                     name="description"
@@ -178,23 +181,23 @@ const TaskForm = ({
             </div>
 
             <div className="form-field">
-                <label htmlFor="priority">Priority</label>
+                <label htmlFor="priority">委託優先度</label>
                 <select
                     id="priority"
                     name="priority"
                     value={formValues.priority}
                     onChange={handleChange}
                 >
-                    <option value="LOW">Low</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option>
+                    <option value="LOW">低</option>
+                    <option value="MEDIUM">一般</option>
+                    <option value="HIGH">高</option>
                 </select>
             </div>
 
             {mode === "create" && (
                 <>
                     <div className="form-field">
-                        <label htmlFor="rewardAmount">Reward Amount</label>
+                        <label htmlFor="rewardAmount">委託預算</label>
                         <input
                             id="rewardAmount"
                             name="rewardAmount"
@@ -207,7 +210,7 @@ const TaskForm = ({
                     </div>
 
                     <div className="form-field">
-                        <label htmlFor="paymentTokenKey">Payment Token</label>
+                        <label htmlFor="paymentTokenKey">付款幣別</label>
                         <select
                             id="paymentTokenKey"
                             name="paymentTokenKey"
@@ -223,7 +226,7 @@ const TaskForm = ({
             )}
 
             <div className="form-field">
-                <label htmlFor="dueDate">Due Date</label>
+                <label htmlFor="dueDate">預計截止時間</label>
                 <input
                     id="dueDate"
                     name="dueDate"
@@ -235,15 +238,15 @@ const TaskForm = ({
 
             <div className="form-actions">
                 <AppButton type="button" variant="secondary" onClick={onCancel}>
-                    Cancel
+                    取消
                 </AppButton>
 
                 <AppButton type="submit" disabled={isSubmitting}>
                     {isSubmitting
-                        ? "Submitting..."
+                        ? "儲存中..."
                         : mode === "create"
-                            ? "Create Task"
-                            : "Save Changes"}
+                            ? "建立房源委託"
+                            : "儲存變更"}
                 </AppButton>
             </div>
         </form>

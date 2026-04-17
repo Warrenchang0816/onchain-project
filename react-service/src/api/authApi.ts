@@ -94,3 +94,60 @@ export async function logout(): Promise<AuthLogoutResponse> {
 
     return response.json();
 }
+
+export interface LoginRequest {
+    /** SHA-256(id_number.toUpperCase()) — computed browser-side, raw ID never sent */
+    person_hash: string;
+    siwe_message: string;
+    siwe_signature: string;
+    password: string;
+}
+
+export interface LoginResponse {
+    authenticated: boolean;
+    address: string;
+    email: string;
+    kycStatus: string;
+}
+
+export async function login(payload: LoginRequest): Promise<LoginResponse> {
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+
+    const raw = await response.text();
+    const data = raw ? (JSON.parse(raw) as LoginResponse & { error?: string }) : ({} as LoginResponse & { error?: string });
+
+    if (!response.ok) {
+        throw new Error(data.error || `登入失敗 (${response.status})`);
+    }
+
+    return data;
+}
+
+/** Compute SHA-256 of a string using Web Crypto API (no library needed). */
+export async function sha256hex(input: string): Promise<string> {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+    return Array.from(new Uint8Array(buf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+export async function setPassword(walletAddress: string, password: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/auth/password/set`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ wallet_address: walletAddress, password }),
+    });
+
+    const raw = await response.text();
+    const data = raw ? (JSON.parse(raw) as { error?: string }) : ({} as { error?: string });
+
+    if (!response.ok) {
+        throw new Error(data.error || `設定密碼失敗 (${response.status})`);
+    }
+}

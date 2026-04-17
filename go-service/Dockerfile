@@ -1,10 +1,14 @@
-FROM golang:1.25.4 AS builder
+FROM golang:1.25 AS builder
 
 WORKDIR /app
 
 COPY go.mod go.sum ./
-RUN go mod download
 
+RUN go env
+RUN go mod download -x
+
+# 在複製原始碼並編譯前，插入這個
+ARG CACHEBUST=1
 COPY . .
 
 RUN go build -o server ./cmd/server
@@ -17,6 +21,6 @@ WORKDIR /app
 
 COPY --from=builder /app/server /app/server
 
-EXPOSE 8080
+EXPOSE 8081
 
 CMD ["/app/server"]

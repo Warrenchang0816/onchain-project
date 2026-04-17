@@ -7,10 +7,16 @@ import (
 	"go-service/internal/db/repository"
 	"go-service/internal/platform/blockchain"
 	"go-service/internal/platform/config"
+	"go-service/internal/platform/faceai"
 	platdb "go-service/internal/platform/db"
 	"go-service/internal/platform/indexer"
+	"go-service/internal/platform/notify"
+	"go-service/internal/platform/ocr"
+	"go-service/internal/platform/storage"
 	authmod "go-service/internal/modules/auth"
+	onboardingmod "go-service/internal/modules/onboarding"
 	"go-service/internal/modules/task"
+	usermod "go-service/internal/modules/user"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,6 +30,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 
 	// ── 2. 設定 ───────────────────────────────────────────────
 	blockchainConfig := config.LoadBlockchainConfig()
+	ekycConfig := config.LoadEKYCConfig()
 
 	// ── 3. 區塊鏈客戶端（Indexer 只讀連線）───────────────────
 	var ethClient *blockchain.Client
@@ -42,6 +49,11 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	logRepo := repository.NewBlockchainLogRepository(postgresDB)
 	nonceRepo := repository.NewNonceRepository(postgresDB)
 	sessionRepo := repository.NewSessionRepository(postgresDB)
+	userRepo := repository.NewUserRepository(postgresDB)
+	kycRepo := repository.NewKYCSubmissionRepository(postgresDB)
+	otpRepo := repository.NewOTPRepository(postgresDB)
+	kycSessionRepo := repository.NewKYCSessionRepository(postgresDB)
+	credentialRepo := repository.NewUserCredentialRepository(postgresDB)
 
 	// ── 5. Task module ────────────────────────────────────────
 	taskPermissionSvc := task.NewTaskPermissionService(blockchainConfig.GodModeWalletAddress)
@@ -63,27 +75,134 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	logHandler := task.NewBlockchainLogHandler(logRepo)
 
 	// ── 6. Auth module ────────────────────────────────────────
+	siweCfg := config.LoadSIWEConfig()
 	authHandler := authmod.NewHandler(nonceRepo, sessionRepo)
+	loginHandler := authmod.NewLoginHandler(userRepo, sessionRepo, nonceRepo, siweCfg)
 
-	// ── 7. Indexer ────────────────────────────────────────────
+	// ── 7. eKYC platform services ─────────────────────────────
+	minioClient, err := storage.NewClient(
+		ekycConfig.MinIOEndpoint,
+		ekycConfig.MinIOAccessKey,
+		ekycConfig.MinIOSecretKey,
+		ekycConfig.MinIOBucket,
+		ekycConfig.MinIOUseSSL,
+	)
+	if err != nil {
+		log.Printf("[bootstrap] MinIO client init failed: %v (KYC uploads disabled)", err)
+		// Not fatal — we continue without MinIO; KYC submissions will fail at runtime
+		minioClient = nil
+	}
+
+	var visionClient *ocr.VisionClient
+	if ekycConfig.GoogleVisionAPIKey != "" {
+		visionClient = ocr.NewVisionClient(ekycConfig.GoogleVisionAPIKey)
+	}
+
+	var rekognitionClient *faceai.RekognitionClient
+	if ekycConfig.AWSAccessKeyID != "" {
+		rekognitionClient, err = faceai.NewRekognitionClient(
+			ekycConfig.AWSAccessKeyID,
+			ekycConfig.AWSSecretAccessKey,
+			ekycConfig.AWSRegion,
+		)
+		if err != nil {
+			log.Printf("[bootstrap] Rekognition client init failed: %v (face match disabled)", err)
+		}
+	}
+
+	// ── 8. Indexer (on-demand) ───────────────────────────────
+	// 建立在 services 之前，讓 services 可注入 chainSyncer。
+	var chainSyncer onboardingmod.ChainSyncer
 	var cleanupFn func()
 	if ethClient != nil {
 		ethClient.StartHealthLoop(ctx)
 
+		checkpointStore := indexer.NewCheckpointStore(postgresDB)
 		idx := indexer.New(ethClient, postgresDB, blockchainConfig)
-		// 未來各合約 worker 在此 RegisterWorker：
-		//   idx.RegisterWorker(identity.NewWorker(...))
-		//   idx.RegisterWorker(property.NewWorker(...))
-		idx.Start(ctx)
 
+		// IdentityNFT worker (KYC)
+		if blockchainConfig.IdentityNFTAddress != "" {
+			identityWorker, err := usermod.NewIdentityWorker(
+				blockchainConfig.IdentityNFTAddress,
+				userRepo,
+				checkpointStore,
+				blockchainConfig.IdentityNFTStartBlock,
+			)
+			if err != nil {
+				log.Printf("[bootstrap] identity worker init failed: %v", err)
+			} else {
+				idx.RegisterWorker(identityWorker)
+			}
+		}
+
+		chainSyncer = idx
 		cleanupFn = func() { ethClient.Close() }
-		log.Println("[bootstrap] blockchain indexer started")
+		log.Println("[bootstrap] blockchain indexer ready (on-demand mode)")
 	} else {
 		cleanupFn = func() {}
 	}
 
-	// ── 8. Router ─────────────────────────────────────────────
-	r := SetupRouter(taskHandler, logHandler, authHandler, sessionRepo)
+	// ── 9. User / KYC module ──────────────────────────────────
+	identityContractSvc, err := usermod.NewIdentityContractService(blockchainConfig)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// ── 10. Onboarding module (KYC-first flow) ────────────────
+	notifyConfig := config.LoadNotifyConfig()
+	siweConfig := config.LoadSIWEConfig()
+
+	emailSender := notify.NewEmailSender(notify.EmailConfig{
+		Host: notifyConfig.SMTPHost,
+		Port: notifyConfig.SMTPPort,
+		User: notifyConfig.SMTPUser,
+		Pass: notifyConfig.SMTPPass,
+		From: notifyConfig.SMTPFrom,
+	})
+	smsSender := notify.NewMitakeSender(notify.MitakeConfig{
+		Username: notifyConfig.MitakeUsername,
+		Password: notifyConfig.MitakePassword,
+	})
+
+	userSvc := usermod.NewService(
+		userRepo,
+		kycRepo,
+		credentialRepo,
+		otpRepo,
+		identityContractSvc,
+		ekycConfig,
+		minioClient,
+		visionClient,
+		rekognitionClient,
+		chainSyncer,
+		emailSender,
+		smsSender,
+	)
+	userHandler := usermod.NewHandler(userSvc)
+	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
+
+	onboardingSvc := onboardingmod.NewService(
+		otpRepo,
+		kycSessionRepo,
+		userRepo,
+		kycRepo,
+		nonceRepo,
+		sessionRepo,
+		emailSender,
+		smsSender,
+		minioClient,
+		visionClient,
+		rekognitionClient,
+		identityContractSvc,
+		ekycConfig,
+		notifyConfig,
+		siweConfig,
+		chainSyncer,
+	)
+	onboardingHandler := onboardingmod.NewHandler(onboardingSvc)
+
+	// ── 11. Router ────────────────────────────────────────────
+	r := SetupRouter(taskHandler, logHandler, authHandler, loginHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
 
 	return r, cleanupFn, nil
 }

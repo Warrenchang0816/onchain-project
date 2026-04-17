@@ -1,15 +1,15 @@
-import type { Task } from "../types/task";
+import type { Listing } from "../types/listing";
 
-export interface TaskSummary {
+export interface ListingSummary {
     total: number;
     completed: number;
     pending: number;
 }
 
-export const getTaskSummary = (tasks: Task[]): TaskSummary => {
-    const total = tasks.length;
-    const completed = tasks.filter((task) => task.status === "COMPLETED").length;
-    const pending = tasks.filter((task) => task.status === "OPEN").length;
+export const getListingSummary = (listings: Listing[]): ListingSummary => {
+    const total = listings.length;
+    const completed = listings.filter((listing) => listing.status === "COMPLETED").length;
+    const pending = listings.filter((listing) => listing.status === "OPEN").length;
 
     return {
         total,
@@ -18,6 +18,6 @@ export const getTaskSummary = (tasks: Task[]): TaskSummary => {
     };
 };
 
-export const getRecentTasks = (tasks: Task[], limit = 3): Task[] => {
-    return [...tasks].slice(0, limit);
+export const getRecentListings = (listings: Listing[], limit = 3): Listing[] => {
+    return [...listings].slice(0, limit);
 };

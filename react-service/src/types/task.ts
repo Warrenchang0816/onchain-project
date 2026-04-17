@@ -6,6 +6,12 @@ export type TaskStatus =
     | "CANCELLED"
     | "COMPLETED";
 
+// Backend still returns the legacy task-shaped record.
+// In the current housing-platform UI this record temporarily carries both:
+// 1. listing/base content fields
+// 2. mandate/case workflow flags
+// Keep this file as the compatibility layer until listing/case are split server-side.
+
 export interface CreateTaskPayload {
     title: string;
     description: string;

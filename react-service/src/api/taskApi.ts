@@ -1,26 +1,15 @@
-import type { Task, TaskDetailResponse, TaskListResponse } from "../types/task";
+import type {
+    CreateTaskPayload,
+    Task,
+    TaskDetailResponse,
+    TaskListResponse,
+    UpdateTaskPayload,
+} from "../types/task";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_GO_SERVICE_URL || "http://localhost:8081/api";
 
-export type CreateTaskPayload = {
-    title: string;
-    description: string;
-    priority: string;
-    dueDate: string | null;
-    rewardAmount?: string;
-    paymentAssetType?: "NATIVE" | "ERC20";
-    paymentTokenAddress?: string | null;
-    paymentTokenSymbol?: string;
-    paymentTokenDecimals?: number;
-};
-
-export type UpdateTaskPayload = {
-    title: string;
-    description: string;
-    priority: string;
-    dueDate: string | null;
-};
+export type { CreateTaskPayload, UpdateTaskPayload };
 
 export async function getTask(id: number): Promise<Task> {
     const response = await fetch(`${API_BASE_URL}/tasks/${id}`, {

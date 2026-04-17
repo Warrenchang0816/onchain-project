@@ -2,24 +2,90 @@ version: "3.9"
 
 services:
   go-service:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
+      # 這裡可以透過 args 傳入變數，強迫 Docker 覺得環境變了
+      args:
+        - CACHEBUST=${CACHEBUST:-1}
     image: go-service:1.0.0
     container_name: go-service
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "8081:8081"
+    env_file:
+      - .env
     environment:
+      # SIWE
+      APP_DOMAIN: ${APP_DOMAIN}
+      APP_URI: ${APP_URI}
+      SIWE_STATEMENT: ${SIWE_STATEMENT}
+      SIWE_VERSION: ${SIWE_VERSION}
+      SIWE_CHAIN_ID: ${SIWE_CHAIN_ID}
+      SIWE_NONCE_EXPIRE: ${SIWE_NONCE_EXPIRE}
+      AUTH_SESSION_EXPIRE: ${AUTH_SESSION_EXPIRE}
+      AUTH_COOKIE_NAME: ${AUTH_COOKIE_NAME}
+      AUTH_SESSION_SECURE: ${AUTH_SESSION_SECURE}
       APP_PORT: ${APP_PORT}
+
+      # DB
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
       DB_USER: ${DB_USER}
       DB_PASS: ${DB_PASS}
       DB_NAME: ${DB_NAME}
-      DB_SSLMODE: "disable"
+      DB_SSLMODE: ${DB_SSLMODE}
+
+      # 舊任務追蹤
       APP_CHAIN_ID: ${APP_CHAIN_ID}
       APP_RPC_URL: ${APP_RPC_URL}
       APP_REWARD_VAULT_ADDRESS: ${APP_REWARD_VAULT_ADDRESS}
       APP_PLATFORM_FEE_BPS: ${APP_PLATFORM_FEE_BPS}
-      APP_GOD_MODE_WALLET_ADDRESS: ${APP_GOD_MODE_WALLET_ADDRESS}
       APP_PLATFORM_TREASURY_ADDRESS: ${APP_PLATFORM_TREASURY_ADDRESS}
       APP_PLATFORM_OPERATOR_PRIVATE_KEY: ${APP_PLATFORM_OPERATOR_PRIVATE_KEY}
+      APP_GOD_MODE_WALLET_ADDRESS: ${APP_GOD_MODE_WALLET_ADDRESS}
+
+      # 房屋平台：Indexer
+      ETH_RPC_URL_FALLBACK: ${ETH_RPC_URL_FALLBACK}
+      ETH_CONFIRMATION_BLOCKS: ${ETH_CONFIRMATION_BLOCKS}
+
+      # 房屋平台：合約地址
+      IDENTITY_NFT_ADDRESS: ${IDENTITY_NFT_ADDRESS}
+      PROPERTY_REGISTRY_ADDRESS: ${PROPERTY_REGISTRY_ADDRESS}
+      AGENCY_REGISTRY_ADDRESS: ${AGENCY_REGISTRY_ADDRESS}
+      LISTING_STAKE_VAULT_ADDRESS: ${LISTING_STAKE_VAULT_ADDRESS}
+      CASE_TRACKER_ADDRESS: ${CASE_TRACKER_ADDRESS}
+
+      # 房屋平台：穩定幣
+      USDC_ADDRESS: ${USDC_ADDRESS}
+      USDT_ADDRESS: ${USDT_ADDRESS}
+
+      # eKYC（Google Vision + AWS Rekognition + MinIO）
+      GOOGLE_VISION_API_KEY: ${GOOGLE_VISION_API_KEY}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET}
+      MINIO_USE_SSL: ${MINIO_USE_SSL}
+      KYC_FACE_AUTO_PASS_SCORE: ${KYC_FACE_AUTO_PASS_SCORE}
+      KYC_FACE_MANUAL_REVIEW_SCORE: ${KYC_FACE_MANUAL_REVIEW_SCORE}
+      APP_FRONTEND_URL: ${APP_FRONTEND_URL}
+
+      # OTP / Onboarding delivery
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      SMTP_FROM: ${SMTP_FROM}
+      MITAKE_USERNAME: ${MITAKE_USERNAME}
+      MITAKE_PASSWORD: ${MITAKE_PASSWORD}
+    networks:
+      - onchain
+
+networks:
+  onchain:
+    external: true
+    name: onchain

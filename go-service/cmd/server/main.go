@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
 	"go-service/internal/bootstrap"
@@ -20,7 +21,12 @@ func main() {
 	}
 	defer cleanup()
 
-	if err := r.Run(":8080"); err != nil {
+	port := strings.TrimSpace(os.Getenv("APP_PORT"))
+	if port == "" {
+		port = "8081"
+	}
+
+	if err := r.Run(":" + port); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
 }

@@ -36,6 +36,20 @@ func SetSessionCookie(c *gin.Context, config SessionCookieConfig, sessionToken s
 	http.SetCookie(c.Writer, cookie)
 }
 
+// SetSessionCookieSessionOnly sets a session-only cookie (no MaxAge / Expires).
+// The browser clears it when the tab/window is closed.
+func SetSessionCookieSessionOnly(c *gin.Context, config SessionCookieConfig, sessionToken string) {
+	cookie := &http.Cookie{
+		Name:     config.Name,
+		Value:    sessionToken,
+		Path:     config.Path,
+		HttpOnly: true,
+		Secure:   config.Secure,
+		SameSite: config.SameSite,
+	}
+	http.SetCookie(c.Writer, cookie)
+}
+
 func ClearSessionCookie(c *gin.Context, config SessionCookieConfig) {
 	cookie := &http.Cookie{
 		Name:     config.Name,

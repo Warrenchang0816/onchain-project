@@ -69,6 +69,28 @@ CREATE INDEX IF NOT EXISTS idx_task_submissions_task_id
 
 
 -- ------------------------------------------------------------
+-- task_blockchain_logs
+-- Used by the task module's on-chain status/log timeline.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS task_blockchain_logs (
+    id                  BIGSERIAL       PRIMARY KEY,
+    task_id             VARCHAR(64)     NOT NULL REFERENCES tasks (task_id),
+    action              VARCHAR(50)     NOT NULL,
+    tx_hash             VARCHAR(128)    NOT NULL,
+    chain_id            BIGINT          NOT NULL,
+    contract_address    VARCHAR(128)    NOT NULL,
+    status              VARCHAR(32)     NOT NULL,
+    created_at          TIMESTAMPTZ     NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_blockchain_logs_task_id
+    ON task_blockchain_logs (task_id);
+
+CREATE INDEX IF NOT EXISTS idx_task_blockchain_logs_tx_hash
+    ON task_blockchain_logs (tx_hash);
+
+
+-- ------------------------------------------------------------
 -- auth_nonce
 -- 對應：repository/nonce_repository.go
 --

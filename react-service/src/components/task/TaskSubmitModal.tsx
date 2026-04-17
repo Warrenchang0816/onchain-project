@@ -1,11 +1,11 @@
 import { useState } from "react";
 import AppButton from "../common/AppButton";
 import AppModal from "../common/AppModal";
-import type { SubmitTaskPayload } from "../../api/taskApi";
+import type { SubmitCaseProgressPayload } from "../../api/caseApi";
 
 interface TaskSubmitModalProps {
     isOpen: boolean;
-    onSubmit: (payload: SubmitTaskPayload) => Promise<void>;
+    onSubmit: (payload: SubmitCaseProgressPayload) => Promise<void>;
     onCancel: () => void;
 }
 
@@ -33,7 +33,7 @@ const TaskSubmitModal = ({ isOpen, onSubmit, onCancel }: TaskSubmitModalProps) =
         e.preventDefault();
 
         if (!values.resultContent.trim()) {
-            setError("Please describe your result.");
+            setError("請填寫本次委託處理進度。");
             return;
         }
 
@@ -58,24 +58,24 @@ const TaskSubmitModal = ({ isOpen, onSubmit, onCancel }: TaskSubmitModalProps) =
     };
 
     return (
-        <AppModal isOpen={isOpen} title="Submit Task" onClose={handleClose}>
+        <AppModal isOpen={isOpen} title="提交委託進度" onClose={handleClose}>
             <form className="task-form" onSubmit={handleSubmit}>
                 <div className="form-field">
-                    <label htmlFor="resultContent">Result Description *</label>
+                    <label htmlFor="resultContent">處理說明 *</label>
                     <textarea
                         id="resultContent"
                         name="resultContent"
                         value={values.resultContent}
                         onChange={handleChange}
                         rows={4}
-                        placeholder="Describe what you completed..."
+                        placeholder="例如：已完成帶看、已補件、已和屋主確認條件..."
                         required
                     />
                     {error && <p className="form-error">{error}</p>}
                 </div>
 
                 <div className="form-field">
-                    <label htmlFor="resultFileUrl">Result Link (optional)</label>
+                    <label htmlFor="resultFileUrl">補充連結（選填）</label>
                     <input
                         id="resultFileUrl"
                         name="resultFileUrl"
@@ -88,10 +88,10 @@ const TaskSubmitModal = ({ isOpen, onSubmit, onCancel }: TaskSubmitModalProps) =
 
                 <div className="form-actions">
                     <AppButton type="button" variant="secondary" onClick={handleClose}>
-                        Cancel
+                        取消
                     </AppButton>
                     <AppButton type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Submitting..." : "Submit"}
+                        {isSubmitting ? "提交中..." : "送出進度"}
                     </AppButton>
                 </div>
             </form>

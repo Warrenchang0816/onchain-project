@@ -4,8 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"sync"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -13,6 +11,12 @@ import (
 	"go-service/internal/platform/blockchain"
 	"go-service/internal/platform/config"
 )
+
+// Syncer is a minimal interface for on-demand chain sync.
+// Services accept this interface so they can trigger a sync before/after contract calls.
+type Syncer interface {
+	SyncAll(ctx context.Context) error
+}
 
 // ContractWorker 定義單一合約的 Indexer 工作介面。
 // 每個合約（IdentityNFT、PropertyRegistry…）各自實作此介面。
@@ -23,6 +27,10 @@ type ContractWorker interface {
 	// Address 回傳此合約在鏈上的地址。
 	Address() common.Address
 
+	// StartBlock 回傳此合約應從哪個 block 開始掃描（通常為部署 block）。
+	// 回傳 0 表示不限制，從 checkpoint 記錄的 block 繼續。
+	StartBlock() uint64
+
 	// ProcessBlock 處理單一 block 內屬於此合約的 logs。
 	// blockNumber 為已達確認深度的目標 block。
 	ProcessBlock(ctx context.Context, eth *ethclient.Client, blockNumber uint64) error
@@ -30,18 +38,13 @@ type ContractWorker interface {
 
 // Indexer 是所有合約 worker 的協調器。
 //
-// 工作流程：
-//  1. 每個 worker 從 checkpoint 取得 lastBlock
-//  2. 輪詢最新 block（每 PollInterval 一次）
-//  3. 扣除 ConfirmationBlocks 深度，逐 block 呼叫 worker.ProcessBlock
-//  4. 每處理完一個 block 後更新 checkpoint
+// 採用 on-demand 模式：不持續輪詢，呼叫 SyncAll() 時才同步。
+// 典型用法：在呼叫鏈上合約前後呼叫 SyncAll() 以確保 DB 狀態最新。
 type Indexer struct {
 	client     *blockchain.Client
 	checkpoint *CheckpointStore
 	workers    []ContractWorker
 	cfg        *config.BlockchainConfig
-
-	pollInterval time.Duration
 }
 
 // New 建立 Indexer，注入 blockchain.Client、DB、設定與 workers。
@@ -53,61 +56,28 @@ func New(
 	workers ...ContractWorker,
 ) *Indexer {
 	return &Indexer{
-		client:       client,
-		checkpoint:   NewCheckpointStore(db),
-		workers:      workers,
-		cfg:          cfg,
-		pollInterval: 12 * time.Second, // Ethereum ~12s per block
+		client:     client,
+		checkpoint: NewCheckpointStore(db),
+		workers:    workers,
+		cfg:        cfg,
 	}
 }
 
-// RegisterWorker 動態加入合約 worker（在 Start 之前呼叫）。
+// RegisterWorker 動態加入合約 worker（在 SyncAll 之前呼叫）。
 func (idx *Indexer) RegisterWorker(w ContractWorker) {
 	idx.workers = append(idx.workers, w)
 }
 
-// Start 啟動所有 worker goroutine。
-// 每個 worker 獨立運行，互不阻塞。
-// 傳入 ctx 可取消所有 worker。
-func (idx *Indexer) Start(ctx context.Context) {
-	var wg sync.WaitGroup
+// SyncAll 立即同步所有已註冊的 worker（on-demand，不輪詢）。
+// 在呼叫合約前或合約 tx confirmed 後呼叫，確保 DB 狀態與鏈上一致。
+func (idx *Indexer) SyncAll(ctx context.Context) error {
 	for _, w := range idx.workers {
-		wg.Add(1)
-		go func(worker ContractWorker) {
-			defer wg.Done()
-			idx.runWorker(ctx, worker)
-		}(w)
-	}
-
-	// 在背景等待 ctx 取消後所有 worker 退出
-	go func() {
-		wg.Wait()
-		log.Println("[indexer] all workers stopped")
-	}()
-}
-
-// ─────────────────────────────────────────────
-// 內部方法
-// ─────────────────────────────────────────────
-
-func (idx *Indexer) runWorker(ctx context.Context, worker ContractWorker) {
-	name := worker.ContractName()
-	log.Printf("[indexer:%s] worker started", name)
-
-	ticker := time.NewTicker(idx.pollInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			log.Printf("[indexer:%s] worker stopped", name)
-			return
-		case <-ticker.C:
-			if err := idx.syncWorker(ctx, worker); err != nil {
-				log.Printf("[indexer:%s] sync error: %v", name, err)
-			}
+		if err := idx.syncWorker(ctx, w); err != nil {
+			log.Printf("[indexer:%s] SyncAll error: %v", w.ContractName(), err)
+			return err
 		}
 	}
+	return nil
 }
 
 func (idx *Indexer) syncWorker(ctx context.Context, worker ContractWorker) error {
@@ -126,10 +96,13 @@ func (idx *Indexer) syncWorker(ctx context.Context, worker ContractWorker) error
 	}
 	safeBlock := latestBlock - idx.cfg.ConfirmationBlocks
 
-	// 3. 取得 checkpoint
+	// 3. 取得 checkpoint，並尊重 worker 的 StartBlock（若 checkpoint 比 startBlock 早，跳到 startBlock）
 	lastBlock, err := idx.checkpoint.GetLastBlock(ctx, name)
 	if err != nil {
 		return err
+	}
+	if startBlock := worker.StartBlock(); startBlock > 0 && lastBlock < startBlock-1 {
+		lastBlock = startBlock - 1
 	}
 
 	if lastBlock >= safeBlock {
