@@ -14,8 +14,9 @@ import (
 	"go-service/internal/platform/ocr"
 	"go-service/internal/platform/storage"
 	authmod "go-service/internal/modules/auth"
+	listingmod "go-service/internal/modules/listing"
+	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
-	"go-service/internal/modules/task"
 	usermod "go-service/internal/modules/user"
 
 	"github.com/gin-gonic/gin"
@@ -45,7 +46,6 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	}
 
 	// ── 4. Repositories ───────────────────────────────────────
-	taskRepo := repository.NewTaskRepository(postgresDB)
 	logRepo := repository.NewBlockchainLogRepository(postgresDB)
 	nonceRepo := repository.NewNonceRepository(postgresDB)
 	sessionRepo := repository.NewSessionRepository(postgresDB)
@@ -54,25 +54,11 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	otpRepo := repository.NewOTPRepository(postgresDB)
 	kycSessionRepo := repository.NewKYCSessionRepository(postgresDB)
 	credentialRepo := repository.NewUserCredentialRepository(postgresDB)
+	listingRepo := repository.NewListingRepository(postgresDB)
+	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
 
-	// ── 5. Task module ────────────────────────────────────────
-	taskPermissionSvc := task.NewTaskPermissionService(blockchainConfig.GodModeWalletAddress)
-
-	taskRewardVaultSvc, err := task.NewTaskRewardVaultService()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	taskSvc := task.NewTaskService(
-		taskRepo,
-		logRepo,
-		taskPermissionSvc,
-		blockchainConfig.PlatformFeeBps,
-		taskRewardVaultSvc,
-		blockchainConfig,
-	)
-	taskHandler := task.NewTaskHandler(taskSvc, taskPermissionSvc)
-	logHandler := task.NewBlockchainLogHandler(logRepo)
+	// ── 5. Logs module ────────────────────────────────────────
+	logHandler := logsmod.NewHandler(logRepo)
 
 	// ── 6. Auth module ────────────────────────────────────────
 	siweCfg := config.LoadSIWEConfig()
@@ -89,7 +75,6 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	)
 	if err != nil {
 		log.Printf("[bootstrap] MinIO client init failed: %v (KYC uploads disabled)", err)
-		// Not fatal — we continue without MinIO; KYC submissions will fail at runtime
 		minioClient = nil
 	}
 
@@ -110,8 +95,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		}
 	}
 
-	// ── 8. Indexer (on-demand) ───────────────────────────────
-	// 建立在 services 之前，讓 services 可注入 chainSyncer。
+	// ── 8. Indexer (on-demand) ────────────────────────────────
 	var chainSyncer onboardingmod.ChainSyncer
 	var cleanupFn func()
 	if ethClient != nil {
@@ -120,7 +104,6 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		checkpointStore := indexer.NewCheckpointStore(postgresDB)
 		idx := indexer.New(ethClient, postgresDB, blockchainConfig)
 
-		// IdentityNFT worker (KYC)
 		if blockchainConfig.IdentityNFTAddress != "" {
 			identityWorker, err := usermod.NewIdentityWorker(
 				blockchainConfig.IdentityNFTAddress,
@@ -148,7 +131,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		return nil, nil, err
 	}
 
-	// ── 10. Onboarding module (KYC-first flow) ────────────────
+	// ── 10. Notify services ───────────────────────────────────
 	notifyConfig := config.LoadNotifyConfig()
 	siweConfig := config.LoadSIWEConfig()
 
@@ -164,23 +147,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		Password: notifyConfig.MitakePassword,
 	})
 
-	userSvc := usermod.NewService(
-		userRepo,
-		kycRepo,
-		credentialRepo,
-		otpRepo,
-		identityContractSvc,
-		ekycConfig,
-		minioClient,
-		visionClient,
-		rekognitionClient,
-		chainSyncer,
-		emailSender,
-		smsSender,
-	)
-	userHandler := usermod.NewHandler(userSvc)
-	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
-
+	// ── 11. Onboarding module ─────────────────────────────────
 	onboardingSvc := onboardingmod.NewService(
 		otpRepo,
 		kycSessionRepo,
@@ -201,8 +168,30 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	)
 	onboardingHandler := onboardingmod.NewHandler(onboardingSvc)
 
-	// ── 11. Router ────────────────────────────────────────────
-	r := SetupRouter(taskHandler, logHandler, authHandler, loginHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
+	// ── 12. User module ───────────────────────────────────────
+	userSvc := usermod.NewService(
+		userRepo,
+		kycRepo,
+		credentialRepo,
+		otpRepo,
+		identityContractSvc,
+		ekycConfig,
+		minioClient,
+		visionClient,
+		rekognitionClient,
+		chainSyncer,
+		emailSender,
+		smsSender,
+	)
+	userHandler := usermod.NewHandler(userSvc)
+	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
+
+	// ── 13. Listing module ────────────────────────────────────
+	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
+	listingHandler := listingmod.NewHandler(listingSvc)
+
+	// ── 14. Router ────────────────────────────────────────────
+	r := SetupRouter(listingHandler, logHandler, authHandler, loginHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
 
 	return r, cleanupFn, nil
 }

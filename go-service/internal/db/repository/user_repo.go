@@ -44,6 +44,16 @@ func scanUser(row *sql.Row) (*model.User, error) {
 	return u, nil
 }
 
+// FindByID looks up a user by primary key.
+func (r *UserRepository) FindByID(id int64) (*model.User, error) {
+	row := r.db.QueryRow(userSelectCols+` WHERE id = $1`, id)
+	u, err := scanUser(row)
+	if err != nil {
+		return nil, fmt.Errorf("user_repo: FindByID: %w", err)
+	}
+	return u, nil
+}
+
 func (r *UserRepository) FindByWallet(walletAddress string) (*model.User, error) {
 	row := r.db.QueryRow(userSelectCols+` WHERE LOWER(wallet_address) = LOWER($1)`, walletAddress)
 	u, err := scanUser(row)

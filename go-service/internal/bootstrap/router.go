@@ -5,8 +5,9 @@ import (
 
 	"go-service/internal/db/repository"
 	authmod "go-service/internal/modules/auth"
+	listingmod "go-service/internal/modules/listing"
+	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
-	"go-service/internal/modules/task"
 	usermod "go-service/internal/modules/user"
 	platformauth "go-service/internal/platform/auth"
 
@@ -15,8 +16,8 @@ import (
 )
 
 func SetupRouter(
-	taskHandler *task.TaskHandler,
-	logHandler *task.BlockchainLogHandler,
+	listingHandler *listingmod.Handler,
+	logHandler *logsmod.Handler,
 	authHandler *authmod.Handler,
 	loginHandler *authmod.LoginHandler,
 	userHandler *usermod.Handler,
@@ -37,34 +38,42 @@ func SetupRouter(
 
 	api := r.Group("/api")
 	{
-		publicTask := api.Group("")
-		publicTask.Use(platformauth.OptionalAuthMiddleware(sessionRepo))
+		// ── Public routes (optional auth for isOwner flag) ────────
+		publicRoutes := api.Group("")
+		publicRoutes.Use(platformauth.OptionalAuthMiddleware(sessionRepo))
 		{
-			publicTask.GET("/tasks", taskHandler.GetTasks)
-			publicTask.GET("/tasks/:id", taskHandler.GetTask)
-			publicTask.GET("/kyc/me", userHandler.GetKYCStatus)
+			publicRoutes.GET("/listings", listingHandler.ListListings)
+			publicRoutes.GET("/listings/:id", listingHandler.GetListing)
+			publicRoutes.GET("/kyc/me", userHandler.GetKYCStatus)
 		}
 
+		// ── Protected routes (auth required) ─────────────────────
 		protected := api.Group("")
 		protected.Use(platformauth.AuthMiddleware(sessionRepo))
 		{
-			protected.POST("/tasks", taskHandler.CreateTask)
-			protected.PUT("/tasks/:id", taskHandler.UpdateTask)
-			protected.PUT("/tasks/:id/status", taskHandler.UpdateTaskStatus)
-			protected.PUT("/tasks/:id/accept", taskHandler.AcceptTask)
-			protected.PUT("/tasks/:id/cancel", taskHandler.CancelTask)
-			protected.POST("/tasks/:id/submissions", taskHandler.SubmitTask)
-			protected.PUT("/tasks/:id/approve", taskHandler.ApproveTask)
-			protected.POST("/tasks/:id/claim", taskHandler.ClaimReward)
-			protected.POST("/tasks/:id/onchain/funded", taskHandler.MarkTaskFunded)
-			protected.POST("/tasks/:id/onchain/claimed", taskHandler.MarkTaskClaimedOnchain)
-			protected.PUT("/tasks/:id/fund", taskHandler.FundTask)
+			// Listing management (owner)
+			protected.GET("/listings/mine", listingHandler.ListMyListings)
+			protected.POST("/listings", listingHandler.CreateListing)
+			protected.PUT("/listings/:id", listingHandler.UpdateListing)
+			protected.PUT("/listings/:id/publish", listingHandler.PublishListing)
+			protected.PUT("/listings/:id/remove", listingHandler.RemoveListing)
+			protected.PUT("/listings/:id/close", listingHandler.CloseListing)
+			protected.PUT("/listings/:id/negotiate", listingHandler.LockNegotiation)
+			protected.PUT("/listings/:id/unlock", listingHandler.UnlockNegotiation)
 
+			// Appointment management
+			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)
+			protected.PUT("/listings/:id/appointments/:appt_id/confirm", listingHandler.ConfirmAppointment)
+			protected.PUT("/listings/:id/appointments/:appt_id/status", listingHandler.UpdateAppointmentStatus)
+			protected.PUT("/listings/:id/appointments/:appt_id/cancel", listingHandler.CancelAppointment)
+
+			// KYC submission
 			protected.POST("/kyc/submissions", userHandler.CreateKYCSubmission)
 			protected.POST("/kyc/submissions/:id/documents", userHandler.UploadKYCSubmissionDocuments)
 			protected.POST("/kyc/submissions/:id/analyze", userHandler.AnalyzeKYCSubmission)
 			protected.GET("/kyc/submissions/:id", userHandler.GetKYCSubmission)
 
+			// User profile
 			protected.GET("/user/profile", userHandler.GetProfile)
 			protected.POST("/user/profile/email/otp", userHandler.RequestEmailChangeOTP)
 			protected.PUT("/user/profile/email", userHandler.VerifyEmailChange)
@@ -73,22 +82,22 @@ func SetupRouter(
 			protected.POST("/user/profile/mailing-address/otp", userHandler.RequestMailingAddressOTP)
 			protected.PUT("/user/profile/mailing-address", userHandler.UpdateMailingAddress)
 
+			// Admin
 			protected.GET("/admin/kyc/pending", adminHandler.ListPendingManual)
 			protected.PUT("/admin/kyc/:id/review", adminHandler.ReviewSubmission)
 		}
 
+		// ── Blockchain logs (public) ──────────────────────────────
 		api.GET("/blockchain-logs", logHandler.GetLogs)
 
+		// ── Auth ──────────────────────────────────────────────────
 		api.POST("/auth/wallet/siwe/message", authHandler.SIWEMessageHandler)
 		api.POST("/auth/wallet/siwe/verify", authHandler.SIWEVerifyHandler)
 		api.GET("/auth/me", authHandler.AuthMeHandler)
 		api.POST("/auth/logout", authHandler.AuthLogoutHandler)
-
-		// ── Email + password login ────────────────────────────────
 		api.POST("/auth/login", loginHandler.Login)
 		api.POST("/auth/password/set", loginHandler.SetPassword)
 
-		// ── Wallet change (requires active session) ───────────────
 		authProtected := api.Group("/auth")
 		authProtected.Use(platformauth.AuthMiddleware(sessionRepo))
 		{

@@ -59,6 +59,17 @@ type EditState =
     | { stage: "input"; value: string; channel?: "email" | "phone"; busy: boolean; error: string }
     | { stage: "otp";   value: string; channel?: "email" | "phone"; otp: string; busy: boolean; error: string; sent: boolean };
 
+type EditButtonProps = { field: EditField; editing: EditField | null; onStart: (f: EditField) => void };
+
+function EditButton({ field, editing, onStart }: EditButtonProps) {
+    if (editing === field) return null;
+    return (
+        <button type="button" className="profile-edit-trigger" onClick={() => onStart(field)}>
+            變更
+        </button>
+    );
+}
+
 const MemberProfilePage = () => {
     const navigate = useNavigate();
     const [state, setState] = useState<PageState>({ status: "loading" });
@@ -66,6 +77,7 @@ const MemberProfilePage = () => {
     const [editing, setEditing] = useState<EditField | null>(null);
     const [editState, setEditState] = useState<EditState>({ stage: "idle" });
 
+    // Called from event handlers after a successful edit (sync setState is fine outside effects).
     const loadProfile = () => {
         setState({ status: "loading" });
         void getUserProfile()
@@ -76,7 +88,15 @@ const MemberProfilePage = () => {
             }));
     };
 
-    useEffect(() => { loadProfile(); }, []);
+    // Initial fetch: setState only called in async callbacks to satisfy react-hooks/set-state-in-effect.
+    useEffect(() => {
+        void getUserProfile()
+            .then((profile) => setState({ status: "ok", profile }))
+            .catch((err) => setState({
+                status: "error",
+                message: err instanceof Error ? err.message : "讀取會員資料失敗",
+            }));
+    }, []);
 
     const copyWallet = (address: string) => {
         void navigator.clipboard.writeText(address).then(() => {
@@ -242,18 +262,6 @@ const MemberProfilePage = () => {
         return null;
     };
 
-    const EditButton = ({ field }: { field: EditField }) => (
-        editing === field ? null : (
-            <button
-                type="button"
-                className="profile-edit-trigger"
-                onClick={() => startEdit(field)}
-            >
-                變更
-            </button>
-        )
-    );
-
     const SEPOLIA_ETHERSCAN = "https://sepolia.etherscan.io";
 
     return (
@@ -314,7 +322,7 @@ const MemberProfilePage = () => {
                                 <span className="member-value">
                                     {state.profile.email || <em className="profile-empty">未設定</em>}
                                 </span>
-                                <EditButton field="email" />
+                                <EditButton field="email" editing={editing} onStart={startEdit} />
                             </div>
                             {renderEditPanel("email")}
 
@@ -323,7 +331,7 @@ const MemberProfilePage = () => {
                                 <span className="member-value">
                                     {state.profile.phone || <em className="profile-empty">未設定</em>}
                                 </span>
-                                <EditButton field="phone" />
+                                <EditButton field="phone" editing={editing} onStart={startEdit} />
                             </div>
                             {renderEditPanel("phone")}
 
@@ -339,7 +347,7 @@ const MemberProfilePage = () => {
                                 <span className="member-value">
                                     {state.profile.mailingAddress || <em className="profile-empty">未設定</em>}
                                 </span>
-                                <EditButton field="mailing" />
+                                <EditButton field="mailing" editing={editing} onStart={startEdit} />
                             </div>
                             {renderEditPanel("mailing")}
 

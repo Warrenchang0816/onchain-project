@@ -1,7 +1,7 @@
 ﻿import { createBrowserRouter } from "react-router-dom";
 import HomePage from "../pages/HomePage";
-import TaskListPage from "../pages/TaskListPage";
-import TaskDetailPage from "../pages/TaskDetailPage";
+import ListingListPage from "../pages/ListingListPage";
+import ListingDetailPage from "../pages/ListingDetailPage";
 import BlockchainLogsPage from "../pages/BlockchainLogsPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import IdentityCenterPage from "../pages/IdentityCenterPage";
@@ -16,19 +16,11 @@ const router = createBrowserRouter([
     },
     {
         path: "/listings",
-        element: <TaskListPage />,
+        element: <ListingListPage />,
     },
     {
         path: "/listings/:id",
-        element: <TaskDetailPage />,
-    },
-    {
-        path: "/tasks",
-        element: <TaskListPage />,
-    },
-    {
-        path: "/tasks/:id",
-        element: <TaskDetailPage />,
+        element: <ListingDetailPage />,
     },
     {
         path: "/logs",
