@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>會員資料 - 去中心化房屋平台</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&amp;family=Noto+Sans+TC:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#ffe08e",
+                        "on-surface": "#1b1c19",
+                        "surface-container-highest": "#e4e2dd",
+                        "tertiary": "#006c4a",
+                        "primary-container": "#e8b800",
+                        "on-primary-container": "#5f4a00",
+                        "secondary-fixed-dim": "#93ccff",
+                        "surface-container-low": "#f5f3ee",
+                        "surface-container": "#f0eee9",
+                        "tertiary-fixed": "#85f8c4",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#5fd3a1",
+                        "on-tertiary-container": "#00593c",
+                        "secondary-container": "#5bb8fe",
+                        "on-surface-variant": "#4e4633",
+                        "background": "#fbf9f4",
+                        "outline": "#807660",
+                        "on-tertiary-fixed": "#002114",
+                        "inverse-on-surface": "#f2f1ec",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#dcdad5",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#30312e",
+                        "inverse-primary": "#f1c014",
+                        "primary": "#745b00",
+                        "outline-variant": "#d2c5ac",
+                        "tertiary-fixed-dim": "#68dba9",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#eae8e3",
+                        "on-secondary-container": "#00476e",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "surface": "#fbf9f4",
+                        "surface-tint": "#745b00",
+                        "secondary-fixed": "#cce5ff",
+                        "on-secondary-fixed-variant": "#004b73",
+                        "on-secondary-fixed": "#001d31",
+                        "surface-variant": "#e4e2dd",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006398",
+                        "on-background": "#1b1c19",
+                        "primary-fixed-dim": "#f1c014",
+                        "surface-bright": "#fbf9f4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#584400"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {},
+                    "fontFamily": {
+                        "headline": ["Inter", "Noto Sans TC", "sans-serif"],
+                        "body": ["Inter", "Noto Sans TC", "sans-serif"],
+                        "label": ["Inter", "Noto Sans TC", "sans-serif"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: #FBF9F4; /* background */
+            color: #1b1c19; /* on-background */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="sticky top-0 h-[64px] w-full z-50 bg-[#FFFEF9]/80 backdrop-blur-3xl border-b border-surface-container-low">
+<div class="flex justify-between items-center w-full px-6 md:px-12 max-w-[1440px] mx-auto h-full">
+<div class="flex items-center gap-8">
+<div class="text-xl font-extrabold text-[#1C1917] border-b-2 border-[#E8B800] pb-0.5">
+                    去中心化房屋平台
+                </div>
+<div class="hidden md:flex gap-6">
+<a class="text-[#1C1917] font-medium hover:text-[#E8B800] transition-colors" href="#">首頁</a>
+<a class="text-[#1C1917] font-medium hover:text-[#E8B800] transition-colors" href="#">列表</a>
+<a class="text-[#1C1917] font-medium hover:text-[#E8B800] transition-colors" href="#">足跡</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<span class="text-sm font-medium text-on-surface-variant">屋主/租客/仲介</span>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden flex items-center justify-center border-2 border-primary-container">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="Close up portrait of a young professional in soft natural lighting, looking approachable" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfgJ-AvSBIUnsUHXNU2s0_UVJnL0mNr5tpw6gUc3FUdER66FDEID5dfNUqpKBPkbbsvDp-jA9PTiTlmrGQvr9bO7IIAKDSbd2c9fQahnMKh5w67WPhJWjyJCVRw3AHTM6G8xaIjrGLjO5g8az91U215agXCTkLqe603Z81lzGmd-HyZYDQxH_4Fjy3ba2KM7H4hNiZkaz8b_wkdzH-m8LabyI8JCtdMs8T2A4skAhzCht9UNSI0xmqEylEN8ml_GLwilzgTOfVJvu0"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-12">
+<div class="max-w-3xl mx-auto">
+<!-- Page Header -->
+<header class="mb-12">
+<h1 class="text-3xl md:text-[32px] font-extrabold text-on-surface tracking-tight mb-2">會員資料</h1>
+<p class="text-on-surface-variant text-[15px] leading-[1.75]">管理您的個人資訊與數位資產連結</p>
+</header>
+<!-- Profile Content Area -->
+<div class="flex flex-col gap-8">
+<!-- Card 1: Read-only Basic Data -->
+<section class="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden shadow-[0_4px_32px_rgba(28,25,23,0.02)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-container rounded-l-xl"></div>
+<h3 class="text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container">person</span>
+                        基本資料
+                    </h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-outline">姓名</span>
+<span class="text-[15px] font-medium text-on-surface">林明輝</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-outline">會員身分</span>
+<span class="text-[15px] font-medium text-on-surface">一般屋主</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-outline">註冊日期</span>
+<span class="text-[15px] font-medium text-on-surface">2023-11-15</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-outline">實名認證</span>
+<div class="flex items-center gap-2">
+<span class="text-[15px] font-medium text-on-surface">已驗證</span>
+<span class="material-symbols-outlined text-tertiary-container text-[18px]">verified</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Card 2: Contact Info -->
+<section class="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden shadow-[0_4px_32px_rgba(28,25,23,0.02)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-container rounded-l-xl"></div>
+<div class="flex justify-between items-start mb-6">
+<h3 class="text-xl font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container">contact_mail</span>
+                            聯絡資訊
+                        </h3>
+</div>
+<div class="flex flex-col gap-6">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-surface-container-low">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-outline">電子郵件</span>
+<span class="text-[15px] font-medium text-on-surface">minghui.lin@example.com.tw</span>
+</div>
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors w-fit">
+                                修改
+                            </button>
+</div>
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<span class="text-sm font-medium text-outline">聯絡電話</span>
+<span class="text-[15px] font-medium text-on-surface">+886 912 345 678</span>
+</div>
+<button class="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors w-fit">
+                                修改
+                            </button>
+</div>
+</div>
+</section>
+<!-- Card 3: Wallet Info -->
+<section class="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden shadow-[0_4px_32px_rgba(28,25,23,0.02)]">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-primary-container rounded-l-xl"></div>
+<div class="flex justify-between items-start mb-6">
+<h3 class="text-xl font-bold text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary-container">account_balance_wallet</span>
+                            錢包綁定
+                        </h3>
+<span class="px-3 py-1 bg-tertiary/10 text-tertiary text-xs font-bold rounded-full">已連結</span>
+</div>
+<div class="bg-surface-container p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
+<div class="flex items-center gap-4 w-full md:w-auto">
+<div class="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm">
+<span class="material-symbols-outlined text-on-surface-variant">currency_exchange</span>
+</div>
+<div class="flex flex-col">
+<span class="text-sm font-medium text-outline">主錢包地址 (Ethereum)</span>
+<span class="font-mono text-sm text-on-surface break-all">0x71C...976F</span>
+</div>
+</div>
+<button class="p-2 text-on-surface-variant hover:text-primary-container hover:bg-surface-container-lowest rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">content_copy</span>
+</button>
+</div>
+</section>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="w-full py-16 mt-auto bg-[#F5F3EE]">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 max-w-[1440px] mx-auto gap-8 text-center md:text-left">
+<div class="text-base font-bold text-[#1C1917]">
+                去中心化房屋平台
+            </div>
+<div class="flex gap-6">
+<a class="text-sm font-normal text-[#78716C] hover:text-[#1C1917] underline decoration-[#059669] transition-all" href="#">隱私政策</a>
+<a class="text-sm font-normal text-[#78716C] hover:text-[#1C1917] underline decoration-[#059669] transition-all" href="#">服務條款</a>
+<a class="text-sm font-normal text-[#78716C] hover:text-[#1C1917] underline decoration-[#059669] transition-all" href="#">關於我們</a>
+<a class="text-sm font-normal text-[#78716C] hover:text-[#1C1917] underline decoration-[#059669] transition-all" href="#">媒體資源</a>
+</div>
+<div class="text-sm font-normal text-[#78716C] leading-[1.75]">
+                © 2024 去中心化房屋平台. Luminous Pavilion Architecture.
+            </div>
+</div>
+</footer>
+</body></html>

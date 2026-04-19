@@ -34,7 +34,7 @@ func (r *KYCSessionRepository) Create(email string, expiresAt time.Time) (*model
 func (r *KYCSessionRepository) FindByID(id string) (*model.KYCSession, error) {
 	const q = `
 		SELECT id, email, phone, email_verified, phone_verified,
-		       person_hash, confirmed_name, confirmed_birth_date, ocr_address, ocr_id_number_hint,
+		       person_hash, ocr_id_number, confirmed_name, confirmed_birth_date, ocr_address, ocr_id_number_hint, ocr_gender, ocr_issue_date, ocr_issue_location, ocr_father_name, ocr_mother_name,
 		       id_front_path, id_back_path, selfie_path, second_doc_path,
 		       face_match_score, ocr_success, step, bound_user_id,
 		       expires_at, created_at
@@ -46,7 +46,7 @@ func (r *KYCSessionRepository) FindByID(id string) (*model.KYCSession, error) {
 func (r *KYCSessionRepository) FindActiveByEmail(email string) (*model.KYCSession, error) {
 	const q = `
 		SELECT id, email, phone, email_verified, phone_verified,
-		       person_hash, confirmed_name, confirmed_birth_date, ocr_address, ocr_id_number_hint,
+		       person_hash, ocr_id_number, confirmed_name, confirmed_birth_date, ocr_address, ocr_id_number_hint, ocr_gender, ocr_issue_date, ocr_issue_location, ocr_father_name, ocr_mother_name,
 		       id_front_path, id_back_path, selfie_path, second_doc_path,
 		       face_match_score, ocr_success, step, bound_user_id,
 		       expires_at, created_at
@@ -91,10 +91,16 @@ func (r *KYCSessionRepository) MarkPhoneVerified(id string) error {
 // SetOCRResult stores MinIO paths, OCR data, and face match score after document analysis.
 type OCRSessionParams struct {
 	PersonHash      string
-	IDNumberHint    string // last 4 chars
+	IDNumber        string
+	IDNumberHint    string
 	OCRName         string
+	OCRGender       string
 	OCRBirthDate    string
+	OCRIssueDate    string
+	OCRIssueLocation string
 	OCRAddress      string
+	OCRFatherName   string
+	OCRMotherName   string
 	IDFrontPath     string
 	IDBackPath      string
 	SelfiePath      string
@@ -106,25 +112,37 @@ type OCRSessionParams struct {
 func (r *KYCSessionRepository) SetOCRResult(id string, p OCRSessionParams) error {
 	_, err := r.db.Exec(`
 		UPDATE kyc_sessions SET
-			person_hash         = $1,
-			ocr_id_number_hint  = $2,
-			confirmed_name      = $3,
-			confirmed_birth_date = $4,
-			ocr_address         = $5,
-			id_front_path       = $6,
-			id_back_path        = $7,
-			selfie_path         = $8,
-			second_doc_path     = $9,
-			face_match_score    = $10,
-			ocr_success         = $11,
-			step                = $12
-		WHERE id = $13
+			person_hash           = $1,
+			ocr_id_number         = $2,
+			ocr_id_number_hint    = $3,
+			confirmed_name        = $4,
+			ocr_gender            = $5,
+			confirmed_birth_date  = $6,
+			ocr_issue_date        = $7,
+			ocr_issue_location    = $8,
+			ocr_address           = $9,
+			ocr_father_name       = $10,
+			ocr_mother_name       = $11,
+			id_front_path         = $12,
+			id_back_path          = $13,
+			selfie_path           = $14,
+			second_doc_path       = $15,
+			face_match_score      = $16,
+			ocr_success           = $17,
+			step                  = $18
+		WHERE id = $19
 	`,
 		nullStr(p.PersonHash),
+		nullStr(p.IDNumber),
 		nullStr(p.IDNumberHint),
 		nullStr(p.OCRName),
+		nullStr(p.OCRGender),
 		nullStr(p.OCRBirthDate),
+		nullStr(p.OCRIssueDate),
+		nullStr(p.OCRIssueLocation),
 		nullStr(p.OCRAddress),
+		nullStr(p.OCRFatherName),
+		nullStr(p.OCRMotherName),
 		nullStr(p.IDFrontPath),
 		nullStr(p.IDBackPath),
 		nullStr(p.SelfiePath),
@@ -195,7 +213,7 @@ func (r *KYCSessionRepository) scanOne(row *sql.Row) (*model.KYCSession, error) 
 	err := row.Scan(
 		&s.ID,
 		&s.Email, &s.Phone, &s.EmailVerified, &s.PhoneVerified,
-		&s.PersonHash, &s.ConfirmedName, &s.ConfirmedBirthDate, &s.OCRAddress, &s.OCRIDNumberHint,
+		&s.PersonHash, &s.OCRIDNumber, &s.ConfirmedName, &s.ConfirmedBirthDate, &s.OCRAddress, &s.OCRIDNumberHint, &s.OCRGender, &s.OCRIssueDate, &s.OCRIssueLocation, &s.OCRFatherName, &s.OCRMotherName,
 		&s.IDFrontPath, &s.IDBackPath, &s.SelfiePath, &s.SecondDocPath,
 		&s.FaceMatchScore, &s.OCRSuccess, &s.Step, &s.BoundUserID,
 		&s.ExpiresAt, &s.CreatedAt,

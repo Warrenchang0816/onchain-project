@@ -12,10 +12,16 @@ export type UploadKYCResponse = {
     session_id: string;
     step: OnboardingStep;
     stage: "id_card" | "second_doc" | "selfie" | "full";
-    ocr_name: string;
-    ocr_birth_date: string;
-    ocr_address: string;
+    id_number?: string;
     id_number_hint: string;
+    ocr_name: string;
+    ocr_gender?: string;
+    ocr_birth_date: string;
+    ocr_issue_date?: string;
+    ocr_issue_location?: string;
+    ocr_address: string;
+    ocr_father_name?: string;
+    ocr_mother_name?: string;
     face_match_score: number;
     ocr_success: boolean;
 };
@@ -24,11 +30,18 @@ export type VerifyEmailOTPResponse = {
     session_id: string;
     step: OnboardingStep;
     is_resume?: boolean;
-    // OCR pre-fill (only when is_resume && step is OCR_DONE or CONFIRMED)
-    ocr_name?: string;
-    ocr_birth_date?: string;
-    ocr_address?: string;
+    resume_wizard_step?: string;
+    // OCR pre-fill (set whenever is_resume and session has OCR data)
+    id_number?: string;
     id_number_hint?: string;
+    ocr_name?: string;
+    ocr_gender?: string;
+    ocr_birth_date?: string;
+    ocr_issue_date?: string;
+    ocr_issue_location?: string;
+    ocr_address?: string;
+    ocr_father_name?: string;
+    ocr_mother_name?: string;
 };
 
 export type WalletMessageResponse = {
@@ -48,6 +61,16 @@ export class WalletAlreadyBoundError extends Error {
         super("此錢包已完成身份綁定，若非本人操作請聯絡客服");
         this.name = "WalletAlreadyBoundError";
         this.idHint = idHint;
+    }
+}
+
+/** Thrown when the email is registered but password was never set (HTTP 409). */
+export class EmailNotActivatedError extends Error {
+    readonly email: string;
+    constructor(email: string) {
+        super("此 Email 已完成 KYC 但尚未設定密碼");
+        this.name = "EmailNotActivatedError";
+        this.email = email;
     }
 }
 
@@ -118,7 +141,10 @@ export async function verifyEmailOTP(email: string, code: string): Promise<Verif
 
     if (response.status === 409) {
         const raw = await response.text();
-        const data = raw ? (JSON.parse(raw) as { error_code?: string; id_hint?: string }) : {};
+        const data = raw ? (JSON.parse(raw) as { error_code?: string; id_hint?: string; email?: string }) : {};
+        if (data.error_code === "EMAIL_NOT_ACTIVATED") {
+            throw new EmailNotActivatedError(data.email ?? "");
+        }
         if (data.error_code === "EMAIL_ALREADY_USED") {
             throw new EmailAlreadyUsedError(data.id_hint ?? "");
         }

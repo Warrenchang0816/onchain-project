@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>去中心化房屋平台 - 身份驗證</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&amp;family=Noto+Sans+TC:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed": "#ffe08e",
+                        "on-surface": "#1b1c19",
+                        "surface-container-highest": "#e4e2dd",
+                        "tertiary": "#006c4a",
+                        "primary-container": "#e8b800",
+                        "on-primary-container": "#5f4a00",
+                        "secondary-fixed-dim": "#93ccff",
+                        "surface-container-low": "#f5f3ee",
+                        "surface-container": "#f0eee9",
+                        "tertiary-fixed": "#85f8c4",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#5fd3a1",
+                        "on-tertiary-container": "#00593c",
+                        "secondary-container": "#5bb8fe",
+                        "on-surface-variant": "#4e4633",
+                        "background": "#fbf9f4",
+                        "outline": "#807660",
+                        "on-tertiary-fixed": "#002114",
+                        "inverse-on-surface": "#f2f1ec",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#dcdad5",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#30312e",
+                        "inverse-primary": "#f1c014",
+                        "primary": "#745b00",
+                        "outline-variant": "#d2c5ac",
+                        "tertiary-fixed-dim": "#68dba9",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#eae8e3",
+                        "on-secondary-container": "#00476e",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "surface": "#fbf9f4",
+                        "surface-tint": "#745b00",
+                        "secondary-fixed": "#cce5ff",
+                        "on-secondary-fixed-variant": "#004b73",
+                        "on-secondary-fixed": "#001d31",
+                        "surface-variant": "#e4e2dd",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006398",
+                        "on-background": "#1b1c19",
+                        "primary-fixed-dim": "#f1c014",
+                        "surface-bright": "#fbf9f4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#584400"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter", "Noto Sans TC", "sans-serif"],
+                        "body": ["Inter", "Noto Sans TC", "sans-serif"],
+                        "label": ["Inter", "Noto Sans TC", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col font-body antialiased">
+<!-- TopNavBar (Suppressed due to Transactional intent, replaced with minimal header) -->
+<header class="w-full h-[80px] flex items-center px-6 md:px-12 max-w-[1440px] mx-auto z-50">
+<a class="flex items-center gap-2" href="#">
+<span class="text-xl font-extrabold text-on-surface border-b-2 border-primary-container pb-0.5 tracking-tight">去中心化房屋平台</span>
+</a>
+<div class="ml-auto">
+<button class="text-on-surface-variant hover:text-on-surface transition-colors flex items-center gap-1 text-sm font-medium">
+<span class="material-symbols-outlined text-[20px]" data-icon="close">close</span>
+                儲存並離開
+            </button>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center justify-center py-12 px-4 md:px-8 relative z-10">
+<!-- Progress Indicator (Minimalist dots) -->
+<div class="w-full max-w-[520px] mb-12 flex justify-between items-center relative">
+<!-- Background Line -->
+<div class="absolute top-1/2 left-0 w-full h-[2px] bg-surface-variant -translate-y-1/2 z-0"></div>
+<!-- Active Progress Line -->
+<div class="absolute top-1/2 left-0 w-[37.5%] h-[2px] bg-tertiary-container -translate-y-1/2 z-0"></div>
+<!-- Steps -->
+<!-- Step 1 (Completed) -->
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<!-- Step 2 (Completed) -->
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<!-- Step 3 (Completed) -->
+<div class="w-8 h-8 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="material-symbols-outlined text-[16px]" data-icon="check" data-weight="fill" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<!-- Step 4 (Active) -->
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center relative z-10 ring-4 ring-background shadow-[0_0_16px_rgba(232,184,0,0.3)]">
+<span class="text-sm font-bold">4</span>
+</div>
+<!-- Step 5 -->
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="text-sm font-medium">5</span>
+</div>
+<!-- Step 6 -->
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="text-sm font-medium">6</span>
+</div>
+<!-- Step 7 -->
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="text-sm font-medium">7</span>
+</div>
+<!-- Step 8 -->
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center relative z-10 ring-4 ring-background">
+<span class="text-sm font-medium">8</span>
+</div>
+</div>
+<!-- Main Card Canvas -->
+<div class="w-full max-w-[520px] bg-surface-container-lowest rounded-xl p-8 md:p-12 shadow-[0_8px_32px_rgba(28,25,23,0.04)] relative overflow-hidden">
+<!-- Subtle decorative background element -->
+<div class="absolute -top-24 -right-24 w-48 h-48 bg-primary-fixed rounded-full blur-[80px] opacity-20 pointer-events-none"></div>
+<h2 class="text-[32px] font-headline font-bold text-on-surface tracking-tight leading-tight mb-3">上傳身份證明文件</h2>
+<p class="text-[15px] text-on-surface-variant leading-[1.75] mb-8 font-body">
+                為了確保平台交易的安全性，我們需要核實您的身份。請上傳您的身份證正面清晰照片。資料將進行加密處理，僅用於審核用途。
+            </p>
+<!-- Upload Zone -->
+<div class="w-full border-2 border-dashed border-outline-variant rounded-xl bg-surface-container-low/50 hover:bg-surface-container transition-colors duration-300 cursor-pointer group flex flex-col items-center justify-center py-16 px-6 text-center relative">
+<div class="w-16 h-16 rounded-full bg-surface-container-lowest shadow-[0_4px_16px_rgba(28,25,23,0.06)] flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-300">
+<span class="material-symbols-outlined text-[32px] text-primary" data-icon="id_card" data-weight="fill" style="font-variation-settings: 'FILL' 1;">id_card</span>
+</div>
+<span class="text-lg font-bold text-on-surface mb-2">點擊上傳或拖曳檔案至此處</span>
+<span class="text-sm text-on-surface-variant">支援 JPG, PNG 或 PDF，最大檔案大小 10MB</span>
+<!-- Hidden Input -->
+<input aria-label="上傳身份證明文件" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" type="file"/>
+</div>
+<!-- Security Trust Badge -->
+<div class="mt-8 flex items-center justify-center gap-2 bg-surface-container-low rounded-lg py-3 px-4 w-fit mx-auto border border-outline-variant/30">
+<span class="material-symbols-outlined text-[18px] text-tertiary-container" data-icon="lock" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lock</span>
+<span class="text-sm text-on-surface-variant font-medium">端到端加密保護，符合台灣個資法規範</span>
+</div>
+<!-- Action Navigation Row -->
+<div class="mt-12 flex justify-between items-center pt-6 border-t border-surface-variant/50">
+<button class="px-6 py-3 rounded-xl border border-outline-variant text-on-surface bg-surface-container-lowest hover:bg-surface-container-low transition-colors duration-200 font-bold text-[15px] flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="arrow_back">arrow_back</span>
+                    上一步
+                </button>
+<button class="px-8 py-3 rounded-xl bg-primary-container text-on-surface font-bold text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] hover:brightness-105 transition-all duration-200 flex items-center gap-2">
+                    繼續
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Footer (Suppressed for transactional intent) -->
+</body></html>

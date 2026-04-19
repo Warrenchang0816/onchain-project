@@ -53,7 +53,7 @@ func ParseBack(ocrText string) IDCardBack {
     lines := splitLines(text)
     var b IDCardBack
 
-    b.Address = extractAfterKeyword(lines, []string{"住址", "地址", "Address"})
+    b.Address = extractAddressMultiline(lines)
 
     for _, line := range lines {
         line = strings.TrimSpace(line)
@@ -78,6 +78,42 @@ func ParseBack(ocrText string) IDCardBack {
     }
 
     return b
+}
+
+func extractAddressMultiline(lines []string) string {
+    stopPrefixes := []string{"父", "母", "配偶", "兵役", "役別"}
+    for i, line := range lines {
+        line = strings.TrimSpace(line)
+        for _, kw := range []string{"住址", "地址", "Address"} {
+            if idx := strings.Index(line, kw); idx != -1 {
+                rest := strings.TrimSpace(strings.TrimPrefix(line[idx:], kw))
+                rest = strings.TrimLeft(rest, ":： ")
+                var parts []string
+                if rest != "" {
+                    parts = append(parts, cleanFieldValue(rest))
+                }
+                for j := i + 1; j < len(lines) && j <= i+2; j++ {
+                    next := strings.TrimSpace(lines[j])
+                    if next == "" {
+                        break
+                    }
+                    isStop := false
+                    for _, p := range stopPrefixes {
+                        if strings.HasPrefix(next, p) {
+                            isStop = true
+                            break
+                        }
+                    }
+                    if isStop {
+                        break
+                    }
+                    parts = append(parts, cleanFieldValue(next))
+                }
+                return strings.Join(parts, "")
+            }
+        }
+    }
+    return ""
 }
 
 func cleanOCRText(s string) string {

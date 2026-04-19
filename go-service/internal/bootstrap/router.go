@@ -20,6 +20,7 @@ func SetupRouter(
 	logHandler *logsmod.Handler,
 	authHandler *authmod.Handler,
 	loginHandler *authmod.LoginHandler,
+	resetPasswordHandler *authmod.ResetPasswordHandler,
 	userHandler *usermod.Handler,
 	adminHandler *usermod.AdminHandler,
 	onboardingHandler *onboardingmod.Handler,
@@ -97,6 +98,8 @@ func SetupRouter(
 		api.POST("/auth/logout", authHandler.AuthLogoutHandler)
 		api.POST("/auth/login", loginHandler.Login)
 		api.POST("/auth/password/set", loginHandler.SetPassword)
+		api.POST("/auth/reset-password/request-otp", resetPasswordHandler.RequestOTP)
+		api.POST("/auth/reset-password/set-password", resetPasswordHandler.SetPassword)
 
 		authProtected := api.Group("/auth")
 		authProtected.Use(platformauth.AuthMiddleware(sessionRepo))

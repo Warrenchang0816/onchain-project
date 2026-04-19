@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>去中心化房屋平台 - 首頁</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&amp;family=Noto+Sans+TC:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed": "#ffe08e",
+                        "on-surface": "#1b1c19",
+                        "surface-container-highest": "#e4e2dd",
+                        "tertiary": "#006c4a",
+                        "primary-container": "#e8b800",
+                        "on-primary-container": "#5f4a00",
+                        "secondary-fixed-dim": "#93ccff",
+                        "surface-container-low": "#f5f3ee",
+                        "surface-container": "#f0eee9",
+                        "tertiary-fixed": "#85f8c4",
+                        "on-error": "#ffffff",
+                        "tertiary-container": "#5fd3a1",
+                        "on-tertiary-container": "#00593c",
+                        "secondary-container": "#5bb8fe",
+                        "on-surface-variant": "#4e4633",
+                        "background": "#fbf9f4",
+                        "outline": "#807660",
+                        "on-tertiary-fixed": "#002114",
+                        "inverse-on-surface": "#f2f1ec",
+                        "on-tertiary": "#ffffff",
+                        "surface-dim": "#dcdad5",
+                        "on-tertiary-fixed-variant": "#005137",
+                        "on-error-container": "#93000a",
+                        "error": "#ba1a1a",
+                        "inverse-surface": "#30312e",
+                        "inverse-primary": "#f1c014",
+                        "primary": "#745b00",
+                        "outline-variant": "#d2c5ac",
+                        "tertiary-fixed-dim": "#68dba9",
+                        "on-primary": "#ffffff",
+                        "surface-container-high": "#eae8e3",
+                        "on-secondary-container": "#00476e",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#241a00",
+                        "surface": "#fbf9f4",
+                        "surface-tint": "#745b00",
+                        "secondary-fixed": "#cce5ff",
+                        "on-secondary-fixed-variant": "#004b73",
+                        "on-secondary-fixed": "#001d31",
+                        "surface-variant": "#e4e2dd",
+                        "on-secondary": "#ffffff",
+                        "secondary": "#006398",
+                        "on-background": "#1b1c19",
+                        "primary-fixed-dim": "#f1c014",
+                        "surface-bright": "#fbf9f4",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#584400"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "Noto Sans TC", "sans-serif"],
+                        "body": ["Inter", "Noto Sans TC", "sans-serif"],
+                        "label": ["Inter", "Noto Sans TC", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<nav class="bg-[#FFFEF9]/80 dark:bg-stone-950/80 backdrop-blur-3xl font-['Inter','Noto_Sans_TC'] tracking-tight leading-[1.75] sticky top-0 h-[64px] w-full z-50 bg-[#F5F3EE] dark:bg-stone-900 flat no-line architecture">
+<div class="flex justify-between items-center w-full px-6 md:px-12 max-w-[1440px] mx-auto h-full">
+<!-- Brand -->
+<div class="text-xl font-extrabold text-[#1C1917] dark:text-stone-50 border-b-2 border-[#E8B800] pb-0.5">
+                去中心化房屋平台
+            </div>
+<!-- Navigation Links (Web) -->
+<div class="hidden md:flex items-center gap-8">
+<a class="text-[#E8B800] font-bold border-b-2 border-[#E8B800] pb-1 hover:text-[#E8B800] hover:bg-[#F5F3EE] dark:hover:bg-stone-900 transition-all duration-300 scale-95 active:opacity-80 transition-transform" href="#">首頁</a>
+<a class="text-[#1C1917] dark:text-stone-300 font-medium hover:text-[#E8B800] hover:bg-[#F5F3EE] dark:hover:bg-stone-900 transition-all duration-300 scale-95 active:opacity-80 transition-transform" href="#">列表</a>
+<a class="text-[#1C1917] dark:text-stone-300 font-medium hover:text-[#E8B800] hover:bg-[#F5F3EE] dark:hover:bg-stone-900 transition-all duration-300 scale-95 active:opacity-80 transition-transform" href="#">足跡</a>
+</div>
+<!-- Trailing Action -->
+<div class="flex items-center gap-4">
+<button class="hidden md:block text-sm font-medium text-on-surface hover:text-primary-container transition-colors duration-200">
+                    屋主/租客/仲介
+                </button>
+<div class="w-8 h-8 rounded-full bg-surface-container-high overflow-hidden flex items-center justify-center">
+<img alt="User profile avatar" class="w-full h-full object-cover" data-alt="close up portrait of a young professional in soft studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBe2cgUzxObaq6mQ8ByTBzlpxRuif3UTl7D3x-56yiDAIq8QMIlbeGcXjkM6Luq047C9C-aUW1GUqNNhj4zd-wNzUvgh1VRqquRHy9_3cYb7hq89S49DW3gTt9VdwOe0Hc5KiwCj7O3YvNGoaNwBkydnSiIpfiqoXxw3BUrnvUikWsNA4B1sM_1I6lwAKpnfvwlv3yJKb74ZDIlLBmA0xTjdf0yfhdktzOCZj6XFVXR1AtvgT9rAaqFqG7tLNtArcHK110ZVasVVeFp"/>
+</div>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow">
+<!-- Hero Section -->
+<section class="relative pt-24 pb-32 px-6 md:px-12 bg-gradient-to-b from-background to-surface-container-low overflow-hidden">
+<div class="max-w-[1440px] mx-auto grid md:grid-cols-2 gap-16 items-center">
+<div class="space-y-8 z-10">
+<h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-on-surface leading-tight font-headline">
+                        買房・租屋，<br/>可信任的媒合市場
+                    </h1>
+<p class="text-lg text-on-surface-variant max-w-lg leading-[1.75]">
+                        運用區塊鏈技術，為台灣打造真實、透明、去中心化的不動產交易新標竿。
+                    </p>
+<!-- Search Card (Glassmorphism) -->
+<div class="bg-surface-container-lowest/80 backdrop-blur-2xl p-6 rounded-xl border border-outline-variant/15 shadow-[0_8px_32px_rgba(28,25,23,0.06)]">
+<div class="flex gap-4 mb-6">
+<button class="px-6 py-2 rounded-full bg-primary-container text-on-primary-container font-bold text-sm">買房</button>
+<button class="px-6 py-2 rounded-full bg-surface-container-low text-on-surface font-medium text-sm hover:bg-surface-container transition-colors">租屋</button>
+</div>
+<div class="flex flex-col sm:flex-row gap-4">
+<div class="flex-grow bg-surface-container-low rounded-lg px-4 py-3 flex items-center gap-3">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 w-full text-on-surface placeholder-on-surface-variant" placeholder="搜尋區域、捷運站、社區..." type="text"/>
+</div>
+<button class="bg-primary-container text-on-primary-container px-8 py-3 rounded-lg font-bold hover:opacity-90 transition-opacity">搜尋</button>
+</div>
+</div>
+</div>
+<div class="relative z-0">
+<div class="aspect-[4/3] rounded-xl overflow-hidden shadow-[0_16px_48px_rgba(28,25,23,0.08)]">
+<img alt="Beautiful modern home exterior" class="w-full h-full object-cover" data-alt="architectural photography of a warm modern minimalist home interior with large windows and sunlight streaming in" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdKRXNvwbCAm5KzsPO2yQdkGazvc0BbuCa4TuXHvhY95ACl4h35P-uK7XhljMKWiV1U9fjGiD43cfix_8NkU15ZQKl1jp6oK3-YMe68qigAqT0z50X8131Ohq5mhOcPmu_JydYPGOqAB5MRbHwPPp0a1KTqUgFYLbGniXU3BMpNw7BkucQaeEDzTyVrqAAS6ddfMiA6_TEqfKgQmXUvVQbA8CBYdrq6JjXLtN2KYbpBj1bQ5mRM1GD16mPhFyf63bS9WBlMQAS6nuQ"/>
+</div>
+<!-- Floating Badge -->
+<div class="absolute -bottom-6 -left-6 bg-surface-container-lowest/90 backdrop-blur-md p-4 rounded-xl border border-outline-variant/15 shadow-[0_8px_24px_rgba(28,25,23,0.05)] flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-tertiary-container animate-pulse"></div>
+<span class="text-sm font-bold text-on-surface">智能合約擔保交易</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Platform Value -->
+<section class="py-24 px-6 md:px-12 bg-surface-container-low">
+<div class="max-w-[1440px] mx-auto">
+<h2 class="text-3xl font-extrabold text-on-surface mb-16 text-center font-headline">重新定義信任</h2>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Value Card 1 -->
+<div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-primary-container/20 rounded-full flex items-center justify-center mb-6 text-primary">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-4">身份可信</h3>
+<p class="text-on-surface-variant leading-[1.75]">透過嚴格的 KYC 驗證與鏈上身份綁定，杜絕假房東與虛假屋主，保障雙方權益。</p>
+</div>
+<!-- Value Card 2 -->
+<div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-secondary-container/20 rounded-full flex items-center justify-center mb-6 text-secondary">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">visibility</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-4">交易透明</h3>
+<p class="text-on-surface-variant leading-[1.75]">所有產權變更、租賃紀錄與歷史價格皆上鏈保存，告別資訊不對稱的黑箱作業。</p>
+</div>
+<!-- Value Card 3 -->
+<div class="bg-surface-container-lowest p-10 rounded-xl flex flex-col items-center text-center">
+<div class="w-16 h-16 bg-tertiary-container/20 rounded-full flex items-center justify-center mb-6 text-tertiary">
+<span class="material-symbols-outlined text-3xl" style="font-variation-settings: 'FILL' 1;">key</span>
+</div>
+<h3 class="text-xl font-bold text-on-surface mb-4">主權在屋主</h3>
+<p class="text-on-surface-variant leading-[1.75]">直接與潛在買家或租客對接，智能合約自動執行條件，降低高昂的中介抽成。</p>
+</div>
+</div>
+</div>
+</section>
+<!-- District Links -->
+<section class="py-24 px-6 md:px-12 bg-background">
+<div class="max-w-[1440px] mx-auto">
+<h2 class="text-3xl font-extrabold text-on-surface mb-12 font-headline">探索熱門區域</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+<a class="group bg-surface-container-low p-6 rounded-r-xl border-l-4 border-primary-container hover:bg-surface-container transition-colors flex justify-between items-center" href="#">
+<div>
+<div class="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">信義區</div>
+<div class="text-sm text-on-surface-variant mt-1">1,204 件物件</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">arrow_forward</span>
+</a>
+<a class="group bg-surface-container-low p-6 rounded-r-xl border-l-4 border-primary-container hover:bg-surface-container transition-colors flex justify-between items-center" href="#">
+<div>
+<div class="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">大安區</div>
+<div class="text-sm text-on-surface-variant mt-1">982 件物件</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">arrow_forward</span>
+</a>
+<a class="group bg-surface-container-low p-6 rounded-r-xl border-l-4 border-primary-container hover:bg-surface-container transition-colors flex justify-between items-center" href="#">
+<div>
+<div class="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">中山區</div>
+<div class="text-sm text-on-surface-variant mt-1">1,543 件物件</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">arrow_forward</span>
+</a>
+<a class="group bg-surface-container-low p-6 rounded-r-xl border-l-4 border-primary-container hover:bg-surface-container transition-colors flex justify-between items-center" href="#">
+<div>
+<div class="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">松山區</div>
+<div class="text-sm text-on-surface-variant mt-1">756 件物件</div>
+</div>
+<span class="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">arrow_forward</span>
+</a>
+</div>
+</div>
+</section>
+<!-- Recent Listings -->
+<section class="py-24 px-6 md:px-12 bg-surface-container-lowest">
+<div class="max-w-[1440px] mx-auto">
+<div class="flex justify-between items-end mb-12">
+<h2 class="text-3xl font-extrabold text-on-surface font-headline">最新上架</h2>
+<a class="text-tertiary font-medium hover:text-on-surface transition-colors flex items-center gap-1 border-b border-tertiary pb-0.5" href="#">查看全部 <span class="material-symbols-outlined text-sm">arrow_forward</span></a>
+</div>
+<div class="grid md:grid-cols-3 gap-8">
+<!-- Property Card 1 -->
+<div class="group cursor-pointer">
+<div class="aspect-[4/3] rounded-xl overflow-hidden mb-6 relative">
+<img alt="Modern apartment living room" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="bright modern apartment interior with minimalist furniture and city view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3lWAdXDiqx56oRlRygVeb81z4Gob3hOFoPjbSKYF9F3cjYF8Qftak5zHG00mRn5u1MXaiZnBQ-mzTfHHeCFWVfI-86XIPMlYfs_C2hxTOTwP1QyeoahAWOjilvbKxj7oBaETQzrJAWYLHFQFJVrTGRB2EIo8PGE-0_O5vgQvR3ggmaqU2bHG2CEteN40G3KNCdev9l3mauWGcdsw2kgtbpDcEnEnvxHN0ab83d6tSB3tKq3Jqd55-wf4CcB7vAxyD8epwW9GPQAj0"/>
+<div class="absolute top-4 left-4 bg-tertiary-container/90 text-on-tertiary-container text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                驗證上鏈
+                            </div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<h3 class="text-xl font-bold text-on-surface">光影織境・信義景觀宅</h3>
+<div class="text-xl font-bold text-primary-container">4,280 萬</div>
+</div>
+<p class="text-on-surface-variant text-sm">信義區・松智路</p>
+<div class="flex gap-4 text-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">bed</span> 3 房</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">shower</span> 2 衛</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">square_foot</span> 45 坪</span>
+</div>
+</div>
+</div>
+<!-- Property Card 2 -->
+<div class="group cursor-pointer">
+<div class="aspect-[4/3] rounded-xl overflow-hidden mb-6 relative">
+<img alt="Cozy studio apartment" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="warm cozy studio apartment interior with wooden floor and natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAmQ7WQvimokWYnKxgHLtnRRFKc4OgyJZqQbnl61hXKqncuZKk9cWmzF0xJl-3HjJn_MDqOK4gVZqcmn0FevHlajLB3o24XcPf6249vUDSBFTneXVvXynUvdFps57ELgfXADiUA590T7807AoMTqt7wkMfTuv9cb7rViPvxy25Nag4JaTIf5DjEQ0qmho12xWbfsMVdRlJ1g9bFTsjWVyWSQ-tzgCUXxQHFRbSmoS00FHLe7-067bEdAgLM245j2UNKGuynFgyX9UvP"/>
+<div class="absolute top-4 left-4 bg-surface-container-high/90 text-on-surface text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                洽談中
+                            </div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<h3 class="text-xl font-bold text-on-surface">綠意盎然・大安森林寓</h3>
+<div class="text-xl font-bold text-primary-container">3,150 萬</div>
+</div>
+<p class="text-on-surface-variant text-sm">大安區・新生南路</p>
+<div class="flex gap-4 text-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">bed</span> 2 房</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">shower</span> 1 衛</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">square_foot</span> 28 坪</span>
+</div>
+</div>
+</div>
+<!-- Property Card 3 -->
+<div class="group cursor-pointer">
+<div class="aspect-[4/3] rounded-xl overflow-hidden mb-6 relative">
+<img alt="Loft apartment interior" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="industrial chic loft apartment interior with brick walls and large windows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB9ki_USArM-KSD2K_H1wGd7AeRB_ZjH46M_XBU9AGMw-r1TkRnkjsSDmhjbRvuc7tuKc1cNhWW4ylGdQELLpzs8CigcHLZbYculInOOG0NzgyFrEVmDa1zL3Xl4eJTtFdrB1O-3W-z90LcQhpEstrxtVJkgmkKn3c03YIvENk1zAp40kEFaET5E83Sm4h2zDLGRTwAyonfO52vg7B1kgwiOvWtavZHq7QvxwNeAdIiQ2jkUjfMxrZjQJqVawpROTJX9S142-wd87-c"/>
+<div class="absolute top-4 left-4 bg-tertiary-container/90 text-on-tertiary-container text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm">
+                                驗證上鏈
+                            </div>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-start">
+<h3 class="text-xl font-bold text-on-surface">文青雅居・中山挑高樓</h3>
+<div class="text-xl font-bold text-primary-container">5 萬 / 月</div>
+</div>
+<p class="text-on-surface-variant text-sm">中山區・中山北路</p>
+<div class="flex gap-4 text-sm text-on-surface-variant">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">bed</span> 1 房</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">shower</span> 1 衛</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">square_foot</span> 18 坪</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Section -->
+<section class="py-24 px-6 md:px-12 bg-background">
+<div class="max-w-[1000px] mx-auto bg-gradient-to-br from-primary-container/20 to-surface-container-low rounded-[2rem] p-12 md:p-20 text-center flex flex-col items-center">
+<h2 class="text-3xl md:text-4xl font-extrabold text-on-surface mb-6 font-headline">準備好體驗全新交易模式？</h2>
+<p class="text-lg text-on-surface-variant mb-10 max-w-2xl leading-[1.75]">完成 Web3 身份驗證，解鎖發布物件、智能合約簽署與專屬客服等進階功能。</p>
+<button class="bg-primary-container text-on-primary-container px-10 py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-opacity shadow-[0_4px_16px_rgba(232,184,0,0.3)] flex items-center gap-2">
+                    立即 KYC 驗證 <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-[#F5F3EE] dark:bg-stone-900 w-full py-16 mt-auto tonal background shift from warm-white to sage-low flat no shadows">
+<div class="flex flex-col md:flex-row justify-between items-center px-12 max-w-[1440px] mx-auto gap-8 text-center md:text-left">
+<div class="text-base font-bold text-[#1C1917] dark:text-stone-200">
+                去中心化房屋平台
+            </div>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="text-[#78716C] dark:text-stone-400 hover:text-[#1C1917] dark:hover:text-stone-100 underline decoration-[#059669] transition-all ease-in-out duration-200 text-sm font-normal leading-[1.75]" href="#">隱私政策</a>
+<a class="text-[#78716C] dark:text-stone-400 hover:text-[#1C1917] dark:hover:text-stone-100 underline decoration-[#059669] transition-all ease-in-out duration-200 text-sm font-normal leading-[1.75]" href="#">服務條款</a>
+<a class="text-[#78716C] dark:text-stone-400 hover:text-[#1C1917] dark:hover:text-stone-100 underline decoration-[#059669] transition-all ease-in-out duration-200 text-sm font-normal leading-[1.75]" href="#">關於我們</a>
+<a class="text-[#78716C] dark:text-stone-400 hover:text-[#1C1917] dark:hover:text-stone-100 underline decoration-[#059669] transition-all ease-in-out duration-200 text-sm font-normal leading-[1.75]" href="#">媒體資源</a>
+</div>
+<div class="text-sm font-normal text-[#78716C] dark:text-stone-400 leading-[1.75]">
+                © 2024 去中心化房屋平台. Luminous Pavilion Architecture.
+            </div>
+</div>
+</footer>
+</body></html>

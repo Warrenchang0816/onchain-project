@@ -57,6 +57,7 @@ export type Listing = {
     created_at: string;
     updated_at: string;
     is_owner: boolean;
+    image_url?: string; // optional cover photo (populated by placeholder; will come from API eventually)
 };
 
 export type CreateListingPayload = {
@@ -221,4 +222,36 @@ export async function cancelAppointment(listingId: number, apptId: number): Prom
         credentials: "include",
     });
     await parseResponse<unknown>(res);
+}
+
+/** 鏈上足跡會用到先暫留，後續再修改調整 **/
+export type BlockchainLog = {
+    id: number;
+    taskId: string;
+    walletAddress: string;
+    action: string;
+    txHash: string;
+    chainId: number;
+    contractAddress: string;
+    status: string;
+    createdAt: string;
+};
+
+export async function getBlockchainLogs(): Promise<BlockchainLog[]> {
+    const response = await fetch(`${API_BASE_URL}/blockchain-logs`, {
+        method: "GET",
+        credentials: "include",
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to fetch blockchain logs: ${response.status}`);
+    }
+
+    const result: { success: boolean; data: BlockchainLog[]; message: string } = await response.json();
+
+    if (!result.success) {
+        throw new Error(result.message || "Failed to fetch blockchain logs");
+    }
+
+    return result.data;
 }

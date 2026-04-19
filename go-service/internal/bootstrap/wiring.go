@@ -147,6 +147,9 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		Password: notifyConfig.MitakePassword,
 	})
 
+	// ── 10b. Reset-password handler (needs emailSender) ──────
+	resetPasswordHandler := authmod.NewResetPasswordHandler(userRepo, otpRepo, emailSender)
+
 	// ── 11. Onboarding module ─────────────────────────────────
 	onboardingSvc := onboardingmod.NewService(
 		otpRepo,
@@ -191,7 +194,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	listingHandler := listingmod.NewHandler(listingSvc)
 
 	// ── 14. Router ────────────────────────────────────────────
-	r := SetupRouter(listingHandler, logHandler, authHandler, loginHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
+	r := SetupRouter(listingHandler, logHandler, authHandler, loginHandler, resetPasswordHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
 
 	return r, cleanupFn, nil
 }

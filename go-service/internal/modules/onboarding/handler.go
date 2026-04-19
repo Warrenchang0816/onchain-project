@@ -9,6 +9,7 @@ import (
     "github.com/ethereum/go-ethereum/common"
     "github.com/gin-gonic/gin"
 
+    "go-service/internal/db/model"
     platformauth "go-service/internal/platform/auth"
     "go-service/internal/platform/config"
 )
@@ -54,6 +55,15 @@ func (h *Handler) VerifyEmailOTP(c *gin.Context) {
             })
             return
         }
+        var notActivated *ErrEmailNotActivated
+        if errors.As(err, &notActivated) {
+            c.JSON(http.StatusConflict, gin.H{
+                "error":      notActivated.Error(),
+                "error_code": "EMAIL_NOT_ACTIVATED",
+                "email":      notActivated.Email,
+            })
+            return
+        }
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
@@ -63,10 +73,17 @@ func (h *Handler) VerifyEmailOTP(c *gin.Context) {
         IsResume:  isResume,
     }
     if isResume {
-        resp.OCRName = nullableStr(sess.ConfirmedName)
-        resp.OCRBirthDate = nullableStr(sess.ConfirmedBirthDate)
-        resp.OCRAddress = nullableStr(sess.OCRAddress)
-        resp.IDNumberHint = nullableStr(sess.OCRIDNumberHint)
+        resp.ResumeWizardStep = calcResumeWizardStep(sess)
+        resp.IDNumber         = nullableStr(sess.OCRIDNumber)
+        resp.IDNumberHint     = nullableStr(sess.OCRIDNumberHint)
+        resp.OCRName          = nullableStr(sess.ConfirmedName)
+        resp.OCRGender        = nullableStr(sess.OCRGender)
+        resp.OCRBirthDate     = nullableStr(sess.ConfirmedBirthDate)
+        resp.OCRIssueDate     = nullableStr(sess.OCRIssueDate)
+        resp.OCRIssueLocation = nullableStr(sess.OCRIssueLocation)
+        resp.OCRAddress       = nullableStr(sess.OCRAddress)
+        resp.OCRFatherName    = nullableStr(sess.OCRFatherName)
+        resp.OCRMotherName    = nullableStr(sess.OCRMotherName)
     }
     c.JSON(http.StatusOK, resp)
 }
@@ -250,6 +267,24 @@ func (h *Handler) BindWallet(c *gin.Context) {
         "kyc_status":     resp.KYCStatus,
         "message":        resp.Message,
     })
+}
+
+func calcResumeWizardStep(sess *model.KYCSession) string {
+    switch sess.Step {
+    case "CONFIRMED":
+        hasSecondDoc := sess.SecondDocPath.Valid && sess.SecondDocPath.String != ""
+        hasSelfie := sess.SelfiePath.Valid && sess.SelfiePath.String != ""
+        if hasSecondDoc && hasSelfie {
+            return "wallet"
+        } else if hasSecondDoc {
+            return "selfie"
+        }
+        return "second-doc"
+    case "WALLET_BOUND":
+        return "wallet"
+    default:
+        return ""
+    }
 }
 
 func readOptionalFormFile(c *gin.Context, field string) ([]byte, error) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { getAuthMe, logout } from "@/api/authApi";
 import { getKYCStatus, type KYCStatus } from "@/api/kycApi";
@@ -7,11 +7,8 @@ async function revokeWalletPermissions() {
     const provider = window.ethereum;
     if (provider) {
         try {
-            await provider.request({
-                method: "wallet_revokePermissions",
-                params: [{ eth_accounts: {} }],
-            });
-        } catch { /* some wallets don't support revokePermissions */ }
+            await provider.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+        } catch { /* ignore */ }
     }
 }
 
@@ -24,28 +21,17 @@ function deriveRole(kycStatus: KYCStatus, credentials: string[]): string {
     return "訪客";
 }
 
-function formatLoginTime(date: Date): string {
-    return date.toLocaleString("zh-TW", {
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-    });
-}
-
 type HeaderState = {
     loading: boolean;
     authenticated: boolean;
     address?: string;
     kycStatus: KYCStatus;
     credentials: string[];
-    loginTime?: Date;
 };
 
 const Header = () => {
     const navigate = useNavigate();
-    const [isMemberMenuOpen, setIsMemberMenuOpen] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [state, setState] = useState<HeaderState>({
         loading: true,
         authenticated: false,
@@ -55,13 +41,11 @@ const Header = () => {
     const menuRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (!menuRef.current?.contains(event.target as Node)) {
-                setIsMemberMenuOpen(false);
-            }
+        const handleClickOutside = (e: MouseEvent) => {
+            if (!menuRef.current?.contains(e.target as Node)) setIsMenuOpen(false);
         };
 
-        const syncHeaderState = async () => {
+        const sync = async () => {
             try {
                 const auth = await getAuthMe();
                 if (!auth.authenticated) {
@@ -69,143 +53,142 @@ const Header = () => {
                     return;
                 }
                 const kyc = await getKYCStatus().catch(() => ({ kycStatus: "UNVERIFIED" as KYCStatus, credentials: [] }));
-                setState((prev) => ({
-                    loading: false,
-                    authenticated: true,
-                    address: auth.address,
-                    kycStatus: kyc.kycStatus,
-                    credentials: kyc.credentials ?? [],
-                    // preserve loginTime if already set (avoid overwrite on re-sync)
-                    loginTime: prev.loginTime ?? new Date(),
-                }));
+                setState({ loading: false, authenticated: true, address: auth.address, kycStatus: kyc.kycStatus, credentials: kyc.credentials ?? [] });
             } catch {
                 setState({ loading: false, authenticated: false, kycStatus: "UNVERIFIED", credentials: [] });
             }
         };
 
-        void syncHeaderState();
+        void sync();
         document.addEventListener("mousedown", handleClickOutside);
-        window.addEventListener("wallet-auth-changed", syncHeaderState);
-
+        window.addEventListener("wallet-auth-changed", sync);
         return () => {
             document.removeEventListener("mousedown", handleClickOutside);
-            window.removeEventListener("wallet-auth-changed", syncHeaderState);
+            window.removeEventListener("wallet-auth-changed", sync);
         };
     }, []);
 
     const handleLogout = async () => {
         await logout().catch(() => undefined);
         await revokeWalletPermissions();
-        setIsMemberMenuOpen(false);
+        setIsMenuOpen(false);
         setState({ loading: false, authenticated: false, kycStatus: "UNVERIFIED", credentials: [] });
         navigate("/login");
     };
 
     const role = deriveRole(state.kycStatus, state.credentials);
 
+    const navLinkCls = ({ isActive }: { isActive: boolean }) =>
+        isActive
+            ? "text-[#E8B800] font-bold border-b-2 border-[#E8B800] pb-1 scale-95 active:opacity-80 transition-transform"
+            : "text-[#1C1917] dark:text-stone-300 font-medium hover:text-[#E8B800] hover:bg-[#F5F3EE] dark:hover:bg-stone-900 transition-all duration-300 scale-95 active:opacity-80 transition-transform";
+
     return (
-        <header className="site-header">
-            <div className="site-header-inner">
-                <div className="site-brand">
-                    <h2>去中心化房屋平台</h2>
-                    <nav>
-                        <NavLink to="/" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-                            首頁
-                        </NavLink>
-                        <NavLink to="/listings" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-                            列表
-                        </NavLink>
-                        <NavLink to="/logs" className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}>
-                            足跡
-                        </NavLink>
-                    </nav>
-                </div>
+        <header className="bg-[#FFFEF9]/80 dark:bg-stone-950/80 backdrop-blur-3xl sticky top-0 h-[64px] w-full z-50 bg-[#F5F3EE] dark:bg-stone-900">
+            <div className="flex justify-between items-center w-full px-6 md:px-12 max-w-[1440px] mx-auto h-full font-['Inter','Noto_Sans_TC'] tracking-tight leading-[1.75]">
 
-                {/* Centre greeting — only shown when authenticated */}
-                {state.authenticated && !state.loading ? (
-                    <div className="header-greeting">
-                        <span className="header-greeting-role">{role}</span>
-                        <span className="header-greeting-text">，歡迎回來</span>
-                    </div>
-                ) : null}
+                {/* Brand — first flex child, stays left */}
+                <button
+                    type="button"
+                    onClick={() => navigate("/")}
+                    className="text-xl font-extrabold text-[#1C1917] dark:text-stone-50 border-b-2 border-[#E8B800] pb-0.5 bg-transparent"
+                >
+                    去中心化房屋平台
+                </button>
 
-                <div className="site-header-actions">
+                {/* Navigation — second flex child, justify-between centres it */}
+                <nav className="hidden md:flex items-center gap-8">
+                    <NavLink to="/" end className={navLinkCls}>首頁</NavLink>
+                    <NavLink to="/listings" className={navLinkCls}>列表</NavLink>
+                    <NavLink to="/logs" className={navLinkCls}>足跡</NavLink>
+                </nav>
+
+                {/* Trailing — third flex child, stays right */}
+                <div className="flex items-center gap-4">
                     {state.loading ? (
-                        <span className="header-loading">讀取中...</span>
+                        <span className="text-xs text-[#807660] animate-pulse">讀取中…</span>
                     ) : state.authenticated ? (
                         <>
-                            {state.loginTime ? (
-                                <span className="header-login-time">
-                                    登入 {formatLoginTime(state.loginTime)}
-                                </span>
-                            ) : null}
-
-                            <div className="member-menu" ref={menuRef}>
+                            <button
+                                type="button"
+                                className="hidden md:block text-[#1C1917] font-medium hover:text-[#E8B800] transition-colors bg-transparent"
+                                onClick={() => navigate("/member")}
+                            >
+                                {role}
+                            </button>
+                            <div className="relative" ref={menuRef}>
                                 <button
                                     type="button"
-                                    className="member-menu-trigger"
-                                    onClick={() => setIsMemberMenuOpen((open) => !open)}
+                                    onClick={() => setIsMenuOpen((o) => !o)}
                                     aria-label="帳號選單"
+                                    className="w-8 h-8 rounded-full bg-surface-variant overflow-hidden flex items-center justify-center border border-outline-variant/30"
                                 >
-                                    <span className="member-menu-avatar" aria-hidden="true">鏈</span>
+                                    <span
+                                        className="material-symbols-outlined text-on-surface-variant"
+                                        style={{ fontVariationSettings: "'FILL' 1" }}
+                                    >
+                                        person
+                                    </span>
                                 </button>
 
-                                {isMemberMenuOpen && (
-                                    <div className="member-menu-dropdown">
-                                        {state.address ? (
-                                            <div className="member-menu-address" title={state.address}>
+                                {isMenuOpen && (
+                                    <div className="absolute right-0 top-full mt-2 w-44 bg-surface-container-lowest rounded-xl shadow-[0_8px_32px_rgba(28,25,23,0.12)] border border-outline-variant/20 overflow-hidden z-50">
+                                        {state.address && (
+                                            <div className="px-4 py-3 text-xs text-outline border-b border-surface-container font-mono truncate">
                                                 {state.address.slice(0, 6)}…{state.address.slice(-4)}
                                             </div>
-                                        ) : null}
-                                        <button
-                                            type="button"
-                                            className="member-menu-item"
-                                            onClick={() => { setIsMemberMenuOpen(false); navigate("/profile"); }}
-                                        >
-                                            會員資料
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="member-menu-item"
-                                            onClick={() => { setIsMemberMenuOpen(false); navigate("/member"); }}
-                                        >
-                                            身份中心
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="member-menu-item"
-                                            onClick={() => { setIsMemberMenuOpen(false); navigate("/settings"); }}
-                                        >
-                                            設定
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="member-menu-item member-menu-item--danger"
-                                            onClick={() => void handleLogout()}
-                                        >
-                                            登出
-                                        </button>
+                                        )}
+                                        {[
+                                            { label: "會員資料", path: "/profile" },
+                                            { label: "身份中心", path: "/member" },
+                                            { label: "設定",     path: "/settings" },
+                                        ].map(({ label, path }) => (
+                                            <button
+                                                key={path}
+                                                type="button"
+                                                className="w-full text-left px-4 py-2.5 text-sm text-on-surface hover:bg-surface-container-low transition-colors bg-transparent"
+                                                onClick={() => { setIsMenuOpen(false); navigate(path); }}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                        <div className="border-t border-surface-container">
+                                            <button
+                                                type="button"
+                                                className="w-full text-left px-4 py-2.5 text-sm text-error hover:bg-error-container transition-colors bg-transparent"
+                                                onClick={() => void handleLogout()}
+                                            >
+                                                登出
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>
                         </>
                     ) : (
-                        <div className="guest-actions">
+                        /* Unauthenticated — matches Stitch visual: text link + round avatar circle */
+                        <>
                             <button
                                 type="button"
-                                className="header-cta-button"
                                 onClick={() => navigate("/login")}
+                                className="hidden md:block text-[#1C1917] font-medium hover:text-[#E8B800] transition-colors bg-transparent"
                             >
                                 登入
                             </button>
                             <button
                                 type="button"
-                                className="header-cta-button header-cta-button--secondary"
-                                onClick={() => navigate("/kyc")}
+                                onClick={() => navigate("/login")}
+                                aria-label="登入"
+                                className="w-8 h-8 rounded-full bg-surface-variant overflow-hidden flex items-center justify-center"
                             >
-                                註冊 KYC
+                                <span
+                                    className="material-symbols-outlined text-on-surface-variant"
+                                    style={{ fontVariationSettings: "'FILL' 1" }}
+                                >
+                                    person
+                                </span>
                             </button>
-                        </div>
+                        </>
                     )}
                 </div>
             </div>

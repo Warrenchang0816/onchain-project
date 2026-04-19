@@ -59,10 +59,16 @@ CREATE TABLE IF NOT EXISTS kyc_sessions (
 
     -- OCR 結果（使用者確認後的版本）
     person_hash         VARCHAR(64)  DEFAULT NULL,  -- SHA-256(id_number)，唯一性保證
-    confirmed_name      VARCHAR(100) DEFAULT NULL,  -- 使用者確認/修正後的姓名
-    confirmed_birth_date VARCHAR(20) DEFAULT NULL,
-    ocr_address         VARCHAR(255) DEFAULT NULL,
-    ocr_id_number_hint  VARCHAR(10)  DEFAULT NULL,  -- 身份證號末4碼，僅供 UX 顯示
+    ocr_id_number        TEXT         DEFAULT NULL,
+    confirmed_name       VARCHAR(100) DEFAULT NULL,
+    confirmed_birth_date VARCHAR(20)  DEFAULT NULL,
+    ocr_address          VARCHAR(255) DEFAULT NULL,
+    ocr_id_number_hint   VARCHAR(10)  DEFAULT NULL,
+    ocr_gender           TEXT         DEFAULT NULL,
+    ocr_issue_date       TEXT         DEFAULT NULL,
+    ocr_issue_location   TEXT         DEFAULT NULL,
+    ocr_father_name      TEXT         DEFAULT NULL,
+    ocr_mother_name      TEXT         DEFAULT NULL,
 
     -- MinIO object paths（格式：kyc/session/{id}/...）
     id_front_path       VARCHAR(512) DEFAULT NULL,

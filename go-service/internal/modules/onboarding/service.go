@@ -39,6 +39,11 @@ type ErrEmailAlreadyUsed struct{ IDHint string }
 
 func (e *ErrEmailAlreadyUsed) Error() string { return "此 Email 已被其他會員使用" }
 
+// ErrEmailNotActivated is returned when the email is registered but the password has never been set.
+type ErrEmailNotActivated struct{ Email string }
+
+func (e *ErrEmailNotActivated) Error() string { return "此 Email 已完成 KYC 但尚未設定密碼" }
+
 // ErrPhoneAlreadyUsed is returned when the phone is already registered to another member.
 type ErrPhoneAlreadyUsed struct{ IDHint string }
 
@@ -159,6 +164,10 @@ func (s *Service) VerifyEmailOTP(email, code string) (*model.KYCSession, bool, e
 	// Guard: email already registered to a completed member account.
 	if registeredUser, lookupErr := s.userRepo.FindByEmail(email); lookupErr == nil && registeredUser != nil {
 		if registeredUser.KYCStatus != model.KYCStatusUnverified {
+			// If password was never set, tell the frontend to redirect to forgot-password.
+			if !registeredUser.PasswordHash.Valid || registeredUser.PasswordHash.String == "" {
+				return nil, false, &ErrEmailNotActivated{Email: email}
+			}
 			hint := ""
 			if registeredUser.IDNumberHint.Valid {
 				hint = registeredUser.IDNumberHint.String
@@ -332,11 +341,17 @@ func (s *Service) UploadKYCDocuments(
 			return nil, err
 		}
 		if err := s.sessionRepo.SetOCRResult(sessionID, repository.OCRSessionParams{
-			PersonHash:     personHash,
-			IDNumberHint:   idNumberHint,
-			OCRName:        frontFields.Name,
-			OCRBirthDate:   frontFields.BirthDate,
-			OCRAddress:     backFields.Address,
+			PersonHash:       personHash,
+			IDNumber:         frontFields.IDNumber,
+			IDNumberHint:     idNumberHint,
+			OCRName:          frontFields.Name,
+			OCRGender:        deriveGender(frontFields.IDNumber),
+			OCRBirthDate:     frontFields.BirthDate,
+			OCRIssueDate:     frontFields.IssueDate,
+			OCRIssueLocation: frontFields.IssueLocation,
+			OCRAddress:       backFields.Address,
+			OCRFatherName:    backFields.FatherName,
+			OCRMotherName:    backFields.MotherName,
 			IDFrontPath:    frontPath,
 			IDBackPath:     backPath,
 			FaceMatchScore: 0,
@@ -346,14 +361,20 @@ func (s *Service) UploadKYCDocuments(
 		}
 
 		return &UploadKYCDocumentsResponse{
-			SessionID:    sessionID,
-			Step:         model.KYCSessionStepOCRDone,
-			Stage:        stage,
-			OCRName:      frontFields.Name,
-			OCRBirthDate: frontFields.BirthDate,
-			OCRAddress:   backFields.Address,
-			IDNumberHint: idNumberHint,
-			OCRSuccess:   ocrSuccess,
+			SessionID:        sessionID,
+			Step:             model.KYCSessionStepOCRDone,
+			Stage:            stage,
+			IDNumber:         frontFields.IDNumber,
+			IDNumberHint:     idNumberHint,
+			OCRName:          frontFields.Name,
+			OCRGender:        deriveGender(frontFields.IDNumber),
+			OCRBirthDate:     frontFields.BirthDate,
+			OCRIssueDate:     frontFields.IssueDate,
+			OCRIssueLocation: frontFields.IssueLocation,
+			OCRAddress:       backFields.Address,
+			OCRFatherName:    backFields.FatherName,
+			OCRMotherName:    backFields.MotherName,
+			OCRSuccess:       ocrSuccess,
 		}, nil
 
 	case "second_doc":
@@ -476,11 +497,17 @@ func (s *Service) UploadKYCDocuments(
 		}
 
 		if err := s.sessionRepo.SetOCRResult(sessionID, repository.OCRSessionParams{
-			PersonHash:     personHash,
-			IDNumberHint:   idNumberHint,
-			OCRName:        frontFields.Name,
-			OCRBirthDate:   frontFields.BirthDate,
-			OCRAddress:     backFields.Address,
+			PersonHash:       personHash,
+			IDNumber:         frontFields.IDNumber,
+			IDNumberHint:     idNumberHint,
+			OCRName:          frontFields.Name,
+			OCRGender:        deriveGender(frontFields.IDNumber),
+			OCRBirthDate:     frontFields.BirthDate,
+			OCRIssueDate:     frontFields.IssueDate,
+			OCRIssueLocation: frontFields.IssueLocation,
+			OCRAddress:       backFields.Address,
+			OCRFatherName:    backFields.FatherName,
+			OCRMotherName:    backFields.MotherName,
 			IDFrontPath:    frontPath,
 			IDBackPath:     backPath,
 			SelfiePath:     selfiePath,
@@ -492,17 +519,36 @@ func (s *Service) UploadKYCDocuments(
 		}
 
 		return &UploadKYCDocumentsResponse{
-			SessionID:      sessionID,
-			Step:           model.KYCSessionStepOCRDone,
-			Stage:          "full",
-			OCRName:        frontFields.Name,
-			OCRBirthDate:   frontFields.BirthDate,
-			OCRAddress:     backFields.Address,
-			IDNumberHint:   idNumberHint,
-			FaceMatchScore: faceScore,
-			OCRSuccess:     ocrSuccess,
+			SessionID:        sessionID,
+			Step:             model.KYCSessionStepOCRDone,
+			Stage:            "full",
+			IDNumber:         frontFields.IDNumber,
+			IDNumberHint:     idNumberHint,
+			OCRName:          frontFields.Name,
+			OCRGender:        deriveGender(frontFields.IDNumber),
+			OCRBirthDate:     frontFields.BirthDate,
+			OCRIssueDate:     frontFields.IssueDate,
+			OCRIssueLocation: frontFields.IssueLocation,
+			OCRAddress:       backFields.Address,
+			OCRFatherName:    backFields.FatherName,
+			OCRMotherName:    backFields.MotherName,
+			FaceMatchScore:   faceScore,
+			OCRSuccess:       ocrSuccess,
 		}, nil
 	}
+}
+
+func deriveGender(idNumber string) string {
+	if len(idNumber) < 2 {
+		return ""
+	}
+	switch idNumber[1] {
+	case '1':
+		return "男"
+	case '2':
+		return "女"
+	}
+	return ""
 }
 
 // Step 4: Confirm OCR data (user edits pre-filled form)
@@ -629,6 +675,7 @@ func (s *Service) BindWallet(ctx context.Context, req BindWalletRequest) (*BindW
 	}
 	_ = s.kycRepo.SetOCRResult(submissionID, repository.OCRResultParams{
 		Name:           displayName,
+		IDNumber:       nullableStr(sess.OCRIDNumber),
 		IdentityHash:   identityHash,
 		BirthDate:      nullableStr(sess.ConfirmedBirthDate),
 		Address:        nullableStr(sess.OCRAddress),
@@ -641,6 +688,7 @@ func (s *Service) BindWallet(ctx context.Context, req BindWalletRequest) (*BindW
 		log.Printf("[onboarding/service] generated fallback identity hash for %s", req.WalletAddress)
 		_ = s.kycRepo.SetOCRResult(submissionID, repository.OCRResultParams{
 			Name:           displayName,
+			IDNumber:       nullableStr(sess.OCRIDNumber),
 			IdentityHash:   identityHash,
 			BirthDate:      nullableStr(sess.ConfirmedBirthDate),
 			Address:        nullableStr(sess.OCRAddress),

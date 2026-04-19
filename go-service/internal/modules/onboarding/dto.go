@@ -26,11 +26,20 @@ type VerifyEmailOTPResponse struct {
 	SessionID string `json:"session_id"`
 	Step      string `json:"step"`
 	IsResume  bool   `json:"is_resume,omitempty"`
-	// OCR pre-fill data (only set when is_resume && step ∈ {OCR_DONE, CONFIRMED})
-	OCRName      string `json:"ocr_name,omitempty"`
-	OCRBirthDate string `json:"ocr_birth_date,omitempty"`
-	OCRAddress   string `json:"ocr_address,omitempty"`
-	IDNumberHint string `json:"id_number_hint,omitempty"`
+	// ResumeWizardStep is the exact frontend step to resume at (more granular than Step).
+	// Only set when IsResume=true.
+	ResumeWizardStep string `json:"resume_wizard_step,omitempty"`
+	// OCR pre-fill data (set whenever is_resume && session has OCR data)
+	IDNumber         string `json:"id_number,omitempty"`
+	IDNumberHint     string `json:"id_number_hint,omitempty"`
+	OCRName          string `json:"ocr_name,omitempty"`
+	OCRGender        string `json:"ocr_gender,omitempty"`
+	OCRBirthDate     string `json:"ocr_birth_date,omitempty"`
+	OCRIssueDate     string `json:"ocr_issue_date,omitempty"`
+	OCRIssueLocation string `json:"ocr_issue_location,omitempty"`
+	OCRAddress       string `json:"ocr_address,omitempty"`
+	OCRFatherName    string `json:"ocr_father_name,omitempty"`
+	OCRMotherName    string `json:"ocr_mother_name,omitempty"`
 }
 
 // RestartSessionRequest creates a fresh session for the same email as the given session.
@@ -59,14 +68,19 @@ type UploadKYCDocumentsResponse struct {
 	SessionID        string  `json:"session_id"`
 	Step             string  `json:"step"`
 	Stage            string  `json:"stage"`
+	IDNumber         string  `json:"id_number"`          // full ID number (returned once at upload, not stored in plain)
+	IDNumberHint     string  `json:"id_number_hint"`     // e.g. "A123****90"
 	OCRName          string  `json:"ocr_name"`
+	OCRGender        string  `json:"ocr_gender"`         // 男 / 女, derived from ID 2nd digit
 	OCRBirthDate     string  `json:"ocr_birth_date"`
+	OCRIssueDate     string  `json:"ocr_issue_date"`
+	OCRIssueLocation string  `json:"ocr_issue_location"`
 	OCRAddress       string  `json:"ocr_address"`
-	IDNumberHint     string  `json:"id_number_hint"` // e.g. "A123****90"
+	OCRFatherName    string  `json:"ocr_father_name"`
+	OCRMotherName    string  `json:"ocr_mother_name"`
 	FaceMatchScore   float64 `json:"face_match_score"`
 	OCRSuccess       bool    `json:"ocr_success"`
 	// SecondDocIDMatch is true when the second document's OCR ID number matches the primary ID.
-	// Always true in dev-bypass mode (no OCR service).
 	SecondDocIDMatch bool `json:"second_doc_id_match,omitempty"`
 }
 

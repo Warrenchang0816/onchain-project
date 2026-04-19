@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<html class="light" lang="zh-TW"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>去中心化房屋平台 - 登入</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&amp;family=Noto+Sans+TC:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "primary-fixed": "#ffe08e",
+                      "on-surface": "#1b1c19",
+                      "surface-container-highest": "#e4e2dd",
+                      "tertiary": "#006c4a",
+                      "primary-container": "#e8b800",
+                      "on-primary-container": "#5f4a00",
+                      "secondary-fixed-dim": "#93ccff",
+                      "surface-container-low": "#f5f3ee",
+                      "surface-container": "#f0eee9",
+                      "tertiary-fixed": "#85f8c4",
+                      "on-error": "#ffffff",
+                      "tertiary-container": "#5fd3a1",
+                      "on-tertiary-container": "#00593c",
+                      "secondary-container": "#5bb8fe",
+                      "on-surface-variant": "#4e4633",
+                      "background": "#fbf9f4",
+                      "outline": "#807660",
+                      "on-tertiary-fixed": "#002114",
+                      "inverse-on-surface": "#f2f1ec",
+                      "on-tertiary": "#ffffff",
+                      "surface-dim": "#dcdad5",
+                      "on-tertiary-fixed-variant": "#005137",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "inverse-surface": "#30312e",
+                      "inverse-primary": "#f1c014",
+                      "primary": "#745b00",
+                      "outline-variant": "#d2c5ac",
+                      "tertiary-fixed-dim": "#68dba9",
+                      "on-primary": "#ffffff",
+                      "surface-container-high": "#eae8e3",
+                      "on-secondary-container": "#00476e",
+                      "error-container": "#ffdad6",
+                      "on-primary-fixed": "#241a00",
+                      "surface": "#fbf9f4",
+                      "surface-tint": "#745b00",
+                      "secondary-fixed": "#cce5ff",
+                      "on-secondary-fixed-variant": "#004b73",
+                      "on-secondary-fixed": "#001d31",
+                      "surface-variant": "#e4e2dd",
+                      "on-secondary": "#ffffff",
+                      "secondary": "#006398",
+                      "on-background": "#1b1c19",
+                      "primary-fixed-dim": "#f1c014",
+                      "surface-bright": "#fbf9f4",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed-variant": "#584400"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {},
+              "fontFamily": {
+                      "headline": [
+                              "Inter", "Noto Sans TC", "sans-serif"
+                      ],
+                      "body": [
+                              "Inter", "Noto Sans TC", "sans-serif"
+                      ],
+                      "label": [
+                              "Inter", "Noto Sans TC", "sans-serif"
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-filled {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex antialiased">
+<!-- Content Area: Split Screen Layout -->
+<main class="flex w-full min-h-screen">
+<!-- Left Panel: Branding & Art (Hidden on small screens) -->
+<section class="hidden lg:flex w-[45%] relative bg-gradient-to-br from-primary-container to-primary-fixed-dim flex-col justify-between p-16 overflow-hidden">
+<!-- Decorative Background Element -->
+<div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(circle at 20% 80%, white 1px, transparent 1px); background-size: 40px 40px;"></div>
+<!-- Architectural Line Art Placeholder -->
+<div class="absolute right-0 top-1/4 w-[120%] h-full pointer-events-none opacity-20">
+<svg class="w-full h-full stroke-on-primary-container stroke-[0.5]" fill="none" viewbox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+<path d="M50 350 L150 150 L250 200 L350 50 M150 150 L150 350 M250 200 L250 350"></path>
+<rect height="300" stroke-width="1" width="300" x="50" y="50"></rect>
+<line stroke-width="0.5" x1="50" x2="350" y1="150" y2="150"></line>
+<line stroke-width="0.5" x1="50" x2="350" y1="250" y2="250"></line>
+</svg>
+</div>
+<div class="relative z-10">
+<h1 class="text-4xl font-extrabold text-on-surface tracking-tight mb-2">去中心化房屋平台</h1>
+<div class="w-12 h-1 bg-on-surface mb-6"></div>
+<p class="text-xl text-on-primary-container font-medium leading-[1.75]">可信任的房屋媒合市場</p>
+</div>
+<div class="relative z-10 text-on-primary-container/80 text-sm">
+<p>光照充足・空氣流通</p>
+<p>The Luminous Pavilion Architecture</p>
+</div>
+</section>
+<!-- Right Panel: Login Form -->
+<section class="w-full lg:w-[55%] flex items-center justify-center p-8 sm:p-12 md:p-24 bg-background relative">
+<!-- Mobile Brand Header (Visible only on mobile) -->
+<div class="absolute top-8 left-8 lg:hidden">
+<h1 class="text-2xl font-extrabold text-on-surface border-b-2 border-primary-container pb-0.5 inline-block">去中心化房屋平台</h1>
+</div>
+<div class="w-full max-w-md relative z-10">
+<!-- Welcome Text -->
+<div class="mb-10 text-center lg:text-left">
+<h2 class="text-[32px] font-headline font-bold text-on-surface tracking-tight mb-3">歡迎回來</h2>
+<p class="text-on-surface-variant text-[15px] leading-[1.75]">請登入您的帳戶以繼續探索優質房源。</p>
+</div>
+<!-- Form Card Container -->
+<div class="bg-surface-container-lowest rounded-xl p-8 sm:p-10 relative">
+<!-- Subtle ambient shadow effect using pseudo-element or outer div -->
+<div class="absolute inset-0 bg-on-surface opacity-[0.02] blur-xl rounded-xl -z-10"></div>
+<div class="absolute inset-0 border border-outline-variant opacity-15 rounded-xl pointer-events-none"></div>
+<form action="#" class="space-y-6 relative z-10" method="POST">
+<!-- ID / Email Input -->
+<div>
+<label class="block text-[15px] font-medium text-on-surface mb-2" for="identifier">身分證字號 / Email</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">person</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-3 border-0 bg-surface-container-low text-on-surface rounded-lg focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-colors sm:text-sm placeholder-outline" id="identifier" name="identifier" placeholder="輸入您的身分證字號或信箱" type="text"/>
+</div>
+</div>
+<!-- Password Input -->
+<div>
+<div class="flex justify-between items-center mb-2">
+<label class="block text-[15px] font-medium text-on-surface" for="password">密碼</label>
+<a class="text-sm font-medium text-tertiary hover:text-on-surface transition-colors underline decoration-transparent hover:decoration-tertiary" href="#">忘記密碼？</a>
+</div>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline">lock</span>
+</div>
+<input class="block w-full pl-10 pr-10 py-3 border-0 bg-surface-container-low text-on-surface rounded-lg focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-colors sm:text-sm placeholder-outline" id="password" name="password" placeholder="••••••••" type="password"/>
+<button class="absolute inset-y-0 right-0 pr-3 flex items-center text-outline hover:text-on-surface transition-colors" type="button">
+<span class="material-symbols-outlined text-[20px]">visibility_off</span>
+</button>
+</div>
+</div>
+<!-- Login Button -->
+<div class="pt-2">
+<button class="w-full flex justify-center items-center py-3.5 px-4 border border-transparent rounded-lg text-on-primary-fixed bg-primary-container hover:bg-inverse-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container transition-all duration-300 font-bold text-[15px] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]" type="submit">
+                                登入
+                            </button>
+</div>
+</form>
+<!-- Divider -->
+<div class="mt-8 mb-6 relative">
+<div aria-hidden="true" class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-outline-variant opacity-20"></div>
+</div>
+<div class="relative flex justify-center text-sm">
+<span class="px-4 bg-surface-container-lowest text-outline font-medium tracking-wide">
+                                或是使用錢包登入
+                            </span>
+</div>
+</div>
+<!-- Web3 Wallet Login -->
+<div>
+<button class="w-full flex justify-center items-center gap-3 py-3 px-4 rounded-lg bg-surface-container-lowest text-on-surface font-medium border border-outline-variant opacity-90 hover:opacity-100 hover:bg-surface-container-low transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-container" type="button">
+<!-- Fox Icon Placeholder for MetaMask -->
+<img alt="MetaMask Logo" class="h-6 w-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm3Fm86yM_pZVPmjVeAbdBCvDHGsYK02HBSO1H3ngFpyEd3q4HvqPm7c0jmmDaM2JAMyAENds4XtB9_n3zk0pBaBBfk00wS-y4eJULOZgdlyxK_4Sivpcoi3xyibNsR5TEGI7_-SmjXevdZlO1GprtfD-NgUWLi5jpTdkYzBrN-0xtsxcVvyC_1aVsrbnrpYlqQ3Kc4cgBxmuDa9lKZXwj8rmTkB45u73m45Xfca2cV8ieEVLfjKEdaS-x2DoSazurMCAAlLJXb7Xz"/>
+<span>連接 MetaMask</span>
+</button>
+</div>
+</div>
+<!-- Registration Link -->
+<p class="mt-8 text-center text-[15px] text-on-surface-variant">
+                    還沒有帳戶？ 
+                    <a class="font-medium text-tertiary hover:text-on-surface transition-colors underline decoration-tertiary underline-offset-4" href="#">立即註冊</a>
+</p>
+</div>
+</section>
+</main>
+</body></html>

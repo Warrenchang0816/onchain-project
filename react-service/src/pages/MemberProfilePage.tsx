@@ -12,6 +12,12 @@ import {
 } from "@/api/userApi";
 import SiteLayout from "../layouts/SiteLayout";
 
+const CREDENTIAL_LABEL: Record<string, string> = {
+    OWNER:  "屋主",
+    TENANT: "租客",
+    AGENT:  "仲介",
+};
+
 const KYC_STATUS_LABEL: Record<string, string> = {
     UNVERIFIED: "未驗證",
     PENDING:    "審核中",
@@ -19,38 +25,10 @@ const KYC_STATUS_LABEL: Record<string, string> = {
     REJECTED:   "未通過",
 };
 
-const KYC_STATUS_CLASS: Record<string, string> = {
-    UNVERIFIED: "status-badge status-badge--gray",
-    PENDING:    "status-badge status-badge--yellow",
-    VERIFIED:   "status-badge status-badge--green",
-    REJECTED:   "status-badge status-badge--red",
-};
-
-const CREDENTIAL_LABEL: Record<string, string> = {
-    OWNER:  "屋主",
-    TENANT: "租客",
-    AGENT:  "仲介",
-};
-
-function formatDate(iso?: string): string {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleString("zh-TW", {
-        year: "numeric", month: "2-digit", day: "2-digit",
-        hour: "2-digit", minute: "2-digit",
-        hour12: false,
-    });
-}
-
-function shortTx(tx: string): string {
-    return `${tx.slice(0, 10)}...${tx.slice(-8)}`;
-}
-
 type PageState =
     | { status: "loading" }
     | { status: "error"; message: string }
     | { status: "ok"; profile: UserProfile };
-
-// ── Inline field editor with OTP verification ─────────────────────────────
 
 type EditField = "email" | "phone" | "mailing";
 
@@ -59,16 +37,10 @@ type EditState =
     | { stage: "input"; value: string; channel?: "email" | "phone"; busy: boolean; error: string }
     | { stage: "otp";   value: string; channel?: "email" | "phone"; otp: string; busy: boolean; error: string; sent: boolean };
 
-type EditButtonProps = { field: EditField; editing: EditField | null; onStart: (f: EditField) => void };
-
-function EditButton({ field, editing, onStart }: EditButtonProps) {
-    if (editing === field) return null;
-    return (
-        <button type="button" className="profile-edit-trigger" onClick={() => onStart(field)}>
-            變更
-        </button>
-    );
-}
+const inputCls =
+    "block w-full px-4 py-3 border-0 bg-surface-container-low text-on-surface rounded-lg " +
+    "focus:ring-2 focus:ring-primary-container focus:bg-surface-container-lowest transition-colors " +
+    "text-sm outline-none placeholder:text-outline";
 
 const MemberProfilePage = () => {
     const navigate = useNavigate();
@@ -77,7 +49,6 @@ const MemberProfilePage = () => {
     const [editing, setEditing] = useState<EditField | null>(null);
     const [editState, setEditState] = useState<EditState>({ stage: "idle" });
 
-    // Called from event handlers after a successful edit (sync setState is fine outside effects).
     const loadProfile = () => {
         setState({ status: "loading" });
         void getUserProfile()
@@ -88,7 +59,6 @@ const MemberProfilePage = () => {
             }));
     };
 
-    // Initial fetch: setState only called in async callbacks to satisfy react-hooks/set-state-in-effect.
     useEffect(() => {
         void getUserProfile()
             .then((profile) => setState({ status: "ok", profile }))
@@ -110,7 +80,7 @@ const MemberProfilePage = () => {
         const initialValue = state.status === "ok"
             ? field === "email" ? state.profile.email
             : field === "phone" ? state.profile.phone
-            : state.profile.mailingAddress
+            : (state.profile.mailingAddress || state.profile.registeredAddress)
             : "";
         setEditState({ stage: "input", value: initialValue, channel: undefined, busy: false, error: "" });
     };
@@ -163,36 +133,24 @@ const MemberProfilePage = () => {
 
         if (editState.stage === "input") {
             return (
-                <div className="profile-edit-panel">
+                <div className="mt-4 flex flex-col gap-3 bg-surface-container-low rounded-lg p-4">
                     {isMailing && (
                         <>
                             <textarea
-                                className="profile-edit-textarea"
+                                className={`${inputCls} resize-none`}
                                 placeholder="請輸入通訊地址"
                                 value={editState.value}
                                 onChange={(e) => setEditState({ ...editState, value: e.target.value })}
                                 rows={2}
                             />
-                            <div className="profile-edit-channel-row">
-                                <span className="profile-edit-channel-label">以下列方式驗證身份：</span>
-                                <label className="profile-edit-channel-option">
-                                    <input
-                                        type="radio"
-                                        name="channel"
-                                        value="email"
-                                        checked={(editState.channel ?? "email") === "email"}
-                                        onChange={() => setEditState({ ...editState, channel: "email" })}
-                                    />
+                            <div className="flex items-center gap-4">
+                                <span className="text-sm text-on-surface-variant">驗證方式：</span>
+                                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input type="radio" name="channel" value="email" checked={(editState.channel ?? "email") === "email"} onChange={() => setEditState({ ...editState, channel: "email" })} />
                                     Email
                                 </label>
-                                <label className="profile-edit-channel-option">
-                                    <input
-                                        type="radio"
-                                        name="channel"
-                                        value="phone"
-                                        checked={editState.channel === "phone"}
-                                        onChange={() => setEditState({ ...editState, channel: "phone" })}
-                                    />
+                                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                                    <input type="radio" name="channel" value="phone" checked={editState.channel === "phone"} onChange={() => setEditState({ ...editState, channel: "phone" })} />
                                     手機
                                 </label>
                             </div>
@@ -200,24 +158,30 @@ const MemberProfilePage = () => {
                     )}
                     {(isEmail || isPhone) && (
                         <input
-                            className="profile-edit-input"
+                            className={inputCls}
                             type={isEmail ? "email" : "tel"}
                             placeholder={isEmail ? "請輸入新 Email" : "請輸入新手機號碼"}
                             value={editState.value}
                             onChange={(e) => setEditState({ ...editState, value: e.target.value })}
                         />
                     )}
-                    {editState.error && <p className="profile-edit-error">{editState.error}</p>}
-                    <div className="profile-edit-actions">
+                    {editState.error && <p className="text-xs text-error">{editState.error}</p>}
+                    <div className="flex gap-2">
                         <button
                             type="button"
-                            className="profile-edit-btn profile-edit-btn--primary"
+                            className="px-4 py-2 bg-primary-container text-on-primary-container text-sm font-bold rounded-lg hover:bg-inverse-primary transition-colors disabled:opacity-50"
                             onClick={() => void handleSendOTP()}
                             disabled={editState.busy || editState.value.trim() === ""}
                         >
                             {editState.busy ? "發送中..." : "發送驗證碼"}
                         </button>
-                        <button type="button" className="profile-edit-btn" onClick={cancelEdit}>取消</button>
+                        <button
+                            type="button"
+                            className="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors"
+                            onClick={cancelEdit}
+                        >
+                            取消
+                        </button>
                     </div>
                 </div>
             );
@@ -225,17 +189,10 @@ const MemberProfilePage = () => {
 
         if (editState.stage === "otp") {
             return (
-                <div className="profile-edit-panel">
-                    {isMailing && (
-                        <p className="profile-edit-hint">
-                            新地址：<strong>{editState.value}</strong>
-                        </p>
-                    )}
-                    <p className="profile-edit-hint">
-                        驗證碼已發送，請在 5 分鐘內完成驗證。
-                    </p>
+                <div className="mt-4 flex flex-col gap-3 bg-surface-container-low rounded-lg p-4">
+                    <p className="text-sm text-on-surface-variant">驗證碼已發送，請在 5 分鐘內完成驗證。</p>
                     <input
-                        className="profile-edit-input profile-edit-input--otp"
+                        className={`${inputCls} tracking-widest font-mono`}
                         type="text"
                         inputMode="numeric"
                         maxLength={6}
@@ -243,17 +200,23 @@ const MemberProfilePage = () => {
                         value={editState.otp}
                         onChange={(e) => setEditState({ ...editState, otp: e.target.value.replace(/\D/g, "") })}
                     />
-                    {editState.error && <p className="profile-edit-error">{editState.error}</p>}
-                    <div className="profile-edit-actions">
+                    {editState.error && <p className="text-xs text-error">{editState.error}</p>}
+                    <div className="flex gap-2">
                         <button
                             type="button"
-                            className="profile-edit-btn profile-edit-btn--primary"
+                            className="px-4 py-2 bg-primary-container text-on-primary-container text-sm font-bold rounded-lg hover:bg-inverse-primary transition-colors disabled:opacity-50"
                             onClick={() => void handleVerify()}
                             disabled={editState.busy || editState.otp.length !== 6}
                         >
                             {editState.busy ? "驗證中..." : "確認"}
                         </button>
-                        <button type="button" className="profile-edit-btn" onClick={cancelEdit}>取消</button>
+                        <button
+                            type="button"
+                            className="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors"
+                            onClick={cancelEdit}
+                        >
+                            取消
+                        </button>
                     </div>
                 </div>
             );
@@ -262,181 +225,234 @@ const MemberProfilePage = () => {
         return null;
     };
 
-    const SEPOLIA_ETHERSCAN = "https://sepolia.etherscan.io";
-
-    return (
-        <SiteLayout>
-            <section className="page-section">
-                <div className="page-heading">
-                    <h1>會員資料</h1>
-                    <p>以下資料來自 KYC 審核結果。</p>
-                </div>
-
-                {state.status === "loading" ? (
-                    <div className="member-card">
-                        <p className="profile-loading">讀取中...</p>
+    if (state.status === "loading") {
+        return (
+            <SiteLayout>
+                <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-12">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center justify-center py-20">
+                            <span className="text-sm text-on-surface-variant animate-pulse">讀取中...</span>
+                        </div>
                     </div>
-                ) : state.status === "error" ? (
-                    <div className="member-card">
-                        <p className="form-error">{state.message}</p>
-                        <button type="button" className="inline-link-button" onClick={() => navigate("/login")}>
+                </main>
+            </SiteLayout>
+        );
+    }
+
+    if (state.status === "error") {
+        return (
+            <SiteLayout>
+                <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-12">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="bg-error-container text-on-error-container rounded-xl p-4 text-sm">{state.message}</div>
+                        <button type="button" className="mt-4 text-tertiary text-sm underline bg-transparent" onClick={() => navigate("/login")}>
                             重新登入
                         </button>
                     </div>
-                ) : (
-                    <>
-                        {/* ── 基本資料 ── */}
-                        <div className="member-card profile-section">
-                            <h2 className="profile-section-title">基本資料</h2>
+                </main>
+            </SiteLayout>
+        );
+    }
 
-                            <div className="member-row">
-                                <span className="member-label">顯示名稱</span>
-                                <span className="member-value">
-                                    {state.profile.displayName || <em className="profile-empty">未填寫</em>}
-                                </span>
-                            </div>
+    const { profile } = state;
+    const roleLabel = profile.credentials.length > 0
+        ? profile.credentials.map((c) => CREDENTIAL_LABEL[c] ?? c).join("／")
+        : "一般會員";
 
-                            {state.profile.idNumber && (
-                                <div className="member-row">
-                                    <span className="member-label">身分字號</span>
-                                    <span className="member-value member-value--mono">{state.profile.idNumber}</span>
+    return (
+        <SiteLayout>
+            <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-12">
+                <div className="max-w-3xl mx-auto">
+                    {/* Page Header */}
+                    <div className="mb-12">
+                        <h1 className="text-3xl md:text-[32px] font-extrabold text-on-surface tracking-tight mb-2">會員資料</h1>
+                        <p className="text-on-surface-variant text-[15px] leading-[1.75]">管理您的個人資訊與數位資產連結</p>
+                    </div>
+
+                    <div className="flex flex-col gap-8">
+                        {/* Card 1: Basic Data */}
+                        <section className="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden shadow-[0_4px_32px_rgba(28,25,23,0.02)]">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-container rounded-l-xl" />
+                            <h3 className="text-xl font-bold text-on-surface mb-6 flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-container">person</span>
+                                基本資料
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12">
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-sm font-medium text-outline">姓名</span>
+                                    <span className="text-[15px] font-medium text-on-surface">
+                                        {profile.displayName || <em className="not-italic text-outline">未填寫</em>}
+                                    </span>
                                 </div>
-                            )}
-
-                            {state.profile.gender && (
-                                <div className="member-row">
-                                    <span className="member-label">性別</span>
-                                    <span className="member-value">{state.profile.gender}</span>
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-sm font-medium text-outline">會員身分</span>
+                                    <span className="text-[15px] font-medium text-on-surface">{roleLabel}</span>
                                 </div>
-                            )}
-
-                            {state.profile.birthDate && (
-                                <div className="member-row">
-                                    <span className="member-label">生日</span>
-                                    <span className="member-value">{state.profile.birthDate}</span>
+                                {profile.idNumber && (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium text-outline">身分證字號</span>
+                                        <span className="text-[15px] font-mono text-on-surface">{profile.idNumber}</span>
+                                    </div>
+                                )}
+                                {profile.gender && (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium text-outline">性別</span>
+                                        <span className="text-[15px] font-medium text-on-surface">{profile.gender}</span>
+                                    </div>
+                                )}
+                                {profile.birthDate && (
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium text-outline">出生日期</span>
+                                        <span className="text-[15px] font-medium text-on-surface">{profile.birthDate}</span>
+                                    </div>
+                                )}
+                                {profile.registeredAddress && (
+                                    <div className="flex flex-col gap-1 md:col-span-2">
+                                        <span className="text-sm font-medium text-outline">戶籍地址（OCR）</span>
+                                        <span className="text-[15px] font-medium text-on-surface">{profile.registeredAddress}</span>
+                                    </div>
+                                )}
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-sm font-medium text-outline">加入日期</span>
+                                    <span className="text-[15px] font-medium text-on-surface">
+                                        {profile.createdAt
+                                            ? new Date(profile.createdAt).toLocaleDateString("zh-TW")
+                                            : "—"}
+                                    </span>
                                 </div>
-                            )}
-
-                            <div className="member-row profile-row--editable">
-                                <span className="member-label">Email</span>
-                                <span className="member-value">
-                                    {state.profile.email || <em className="profile-empty">未設定</em>}
-                                </span>
-                                <EditButton field="email" editing={editing} onStart={startEdit} />
-                            </div>
-                            {renderEditPanel("email")}
-
-                            <div className="member-row profile-row--editable">
-                                <span className="member-label">手機號碼</span>
-                                <span className="member-value">
-                                    {state.profile.phone || <em className="profile-empty">未設定</em>}
-                                </span>
-                                <EditButton field="phone" editing={editing} onStart={startEdit} />
-                            </div>
-                            {renderEditPanel("phone")}
-
-                            {state.profile.registeredAddress && (
-                                <div className="member-row">
-                                    <span className="member-label">戶籍地址</span>
-                                    <span className="member-value">{state.profile.registeredAddress}</span>
-                                </div>
-                            )}
-
-                            <div className="member-row profile-row--editable">
-                                <span className="member-label">通訊地址</span>
-                                <span className="member-value">
-                                    {state.profile.mailingAddress || <em className="profile-empty">未設定</em>}
-                                </span>
-                                <EditButton field="mailing" editing={editing} onStart={startEdit} />
-                            </div>
-                            {renderEditPanel("mailing")}
-
-                            <div className="member-row">
-                                <span className="member-label">加入時間</span>
-                                <span className="member-value">{formatDate(state.profile.createdAt)}</span>
-                            </div>
-                        </div>
-
-                        {/* ── 錢包資料 ── */}
-                        <div className="member-card profile-section">
-                            <h2 className="profile-section-title">錢包資料</h2>
-
-                            <div className="member-row profile-row--wallet">
-                                <span className="member-label">錢包地址</span>
-                                <span className="member-value member-value--mono profile-wallet-addr">
-                                    {state.profile.walletAddress}
-                                </span>
-                                <button
-                                    type="button"
-                                    className="profile-copy-btn"
-                                    onClick={() => copyWallet(state.profile.walletAddress)}
-                                >
-                                    {copied ? "已複製" : "複製"}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* ── 身份驗證 ── */}
-                        <div className="member-card profile-section">
-                            <h2 className="profile-section-title">身份驗證（KYC）</h2>
-
-                            <div className="member-row">
-                                <span className="member-label">自然人 KYC</span>
-                                <span className={KYC_STATUS_CLASS[state.profile.kycStatus] ?? "status-badge status-badge--gray"}>
-                                    {KYC_STATUS_LABEL[state.profile.kycStatus] ?? state.profile.kycStatus}
-                                </span>
-                            </div>
-
-                            <div className="member-row">
-                                <span className="member-label">提交時間</span>
-                                <span className="member-value">{formatDate(state.profile.kycSubmittedAt)}</span>
-                            </div>
-
-                            <div className="member-row">
-                                <span className="member-label">驗證通過時間</span>
-                                <span className="member-value">{formatDate(state.profile.kycVerifiedAt)}</span>
-                            </div>
-
-                            {state.profile.identityNftTokenId != null ? (
-                                <div className="member-row">
-                                    <span className="member-label">身份 NFT</span>
-                                    <span className="member-value">Token #{state.profile.identityNftTokenId}</span>
-                                </div>
-                            ) : null}
-
-                            {state.profile.kycMintTxHash ? (
-                                <div className="member-row">
-                                    <span className="member-label">Mint 交易</span>
-                                    <a
-                                        className="profile-tx-link"
-                                        href={`${SEPOLIA_ETHERSCAN}/tx/${state.profile.kycMintTxHash}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        {shortTx(state.profile.kycMintTxHash)}
-                                    </a>
-                                </div>
-                            ) : null}
-                        </div>
-
-                        {/* ── 角色憑證 ── */}
-                        <div className="member-card profile-section">
-                            <h2 className="profile-section-title">角色憑證</h2>
-                            {state.profile.credentials.length === 0 ? (
-                                <p className="profile-empty">尚未持有角色憑證</p>
-                            ) : (
-                                <div className="profile-credential-list">
-                                    {state.profile.credentials.map((c) => (
-                                        <span key={c} className="profile-credential-badge">
-                                            {CREDENTIAL_LABEL[c] ?? c}
+                                <div className="flex flex-col gap-1">
+                                    <span className="text-sm font-medium text-outline">實名認證</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[15px] font-medium text-on-surface">
+                                            {KYC_STATUS_LABEL[profile.kycStatus] ?? profile.kycStatus}
                                         </span>
-                                    ))}
+                                        {profile.kycStatus === "VERIFIED" && (
+                                            <span className="material-symbols-outlined text-tertiary-container text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    </>
-                )}
-            </section>
+                            </div>
+                        </section>
+
+                        {/* Card 2: Contact Info */}
+                        <section className="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden shadow-[0_4px_32px_rgba(28,25,23,0.02)]">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-container rounded-l-xl" />
+                            <div className="flex justify-between items-start mb-6">
+                                <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary-container">contact_mail</span>
+                                    聯絡資訊
+                                </h3>
+                            </div>
+                            <div className="flex flex-col gap-6">
+                                {/* Email */}
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-surface-container-low">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium text-outline">電子郵件</span>
+                                        <span className="text-[15px] font-medium text-on-surface">
+                                            {profile.email || <em className="not-italic text-outline">未設定</em>}
+                                        </span>
+                                    </div>
+                                    {editing !== "email" && (
+                                        <button
+                                            type="button"
+                                            className="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors w-fit"
+                                            onClick={() => startEdit("email")}
+                                        >
+                                            修改
+                                        </button>
+                                    )}
+                                </div>
+                                {renderEditPanel("email")}
+
+                                {/* Phone */}
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-surface-container-low">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium text-outline">聯絡電話</span>
+                                        <span className="text-[15px] font-medium text-on-surface">
+                                            {profile.phone || <em className="not-italic text-outline">未設定</em>}
+                                        </span>
+                                    </div>
+                                    {editing !== "phone" && (
+                                        <button
+                                            type="button"
+                                            className="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors w-fit"
+                                            onClick={() => startEdit("phone")}
+                                        >
+                                            修改
+                                        </button>
+                                    )}
+                                </div>
+                                {renderEditPanel("phone")}
+
+                                {/* Mailing Address */}
+                                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium text-outline">通訊地址</span>
+                                        <span className="text-[15px] font-medium text-on-surface">
+                                            {profile.mailingAddress || profile.registeredAddress
+                                                ? (profile.mailingAddress || profile.registeredAddress)
+                                                : <em className="not-italic text-outline">未設定</em>
+                                            }
+                                        </span>
+                                        {!profile.mailingAddress && profile.registeredAddress && (
+                                            <span className="text-xs text-outline mt-1">預設同戶籍地址，可修改</span>
+                                        )}
+                                    </div>
+                                    {editing !== "mailing" && (
+                                        <button
+                                            type="button"
+                                            className="px-4 py-2 bg-surface-container-lowest border border-outline-variant/30 text-on-surface text-sm font-medium rounded-lg hover:bg-surface-container-low transition-colors w-fit"
+                                            onClick={() => startEdit("mailing")}
+                                        >
+                                            修改
+                                        </button>
+                                    )}
+                                </div>
+                                {renderEditPanel("mailing")}
+                            </div>
+                        </section>
+
+                        {/* Card 3: Wallet */}
+                        <section className="bg-surface-container-lowest rounded-xl p-8 relative overflow-hidden shadow-[0_4px_32px_rgba(28,25,23,0.02)]">
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-container rounded-l-xl" />
+                            <div className="flex justify-between items-start mb-6">
+                                <h3 className="text-xl font-bold text-on-surface flex items-center gap-2">
+                                    <span className="material-symbols-outlined text-primary-container">account_balance_wallet</span>
+                                    錢包綁定
+                                </h3>
+                                <span className="px-3 py-1 bg-tertiary/10 text-tertiary text-xs font-bold rounded-full">已連結</span>
+                            </div>
+                            <div className="bg-surface-container p-4 rounded-lg flex flex-col md:flex-row items-center justify-between gap-4">
+                                <div className="flex items-center gap-4 w-full md:w-auto">
+                                    <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm">
+                                        <span className="material-symbols-outlined text-on-surface-variant">currency_exchange</span>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-sm font-medium text-outline">主錢包地址 (Ethereum)</span>
+                                        <span className="font-mono text-sm text-on-surface break-all">
+                                            {profile.walletAddress
+                                                ? `${profile.walletAddress.slice(0, 6)}...${profile.walletAddress.slice(-4)}`
+                                                : "未連結"}
+                                        </span>
+                                    </div>
+                                </div>
+                                {profile.walletAddress && (
+                                    <button
+                                        type="button"
+                                        className="p-2 bg-transparent text-on-surface-variant hover:text-primary-container hover:bg-surface-container-lowest rounded-full transition-colors flex items-center justify-center"
+                                        onClick={() => copyWallet(profile.walletAddress)}
+                                        title={copied ? "已複製" : "複製地址"}
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">
+                                            {copied ? "check" : "content_copy"}
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </main>
         </SiteLayout>
     );
 };

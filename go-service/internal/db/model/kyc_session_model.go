@@ -17,10 +17,16 @@ type KYCSession struct {
 
 	// OCR results (user-confirmed version)
 	PersonHash         sql.NullString // SHA-256(id_number), person uniqueness key
+	OCRIDNumber        sql.NullString
 	ConfirmedName      sql.NullString
 	ConfirmedBirthDate sql.NullString
 	OCRAddress         sql.NullString
-	OCRIDNumberHint    sql.NullString // last-4 chars of ID number, for display only
+	OCRIDNumberHint    sql.NullString
+	OCRGender          sql.NullString
+	OCRIssueDate       sql.NullString
+	OCRIssueLocation   sql.NullString
+	OCRFatherName      sql.NullString
+	OCRMotherName      sql.NullString
 
 	// MinIO object paths: kyc/session/{id}/...
 	IDFrontPath    sql.NullString

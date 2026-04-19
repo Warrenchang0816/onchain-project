@@ -8,6 +8,7 @@ import IdentityCenterPage from "../pages/IdentityCenterPage";
 import SettingsPage from "../pages/SettingsPage";
 import LoginPage from "../pages/LoginPage";
 import MemberProfilePage from "../pages/MemberProfilePage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 
 const router = createBrowserRouter([
     {
@@ -45,6 +46,10 @@ const router = createBrowserRouter([
     {
         path: "/profile",
         element: <MemberProfilePage />,
+    },
+    {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
     },
 ]);
 
