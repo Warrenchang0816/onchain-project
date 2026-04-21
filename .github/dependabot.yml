@@ -7,9 +7,6 @@ updates:
       day: monday
     commit-message:
       prefix: chore
-    labels:
-      - dependencies
-      - github-actions
     open-pull-requests-limit: 5
 
   - package-ecosystem: gomod
@@ -19,9 +16,6 @@ updates:
       day: monday
     commit-message:
       prefix: chore
-    labels:
-      - dependencies
-      - backend-go
     open-pull-requests-limit: 5
 
   - package-ecosystem: npm
@@ -31,9 +25,6 @@ updates:
       day: monday
     commit-message:
       prefix: chore
-    labels:
-      - dependencies
-      - frontend-react
     open-pull-requests-limit: 5
 
   - package-ecosystem: npm
@@ -43,7 +34,4 @@ updates:
       day: monday
     commit-message:
       prefix: chore
-    labels:
-      - dependencies
-      - smart-contract-solidity
     open-pull-requests-limit: 5
