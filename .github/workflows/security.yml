@@ -9,12 +9,24 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Dependency review
+        uses: actions/dependency-review-action@v4
+
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
