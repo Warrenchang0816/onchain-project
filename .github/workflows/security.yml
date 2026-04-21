@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   dependency-review:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -28,6 +28,18 @@ jobs:
 
       - name: Dependency review
         uses: actions/dependency-review-action@v4
+
+  dependency-review-disabled:
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Explain dependency review gate
+        shell: bash
+        run: |
+          echo "Dependency review is currently skipped."
+          echo "Enable the repository Dependency Graph in Settings > Security & analysis,"
+          echo "then set the repository variable ENABLE_DEPENDENCY_REVIEW=true to turn it on."
 
   secret-scan:
     runs-on: ubuntu-latest
