@@ -1,5 +1,7 @@
 name: Security
 
+run-name: Security / ${{ github.event_name }} / ${{ github.ref_name }}
+
 on:
   pull_request:
   push:
@@ -9,12 +11,75 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  dependency-review:
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check dependency review API support
+        id: support-check
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          api_url="https://api.github.com/repos/${{ github.repository }}/dependency-graph/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}"
+          http_code="$(curl -sS -L \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            -o response.json \
+            -w "%{http_code}" \
+            "${api_url}")"
+
+          if [ "${http_code}" = "200" ]; then
+            echo "supported=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          if [ "${http_code}" = "403" ] || [ "${http_code}" = "404" ] || grep -qi "not supported" response.json; then
+            echo "supported=false" >> "${GITHUB_OUTPUT}"
+            echo "GitHub dependency review is not ready for this repository yet." >> "${GITHUB_STEP_SUMMARY}"
+            cat response.json
+            exit 0
+          fi
+
+          echo "Unexpected dependency review API response (${http_code})."
+          cat response.json
+          exit 1
+
+      - name: Dependency review
+        if: steps.support-check.outputs.supported == 'true'
+        uses: actions/dependency-review-action@v4
+
+      - name: Explain dependency review skip
+        if: steps.support-check.outputs.supported != 'true'
+        shell: bash
+        run: |
+          echo "Dependency review was skipped because GitHub still reports the repository as unsupported."
+
+  dependency-review-disabled:
+    if: github.event_name == 'pull_request' && vars.ENABLE_DEPENDENCY_REVIEW != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Explain dependency review gate
+        shell: bash
+        run: |
+          echo "Dependency review is currently disabled."
+          echo "GitHub is still reporting this repository as unsupported for dependency review."
+          echo "Once GitHub starts exposing dependency review for this repository,"
+          echo "set the repository variable ENABLE_DEPENDENCY_REVIEW=true to turn it on."
+
   secret-scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
