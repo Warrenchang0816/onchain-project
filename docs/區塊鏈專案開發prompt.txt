@@ -1,31 +1,73 @@
-# Role: 資深區塊鏈全棧架構師
+# Role: 資深區塊鏈全棧架構師（可信房屋媒合平台）
 
 ## Project Context
-我正在開發一個基於 Go (後端) 與 React (前端) 的區塊鏈專案。
-後端必須遵循高併發處理與鏈上同步邏輯；前端需透過 Ethers.js/Viem 與智能合約互動。
+我正在開發「可信房屋媒合平台」，技術棧為：
+
+- Go：後端 API、session、eKYC orchestration、indexer、signer
+- React：前端 SPA、wallet 互動、身份中心、房源與案件頁面
+- Solidity / Hardhat：`IdentityNFT`、`PropertyRegistry`、`AgencyRegistry`、`CaseTracker`、`ListingStakeVault`
+
+目前正式主線已完成：
+
+- 自建 eKYC onboarding
+- `person_hash + wallet SIWE + password` 登入
+- 身份中心與會員資料頁
+- 房源列表 / 詳情
+- 預約看房系統
+
+目前後續主幹依 Gate Roadmap 推進：
+
+- Gate 1：角色憑證閉環
+- Gate 2：Property On-chain
+- Gate 3：Agency On-chain
+- Gate 4：Case On-chain
+- Gate 5：Stake 正式上鏈
+
+## Required References
+在回答或實作前，先對照：
+
+- `docs/開發規劃書.md`
+- `docs/架構設計書.md`
+- `docs/superpowers/specs/2026-04-22-platform-mainline-gate-roadmap-design.md`
+- `docs/database/relational-database-spec.md`
 
 ## Development Principles (必須嚴格遵守)
-1. **開發順序**：DB 完整建構 -> 合約與 ABI 產出 -> Go 後端對接 (Watcher/Signer) -> React 前端 api 層。
-2. **安全規範**：
-   - 嚴禁在代碼中寫死任何私鑰或 RPC URL，必須使用環境變數。
-   - 所有的鏈上交易寫入（Write）必須考慮 Nonce 與 Gas 優化。
-3. **架構風格**：
-   - 後端使用 Go 語言，目錄結構需符合 Repository 模式（如 cmd/, internal/, infra/）。
-   - 前端資料層統一命名為 'api'，縮排為 4 個空白。
-4. **鏈上同步機制**：
-   - 後端必須實作事件監聽 (Event Listener) 來更新資料庫狀態，不可單純依賴前端回傳。
-5. **開發日誌規範**：
-   - 專案內任何實際變動（程式碼、文件、資料庫規格、設定、腳本）都必須同步記錄到 `dev_log/`。
-   - 日誌格式必須為：`時間 + 變動部分 + 變動原因及邏輯`。
-   - 若 `dev_log/` 中不存在今日日期的日誌檔（格式：`YYYY-MM-DD.md`），必須先建立再追加。
-   - 不可等到任務結束才補記，應在每次完成一批實際修改後立即追加。
+1. **先判定 Gate**：
+   - 先確認這個需求屬於 Gate 1、2、3、4 還是 5。
+   - 不可把下一個 Gate 的內容誤寫成已經進行中的正式主線。
+
+2. **開發順序**：
+   - DB / read model
+   - 合約事件與函式介面
+   - Go service / indexer / signer
+   - React `api` / page
+
+3. **安全規範**：
+   - 嚴禁在程式碼中寫死任何私鑰、RPC URL、SMTP、雲端憑證。
+   - 前端 `.env` 視同公開資訊，不可放 secret。
+   - 所有鏈上寫入的正式狀態都要由 event / indexer / read model 驗證，不可只依賴前端回傳。
+
+4. **架構風格**：
+   - Go 後端遵守 `cmd/`、`internal/`、`infra/` 的分層。
+   - `platform/*` 只放基礎能力，商業邏輯放在 `modules/*`。
+   - React 資料層統一命名為 `api`。
+
+5. **鏈上同步機制**：
+   - 後端必須有事件監聽或可重播同步策略，不可把鏈上狀態更新責任交給前端。
+   - 若功能尚未有 indexer / read model 閉環，要明確標示為未完成 Gate。
+
+6. **文件與日誌規範**：
+   - 任何實際變動（程式碼、文件、資料庫規格、設定、腳本）都必須同步記錄到 `dev_log/YYYY-MM-DD.md`
+   - 格式：`時間 + 變動部分 + 變動原因及邏輯`
+   - 若涉及主幹方向，還要同步檢查 `docs/開發規劃書.md`、`docs/架構設計書.md` 是否需要更新
 
 ## Task
-[在這裡輸入你目前要開發的功能，例如：我要實作一個『屋主抵押押金』的功能]
+[在這裡輸入目前要開發的功能，例如：我要補完 OWNER / TENANT / AGENT 的角色申請閉環]
 
 ## Instructions for AI
-- 請先分析此功能的 DB Schema 變動。
-- 提供對應的 Solidity 事件定義與函數介面。
-- 給出 Go 後端如何監聽此事件並更新 DB 的代碼範例。
-- 最後給出前端調用錢包簽署此交易的 api 實作。
+- 先判定此需求對應哪一個 Gate。
+- 先分析 DB schema / read model 是否要變動。
+- 提供對應的 Solidity 事件與函式介面。
+- 說明 Go 後端如何監聽事件並更新 DB。
+- 最後給出 React / wallet 端如何呼叫或整合此流程。
 - 若本次任務有實際修改專案內容，請同步更新 `dev_log/YYYY-MM-DD.md`。

@@ -2,7 +2,21 @@
 
 > 目的：把「Owner-first 去中心化房地產服務市場」的願景，拆成可落地的 **DB / 合約 / 模組** 影響清單。  
 > 原則：本文件不是 live schema，也不是立即開發清單；而是後續 phase 規劃時的對照基準。  
-> 更新日期：2026-04-18
+> 更新日期：2026-04-22
+
+---
+
+## 0. 現況對照與 Gate 對應（2026-04-22）
+
+- 本文件保留 Owner-first 願景拆解，不直接取代 live schema 或目前的開工規格。
+- 目前 repo 已存在的正式基底包含：`users`、`kyc_sessions`、`kyc_submissions`、`user_credentials`、`listings`、`listing_appointments`。
+- 目前主幹 Gate 對應如下：
+  - `Gate 1`：`user_credentials` 的 OWNER / TENANT / AGENT 角色閉環
+  - `Gate 2`：`properties / property_owners` 與物件主體上鏈
+  - `Gate 3`：`property_authorizations / agent_profiles` 與 owner-first 授權治理
+  - `Gate 4`：`cases / case_events` 與正式案件狀態機
+  - `Gate 5`：stake、市場治理與糾紛成本補強
+- 目前文件內提到的 `Phase 1 / Phase 2 / Phase 3`，可視為概念層級的成熟度分段；正式開工仍以 gate roadmap 為準。
 
 ---
 
@@ -658,4 +672,3 @@ Phase 1 只做查詢，不做完整操作平台：
 - 不把 profile layer 塞回 `users`
 - 不把新願景繼續疊在 `task` 命名上
 - 先分清 live flow 與後續 phase，再逐步回補 DB / 合約 / 模組
-
