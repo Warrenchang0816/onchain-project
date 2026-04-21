@@ -46,7 +46,7 @@ jobs:
             exit 0
           fi
 
-          if [ "${http_code}" = "404" ] || grep -qi "not supported" response.json; then
+          if [ "${http_code}" = "403" ] || [ "${http_code}" = "404" ] || grep -qi "not supported" response.json; then
             echo "supported=false" >> "${GITHUB_OUTPUT}"
             echo "GitHub dependency review is not ready for this repository yet." >> "${GITHUB_STEP_SUMMARY}"
             cat response.json
