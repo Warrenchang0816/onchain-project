@@ -25,6 +25,10 @@ updates:
       day: monday
     commit-message:
       prefix: chore
+    ignore:
+      - dependency-name: "typescript"
+        update-types:
+          - "version-update:semver-major"
     open-pull-requests-limit: 5
 
   - package-ecosystem: npm
