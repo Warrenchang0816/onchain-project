@@ -13,7 +13,7 @@
         "@nomicfoundation/hardhat-verify": "^3.0.13",
         "@nomicfoundation/hardhat-viem": "^3.0.4",
         "hardhat": "^3.3.0",
-        "typescript": "^5.9.3",
+        "typescript": "^6.0.3",
         "viem": "^2.47.6"
     },
     "dependencies": {
