@@ -18,7 +18,7 @@ type CreateListingRequest struct {
 	BathroomCount     *int     `json:"bathroom_count"`
 	IsPetAllowed      bool     `json:"is_pet_allowed"`
 	IsParkingIncluded bool     `json:"is_parking_included"`
-	DurationDays      int      `json:"duration_days"`     // 上架天數，最少 7 天
+	DurationDays      int      `json:"duration_days"` // 上架天數，最少 7 天
 }
 
 type UpdateListingRequest struct {
@@ -57,8 +57,8 @@ type AppointmentResponse struct {
 }
 
 type ListingResponse struct {
-	ID          int64  `json:"id"`
-	OwnerUserID int64  `json:"owner_user_id"`
+	ID          int64 `json:"id"`
+	OwnerUserID int64 `json:"owner_user_id"`
 
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
@@ -75,9 +75,9 @@ type ListingResponse struct {
 	IsPetAllowed      bool     `json:"is_pet_allowed"`
 	IsParkingIncluded bool     `json:"is_parking_included"`
 
-	Status                   string               `json:"status"`
-	NegotiatingAppointment   *AppointmentResponse `json:"negotiating_appointment,omitempty"`
-	Appointments             []AppointmentResponse `json:"appointments,omitempty"` // only in detail view
+	Status                 string                `json:"status"`
+	NegotiatingAppointment *AppointmentResponse  `json:"negotiating_appointment,omitempty"`
+	Appointments           []AppointmentResponse `json:"appointments,omitempty"` // only in detail view
 
 	DailyFeeNTD float64 `json:"daily_fee_ntd"`
 
@@ -97,7 +97,7 @@ type CreateAppointmentRequest struct {
 }
 
 type UpdateAppointmentStatusRequest struct {
-	Status        string  `json:"status"         binding:"required,oneof=VIEWED INTERESTED CANCELLED"`
+	Status string `json:"status"         binding:"required,oneof=VIEWED INTERESTED CANCELLED"`
 }
 
 type ConfirmAppointmentRequest struct {

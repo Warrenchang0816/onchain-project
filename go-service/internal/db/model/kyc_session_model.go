@@ -29,10 +29,10 @@ type KYCSession struct {
 	OCRMotherName      sql.NullString
 
 	// MinIO object paths: kyc/session/{id}/...
-	IDFrontPath    sql.NullString
-	IDBackPath     sql.NullString
-	SelfiePath     sql.NullString
-	SecondDocPath  sql.NullString
+	IDFrontPath   sql.NullString
+	IDBackPath    sql.NullString
+	SelfiePath    sql.NullString
+	SecondDocPath sql.NullString
 
 	FaceMatchScore sql.NullFloat64
 	OCRSuccess     bool
@@ -62,9 +62,9 @@ type UserCredential struct {
 	UserID         int64
 	CredentialType string // OWNER | TENANT | AGENT
 
-	DocPath        sql.NullString
-	ReviewStatus   string // PENDING | VERIFIED | REJECTED
-	ReviewerNote   string
+	DocPath          sql.NullString
+	ReviewStatus     string // PENDING | VERIFIED | REJECTED
+	ReviewerNote     string
 	ReviewedByWallet sql.NullString
 
 	NFTTokenID sql.NullInt32

@@ -155,7 +155,6 @@ const ListingListPage = () => {
     const navigate = useNavigate();
     const [listings, setListings] = useState<Listing[]>([]);
     const [myListings, setMyListings] = useState<Listing[]>([]);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
 
@@ -167,7 +166,6 @@ const ListingListPage = () => {
                 const data = await getListings(params);
                 setListings(data);
                 const auth = await getAuthMe().catch(() => ({ authenticated: false }));
-                setIsAuthenticated(auth.authenticated);
                 if (auth.authenticated) {
                     const mine = await getMyListings().catch(() => []);
                     setMyListings(mine);

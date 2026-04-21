@@ -134,7 +134,7 @@ const SettingsPage = () => {
     const handleLogout = async () => {
         try {
             await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
-        } catch (_) {
+        } catch {
             // ignore errors
         }
         window.dispatchEvent(new CustomEvent("wallet-auth-changed"));

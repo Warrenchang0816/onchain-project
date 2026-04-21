@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { logout, setPassword } from "@/api/authApi";
@@ -87,9 +87,9 @@ const inputCls =
 // ── Upload field ───────────────────────────────────────────────────────────────
 
 function UploadZone({
-    label, file, preview, hint, onChange, required = false,
+    label, preview, hint, onChange, required = false,
 }: {
-    label: string; file: File | null; preview: string; hint: string;
+    label: string; preview: string; hint: string;
     onChange: (e: ChangeEvent<HTMLInputElement>) => void; required?: boolean;
 }) {
     return (
@@ -260,19 +260,16 @@ const OnboardingPage = () => {
     const [confirmManuallyEdited, setConfirmManuallyEdited] = useState(false);
     const [showPhoneOTPInput, setShowPhoneOTPInput] = useState(false);
 
-    const progressSteps = useMemo(() => progressStepsConfig.map((s) => ({ key: s.key, label: s.label })), []);
-
     useEffect(() => {
         const provider = window.ethereum;
-        if (!provider) return;
         const handleAccountsChanged = (accounts: unknown) => {
             const list = accounts as string[];
             if (!list || list.length === 0 || list[0].toLowerCase() !== walletAddress.toLowerCase()) {
                 setWalletAddress("");
             }
         };
-        provider.on("accountsChanged", handleAccountsChanged);
-        return () => { provider.removeListener("accountsChanged", handleAccountsChanged); };
+        provider?.on?.("accountsChanged", handleAccountsChanged);
+        return () => { provider?.removeListener?.("accountsChanged", handleAccountsChanged); };
     }, [walletAddress]);
 
     useEffect(() => {
@@ -293,7 +290,6 @@ const OnboardingPage = () => {
                 void logout().catch(() => {});
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const setPreviewFile = (field: keyof FileState, nextFile: File | null) => {
@@ -704,7 +700,6 @@ const OnboardingPage = () => {
                             <div className="flex flex-col gap-6">
                                 <UploadZone
                                     label="身分證正面"
-                                    file={files.idFront}
                                     preview={previews.idFront}
                                     hint="支援 JPG, PNG，最大 10MB。請確認四角完整、反光不要太強。"
                                     onChange={handleFile("idFront")}
@@ -712,7 +707,6 @@ const OnboardingPage = () => {
                                 />
                                 <UploadZone
                                     label="身分證背面"
-                                    file={files.idBack}
                                     preview={previews.idBack}
                                     hint="支援 JPG, PNG，最大 10MB。請確認住址與備註欄清楚可見。"
                                     onChange={handleFile("idBack")}
@@ -815,7 +809,6 @@ const OnboardingPage = () => {
                         <StepCard title={stepLabels["second-doc"]} desc="請上傳第二證件（例如健保卡、駕照）作為備查。">
                             <UploadZone
                                 label="第二證件"
-                                file={files.secondDoc}
                                 preview={previews.secondDoc}
                                 hint="支援 JPG, PNG，最大 10MB。"
                                 onChange={handleFile("secondDoc")}
@@ -840,7 +833,6 @@ const OnboardingPage = () => {
                         <StepCard title={stepLabels.selfie} desc="最後請上傳本人自拍照，用於確認您與身分證上的照片相符。">
                             <UploadZone
                                 label="本人自拍"
-                                file={files.selfie}
                                 preview={previews.selfie}
                                 hint="支援 JPG, PNG，最大 10MB。請正面、清晰、避免墨鏡與過暗光線。"
                                 onChange={handleFile("selfie")}

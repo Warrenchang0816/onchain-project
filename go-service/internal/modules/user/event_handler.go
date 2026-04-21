@@ -45,9 +45,9 @@ func NewIdentityWorker(
 	}, nil
 }
 
-func (w *IdentityWorker) ContractName() string        { return "IdentityNFT" }
-func (w *IdentityWorker) Address() common.Address     { return w.contractAddress }
-func (w *IdentityWorker) StartBlock() uint64          { return w.startBlock }
+func (w *IdentityWorker) ContractName() string    { return "IdentityNFT" }
+func (w *IdentityWorker) Address() common.Address { return w.contractAddress }
+func (w *IdentityWorker) StartBlock() uint64      { return w.startBlock }
 
 func (w *IdentityWorker) ProcessBlock(ctx context.Context, eth *ethclient.Client, blockNumber uint64) error {
 	blockBig := big.NewInt(int64(blockNumber))

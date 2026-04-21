@@ -8,6 +8,11 @@ export type KYCStatusResponse = {
     identityNftTokenId?: number;
     kycMintTxHash?: string;
     credentials: string[]; // verified credential types: "OWNER" | "TENANT" | "AGENT"
+    txHistory?: Array<{
+        timestamp: string;
+        event: string;
+        txHash?: string;
+    }>;
 };
 
 export type KYCSubmissionCreateResponse = {

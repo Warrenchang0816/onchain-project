@@ -13,7 +13,6 @@ import {
     updateAppointmentStatus,
     cancelAppointment,
     type Listing,
-    type Appointment,
     type UpdateListingPayload,
 } from "../api/listingApi";
 import { getAuthMe } from "../api/authApi";

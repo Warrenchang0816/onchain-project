@@ -10,8 +10,8 @@ const (
 	ListingStatusDraft       = "DRAFT"
 	ListingStatusActive      = "ACTIVE"
 	ListingStatusNegotiating = "NEGOTIATING"
-	ListingStatusLocked      = "LOCKED"    // triggered by on-chain CaseTracker event
-	ListingStatusSigning     = "SIGNING"   // triggered by on-chain CaseTracker event
+	ListingStatusLocked      = "LOCKED"  // triggered by on-chain CaseTracker event
+	ListingStatusSigning     = "SIGNING" // triggered by on-chain CaseTracker event
 	ListingStatusClosed      = "CLOSED"
 	ListingStatusExpired     = "EXPIRED"
 	ListingStatusRemoved     = "REMOVED"
@@ -30,18 +30,18 @@ type Listing struct {
 	Address     string
 	District    sql.NullString
 
-	ListType           string
-	Price              float64
-	AreaPing           sql.NullFloat64
-	Floor              sql.NullInt64
-	TotalFloors        sql.NullInt64
-	RoomCount          sql.NullInt64
-	BathroomCount      sql.NullInt64
-	IsPetAllowed       bool
-	IsParkingIncluded  bool
+	ListType          string
+	Price             float64
+	AreaPing          sql.NullFloat64
+	Floor             sql.NullInt64
+	TotalFloors       sql.NullInt64
+	RoomCount         sql.NullInt64
+	BathroomCount     sql.NullInt64
+	IsPetAllowed      bool
+	IsParkingIncluded bool
 
-	Status                    string
-	NegotiatingAppointmentID  sql.NullInt64
+	Status                   string
+	NegotiatingAppointmentID sql.NullInt64
 
 	DailyFeeNTD float64
 

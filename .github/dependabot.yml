@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - github-actions
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: gomod
+    directory: "/go-service"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - backend-go
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/react-service"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - frontend-react
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: npm
+    directory: "/task-reward-vault"
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: chore
+    labels:
+      - dependencies
+      - smart-contract-solidity
+    open-pull-requests-limit: 5

@@ -68,10 +68,10 @@ type UploadKYCDocumentsResponse struct {
 	SessionID        string  `json:"session_id"`
 	Step             string  `json:"step"`
 	Stage            string  `json:"stage"`
-	IDNumber         string  `json:"id_number"`          // full ID number (returned once at upload, not stored in plain)
-	IDNumberHint     string  `json:"id_number_hint"`     // e.g. "A123****90"
+	IDNumber         string  `json:"id_number"`      // full ID number (returned once at upload, not stored in plain)
+	IDNumberHint     string  `json:"id_number_hint"` // e.g. "A123****90"
 	OCRName          string  `json:"ocr_name"`
-	OCRGender        string  `json:"ocr_gender"`         // 男 / 女, derived from ID 2nd digit
+	OCRGender        string  `json:"ocr_gender"` // 男 / 女, derived from ID 2nd digit
 	OCRBirthDate     string  `json:"ocr_birth_date"`
 	OCRIssueDate     string  `json:"ocr_issue_date"`
 	OCRIssueLocation string  `json:"ocr_issue_location"`

@@ -8,7 +8,7 @@ import (
 )
 
 type AdminHandler struct {
-	svc     *Service
+	svc       *Service
 	godWallet string // only this wallet can access admin endpoints
 }
 

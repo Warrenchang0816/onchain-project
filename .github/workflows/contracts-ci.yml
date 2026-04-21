@@ -1,0 +1,45 @@
+name: Contracts CI
+
+on:
+  pull_request:
+    paths:
+      - "task-reward-vault/**"
+      - ".github/workflows/contracts-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "task-reward-vault/**"
+      - ".github/workflows/contracts-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contracts-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: task-reward-vault
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: task-reward-vault/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile contracts
+        run: npm run compile

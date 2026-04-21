@@ -1,170 +1,170 @@
 package ocr
 
 import (
-    "regexp"
-    "strings"
+	"regexp"
+	"strings"
 )
 
 // IDCardFront holds OCR-extracted fields from the front side of a Taiwan ID card.
 type IDCardFront struct {
-    Name          string
-    IDNumber      string
-    BirthDate     string
-    IssueDate     string
-    IssueLocation string
+	Name          string
+	IDNumber      string
+	BirthDate     string
+	IssueDate     string
+	IssueLocation string
 }
 
 // IDCardBack holds OCR-extracted fields from the back side of a Taiwan ID card.
 type IDCardBack struct {
-    Address    string
-    FatherName string
-    MotherName string
-    SpouseName string
+	Address    string
+	FatherName string
+	MotherName string
+	SpouseName string
 }
 
 func ParseFront(ocrText string) IDCardFront {
-    text := cleanOCRText(ocrText)
-    lines := splitLines(text)
-    var f IDCardFront
+	text := cleanOCRText(ocrText)
+	lines := splitLines(text)
+	var f IDCardFront
 
-    f.IDNumber = extractTaiwanIDNumber(text)
+	f.IDNumber = extractTaiwanIDNumber(text)
 
-    rocDateRe := regexp.MustCompile(`(\d{2,3})[./年\-\s](\d{1,2})[./月\-\s](\d{1,2})`) 
-    dates := rocDateRe.FindAllString(text, -1)
-    if len(dates) >= 1 {
-        f.BirthDate = normaliseDate(dates[0])
-    }
-    if len(dates) >= 2 {
-        f.IssueDate = normaliseDate(dates[1])
-    }
+	rocDateRe := regexp.MustCompile(`(\d{2,3})[./年\-\s](\d{1,2})[./月\-\s](\d{1,2})`)
+	dates := rocDateRe.FindAllString(text, -1)
+	if len(dates) >= 1 {
+		f.BirthDate = normaliseDate(dates[0])
+	}
+	if len(dates) >= 2 {
+		f.IssueDate = normaliseDate(dates[1])
+	}
 
-    f.Name = extractAfterKeyword(lines, []string{"姓名", "Name"})
-    f.IssueLocation = extractAfterKeyword(lines, []string{"發證地", "發證縣市", "Issued At"})
+	f.Name = extractAfterKeyword(lines, []string{"姓名", "Name"})
+	f.IssueLocation = extractAfterKeyword(lines, []string{"發證地", "發證縣市", "Issued At"})
 
-    if f.Name == "" {
-        f.Name = extractTaiwanName(lines)
-    }
+	if f.Name == "" {
+		f.Name = extractTaiwanName(lines)
+	}
 
-    return f
+	return f
 }
 
 func ParseBack(ocrText string) IDCardBack {
-    text := cleanOCRText(ocrText)
-    lines := splitLines(text)
-    var b IDCardBack
+	text := cleanOCRText(ocrText)
+	lines := splitLines(text)
+	var b IDCardBack
 
-    b.Address = extractAddressMultiline(lines)
+	b.Address = extractAddressMultiline(lines)
 
-    for _, line := range lines {
-        line = strings.TrimSpace(line)
-        switch {
-        case strings.HasPrefix(line, "父") && b.FatherName == "":
-            b.FatherName = extractInlineValue(line, "父")
-        case strings.HasPrefix(line, "母") && b.MotherName == "":
-            b.MotherName = extractInlineValue(line, "母")
-        case strings.HasPrefix(line, "配偶") && b.SpouseName == "":
-            b.SpouseName = extractInlineValue(line, "配偶")
-        }
-    }
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(line, "父") && b.FatherName == "":
+			b.FatherName = extractInlineValue(line, "父")
+		case strings.HasPrefix(line, "母") && b.MotherName == "":
+			b.MotherName = extractInlineValue(line, "母")
+		case strings.HasPrefix(line, "配偶") && b.SpouseName == "":
+			b.SpouseName = extractInlineValue(line, "配偶")
+		}
+	}
 
-    if b.FatherName == "" {
-        b.FatherName = extractAfterKeyword(lines, []string{"父"})
-    }
-    if b.MotherName == "" {
-        b.MotherName = extractAfterKeyword(lines, []string{"母"})
-    }
-    if b.SpouseName == "" {
-        b.SpouseName = extractAfterKeyword(lines, []string{"配偶"})
-    }
+	if b.FatherName == "" {
+		b.FatherName = extractAfterKeyword(lines, []string{"父"})
+	}
+	if b.MotherName == "" {
+		b.MotherName = extractAfterKeyword(lines, []string{"母"})
+	}
+	if b.SpouseName == "" {
+		b.SpouseName = extractAfterKeyword(lines, []string{"配偶"})
+	}
 
-    return b
+	return b
 }
 
 func extractAddressMultiline(lines []string) string {
-    stopPrefixes := []string{"父", "母", "配偶", "兵役", "役別"}
-    for i, line := range lines {
-        line = strings.TrimSpace(line)
-        for _, kw := range []string{"住址", "地址", "Address"} {
-            if idx := strings.Index(line, kw); idx != -1 {
-                rest := strings.TrimSpace(strings.TrimPrefix(line[idx:], kw))
-                rest = strings.TrimLeft(rest, ":： ")
-                var parts []string
-                if rest != "" {
-                    parts = append(parts, cleanFieldValue(rest))
-                }
-                for j := i + 1; j < len(lines) && j <= i+2; j++ {
-                    next := strings.TrimSpace(lines[j])
-                    if next == "" {
-                        break
-                    }
-                    isStop := false
-                    for _, p := range stopPrefixes {
-                        if strings.HasPrefix(next, p) {
-                            isStop = true
-                            break
-                        }
-                    }
-                    if isStop {
-                        break
-                    }
-                    parts = append(parts, cleanFieldValue(next))
-                }
-                return strings.Join(parts, "")
-            }
-        }
-    }
-    return ""
+	stopPrefixes := []string{"父", "母", "配偶", "兵役", "役別"}
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		for _, kw := range []string{"住址", "地址", "Address"} {
+			if idx := strings.Index(line, kw); idx != -1 {
+				rest := strings.TrimSpace(strings.TrimPrefix(line[idx:], kw))
+				rest = strings.TrimLeft(rest, ":： ")
+				var parts []string
+				if rest != "" {
+					parts = append(parts, cleanFieldValue(rest))
+				}
+				for j := i + 1; j < len(lines) && j <= i+2; j++ {
+					next := strings.TrimSpace(lines[j])
+					if next == "" {
+						break
+					}
+					isStop := false
+					for _, p := range stopPrefixes {
+						if strings.HasPrefix(next, p) {
+							isStop = true
+							break
+						}
+					}
+					if isStop {
+						break
+					}
+					parts = append(parts, cleanFieldValue(next))
+				}
+				return strings.Join(parts, "")
+			}
+		}
+	}
+	return ""
 }
 
 func cleanOCRText(s string) string {
-    s = strings.ToValidUTF8(s, "")
-    s = strings.ReplaceAll(s, "\u0000", "")
-    s = strings.ReplaceAll(s, "\r\n", "\n")
-    s = strings.ReplaceAll(s, "\r", "\n")
-    return strings.TrimSpace(s)
+	s = strings.ToValidUTF8(s, "")
+	s = strings.ReplaceAll(s, "\u0000", "")
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	return strings.TrimSpace(s)
 }
 
 func splitLines(s string) []string {
-    return strings.Split(cleanOCRText(s), "\n")
+	return strings.Split(cleanOCRText(s), "\n")
 }
 
 func extractAfterKeyword(lines []string, keywords []string) string {
-    for i, line := range lines {
-        line = strings.TrimSpace(line)
-        for _, kw := range keywords {
-            if idx := strings.Index(line, kw); idx != -1 {
-                rest := strings.TrimSpace(strings.TrimPrefix(line[idx:], kw))
-                rest = strings.TrimLeft(rest, ":： ")
-                if rest != "" {
-                    return cleanFieldValue(rest)
-                }
-                for j := i + 1; j < len(lines); j++ {
-                    next := strings.TrimSpace(lines[j])
-                    if next != "" {
-                        return cleanFieldValue(next)
-                    }
-                }
-            }
-        }
-    }
-    return ""
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		for _, kw := range keywords {
+			if idx := strings.Index(line, kw); idx != -1 {
+				rest := strings.TrimSpace(strings.TrimPrefix(line[idx:], kw))
+				rest = strings.TrimLeft(rest, ":： ")
+				if rest != "" {
+					return cleanFieldValue(rest)
+				}
+				for j := i + 1; j < len(lines); j++ {
+					next := strings.TrimSpace(lines[j])
+					if next != "" {
+						return cleanFieldValue(next)
+					}
+				}
+			}
+		}
+	}
+	return ""
 }
 
 func extractInlineValue(line, keyword string) string {
-    value := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), keyword))
-    value = strings.TrimLeft(value, ":： ")
-    return cleanFieldValue(value)
+	value := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), keyword))
+	value = strings.TrimLeft(value, ":： ")
+	return cleanFieldValue(value)
 }
 
 func extractTaiwanName(lines []string) string {
-    nameRe := regexp.MustCompile(`^[\p{Han}]{2,4}$`)
-    for _, line := range lines {
-        candidate := cleanFieldValue(line)
-        if nameRe.MatchString(candidate) {
-            return candidate
-        }
-    }
-    return ""
+	nameRe := regexp.MustCompile(`^[\p{Han}]{2,4}$`)
+	for _, line := range lines {
+		candidate := cleanFieldValue(line)
+		if nameRe.MatchString(candidate) {
+			return candidate
+		}
+	}
+	return ""
 }
 
 // ExtractTaiwanIDNumber tries several strategies to find a Taiwan ID number
@@ -177,46 +177,46 @@ func ExtractTaiwanIDNumber(text string) string {
 }
 
 func extractTaiwanIDNumber(text string) string {
-    upperText := strings.ToUpper(text)
-    idRe := regexp.MustCompile(`[A-Z][0-9]{9}`)
+	upperText := strings.ToUpper(text)
+	idRe := regexp.MustCompile(`[A-Z][0-9]{9}`)
 
-    // Pass 1: direct match
-    if m := idRe.FindString(upperText); m != "" {
-        return m
-    }
+	// Pass 1: direct match
+	if m := idRe.FindString(upperText); m != "" {
+		return m
+	}
 
-    // Pass 2: collapse all whitespace then match
-    compact := regexp.MustCompile(`\s+`).ReplaceAllString(upperText, "")
-    if m := idRe.FindString(compact); m != "" {
-        return m
-    }
+	// Pass 2: collapse all whitespace then match
+	compact := regexp.MustCompile(`\s+`).ReplaceAllString(upperText, "")
+	if m := idRe.FindString(compact); m != "" {
+		return m
+	}
 
-    // Pass 3: OCR corrections on the digit portion (O→0, I/L→1)
-    looseRe := regexp.MustCompile(`([A-Z])([A-Z0-9]{9})`)
-    ocrFix := strings.NewReplacer("O", "0", "I", "1", "L", "1")
-    for _, m := range looseRe.FindAllStringSubmatch(compact, -1) {
-        corrected := m[1] + ocrFix.Replace(m[2])
-        if idRe.MatchString(corrected) {
-            return corrected
-        }
-    }
+	// Pass 3: OCR corrections on the digit portion (O→0, I/L→1)
+	looseRe := regexp.MustCompile(`([A-Z])([A-Z0-9]{9})`)
+	ocrFix := strings.NewReplacer("O", "0", "I", "1", "L", "1")
+	for _, m := range looseRe.FindAllStringSubmatch(compact, -1) {
+		corrected := m[1] + ocrFix.Replace(m[2])
+		if idRe.MatchString(corrected) {
+			return corrected
+		}
+	}
 
-    return ""
+	return ""
 }
 
 func cleanFieldValue(s string) string {
-    s = cleanOCRText(s)
-    s = strings.ReplaceAll(s, "'", "")
-    s = strings.ReplaceAll(s, "\t", " ")
-    s = strings.Join(strings.Fields(s), " ")
-    return s
+	s = cleanOCRText(s)
+	s = strings.ReplaceAll(s, "'", "")
+	s = strings.ReplaceAll(s, "\t", " ")
+	s = strings.Join(strings.Fields(s), " ")
+	return s
 }
 
 func normaliseDate(raw string) string {
-    re := regexp.MustCompile(`(\d{2,3})[./年\-\s](\d{1,2})[./月\-\s](\d{1,2})`)
-    m := re.FindStringSubmatch(raw)
-    if m == nil {
-        return cleanFieldValue(raw)
-    }
-    return m[1] + "/" + m[2] + "/" + m[3]
+	re := regexp.MustCompile(`(\d{2,3})[./年\-\s](\d{1,2})[./月\-\s](\d{1,2})`)
+	m := re.FindStringSubmatch(raw)
+	if m == nil {
+		return cleanFieldValue(raw)
+	}
+	return m[1] + "/" + m[2] + "/" + m[3]
 }

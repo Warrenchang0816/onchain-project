@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	platformauth "go-service/internal/platform/auth"
 	"go-service/internal/db/model"
+	platformauth "go-service/internal/platform/auth"
 )
 
 type Handler struct {

@@ -1,0 +1,54 @@
+name: Go CI
+
+on:
+  pull_request:
+    paths:
+      - "go-service/**"
+      - ".github/workflows/go-ci.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "go-service/**"
+      - ".github/workflows/go-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: go-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: go-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go-service/go.mod
+          cache-dependency-path: go-service/go.sum
+
+      - name: Check formatting
+        shell: bash
+        run: |
+          fmt_output="$(gofmt -l .)"
+          if [ -n "$fmt_output" ]; then
+            echo "The following files need gofmt:"
+            echo "$fmt_output"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: go test ./...
+
+      - name: Build
+        run: go build ./...

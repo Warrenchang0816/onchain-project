@@ -90,23 +90,23 @@ func (r *KYCSessionRepository) MarkPhoneVerified(id string) error {
 
 // SetOCRResult stores MinIO paths, OCR data, and face match score after document analysis.
 type OCRSessionParams struct {
-	PersonHash      string
-	IDNumber        string
-	IDNumberHint    string
-	OCRName         string
-	OCRGender       string
-	OCRBirthDate    string
-	OCRIssueDate    string
+	PersonHash       string
+	IDNumber         string
+	IDNumberHint     string
+	OCRName          string
+	OCRGender        string
+	OCRBirthDate     string
+	OCRIssueDate     string
 	OCRIssueLocation string
-	OCRAddress      string
-	OCRFatherName   string
-	OCRMotherName   string
-	IDFrontPath     string
-	IDBackPath      string
-	SelfiePath      string
-	SecondDocPath   string
-	FaceMatchScore  float64
-	OCRSuccess      bool
+	OCRAddress       string
+	OCRFatherName    string
+	OCRMotherName    string
+	IDFrontPath      string
+	IDBackPath       string
+	SelfiePath       string
+	SecondDocPath    string
+	FaceMatchScore   float64
+	OCRSuccess       bool
 }
 
 func (r *KYCSessionRepository) SetOCRResult(id string, p OCRSessionParams) error {

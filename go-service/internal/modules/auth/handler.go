@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"go-service/internal/db/repository"
 	platformauth "go-service/internal/platform/auth"
 	"go-service/internal/platform/config"
-	"go-service/internal/db/repository"
 
 	"github.com/gin-gonic/gin"
 	siwe "github.com/spruceid/siwe-go"

@@ -352,10 +352,10 @@ func (s *Service) UploadKYCDocuments(
 			OCRAddress:       backFields.Address,
 			OCRFatherName:    backFields.FatherName,
 			OCRMotherName:    backFields.MotherName,
-			IDFrontPath:    frontPath,
-			IDBackPath:     backPath,
-			FaceMatchScore: 0,
-			OCRSuccess:     ocrSuccess,
+			IDFrontPath:      frontPath,
+			IDBackPath:       backPath,
+			FaceMatchScore:   0,
+			OCRSuccess:       ocrSuccess,
 		}); err != nil {
 			return nil, err
 		}
@@ -508,12 +508,12 @@ func (s *Service) UploadKYCDocuments(
 			OCRAddress:       backFields.Address,
 			OCRFatherName:    backFields.FatherName,
 			OCRMotherName:    backFields.MotherName,
-			IDFrontPath:    frontPath,
-			IDBackPath:     backPath,
-			SelfiePath:     selfiePath,
-			SecondDocPath:  secondDocPath,
-			FaceMatchScore: faceScore,
-			OCRSuccess:     ocrSuccess,
+			IDFrontPath:      frontPath,
+			IDBackPath:       backPath,
+			SelfiePath:       selfiePath,
+			SecondDocPath:    secondDocPath,
+			FaceMatchScore:   faceScore,
+			OCRSuccess:       ocrSuccess,
 		}); err != nil {
 			return nil, err
 		}

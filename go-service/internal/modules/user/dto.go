@@ -2,11 +2,11 @@ package user
 
 // KYCStatusResponse is returned by GET /api/kyc/me.
 type KYCStatusResponse struct {
-	KYCStatus          string   `json:"kycStatus"`
-	IdentityNFTTokenID *int64   `json:"identityNftTokenId,omitempty"`
-	KYCMintTxHash      *string  `json:"kycMintTxHash,omitempty"`
+	KYCStatus          string  `json:"kycStatus"`
+	IdentityNFTTokenID *int64  `json:"identityNftTokenId,omitempty"`
+	KYCMintTxHash      *string `json:"kycMintTxHash,omitempty"`
 	// Credentials holds the verified credential types (OWNER, TENANT, AGENT).
-	Credentials        []string `json:"credentials"`
+	Credentials []string `json:"credentials"`
 }
 
 type CreateKYCSubmissionRequest struct {
@@ -57,11 +57,11 @@ type UserProfileResponse struct {
 	DisplayName        string   `json:"displayName"`
 	Email              string   `json:"email"`
 	Phone              string   `json:"phone"`
-	IDNumber           string   `json:"idNumber"`           // from KYC OCR
-	Gender             string   `json:"gender"`             // derived: "男" / "女"
-	BirthDate          string   `json:"birthDate"`          // from KYC OCR (ROC format)
-	RegisteredAddress  string   `json:"registeredAddress"`  // from KYC OCR (back side)
-	MailingAddress     string   `json:"mailingAddress"`     // user-updatable
+	IDNumber           string   `json:"idNumber"`          // from KYC OCR
+	Gender             string   `json:"gender"`            // derived: "男" / "女"
+	BirthDate          string   `json:"birthDate"`         // from KYC OCR (ROC format)
+	RegisteredAddress  string   `json:"registeredAddress"` // from KYC OCR (back side)
+	MailingAddress     string   `json:"mailingAddress"`    // user-updatable
 	KYCStatus          string   `json:"kycStatus"`
 	KYCSubmittedAt     *string  `json:"kycSubmittedAt,omitempty"`
 	KYCVerifiedAt      *string  `json:"kycVerifiedAt,omitempty"`
@@ -75,7 +75,7 @@ type UserProfileResponse struct {
 
 type RequestContactOTPRequest struct {
 	Value   string `json:"value" binding:"required"` // new email or new phone
-	Channel string `json:"channel"`                   // "email" or "phone" (for mailing address)
+	Channel string `json:"channel"`                  // "email" or "phone" (for mailing address)
 }
 
 type VerifyEmailChangeRequest struct {

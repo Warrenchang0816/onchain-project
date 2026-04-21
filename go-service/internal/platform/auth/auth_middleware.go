@@ -5,8 +5,8 @@ import (
 	"strings"
 	"time"
 
-	"go-service/internal/platform/config"
 	"go-service/internal/db/repository"
+	"go-service/internal/platform/config"
 
 	"github.com/gin-gonic/gin"
 )
