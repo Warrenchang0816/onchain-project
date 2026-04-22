@@ -10,6 +10,9 @@ import SettingsPage from "../pages/SettingsPage";
 import LoginPage from "../pages/LoginPage";
 import MemberProfilePage from "../pages/MemberProfilePage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import OwnerCredentialPage from "../pages/OwnerCredentialPage";
+import TenantCredentialPage from "../pages/TenantCredentialPage";
+import AgentCredentialPage from "../pages/AgentCredentialPage";
 
 const router = createBrowserRouter([
     {
@@ -51,6 +54,18 @@ const router = createBrowserRouter([
     {
         path: "/profile",
         element: <MemberProfilePage />,
+    },
+    {
+        path: "/credential/owner",
+        element: <OwnerCredentialPage />,
+    },
+    {
+        path: "/credential/tenant",
+        element: <TenantCredentialPage />,
+    },
+    {
+        path: "/credential/agent",
+        element: <AgentCredentialPage />,
     },
     {
         path: "/forgot-password",

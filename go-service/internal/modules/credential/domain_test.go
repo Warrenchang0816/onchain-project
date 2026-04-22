@@ -1,0 +1,159 @@
+package credential
+
+import (
+	"strings"
+	"testing"
+
+	"go-service/internal/db/model"
+)
+
+func TestNormalizeTypeAndTokenID(t *testing.T) {
+	cases := []struct {
+		name      string
+		raw       string
+		wantType  string
+		wantToken int64
+	}{
+		{name: "owner", raw: "owner", wantType: CredentialTypeOwner, wantToken: model.NFTTokenOwner},
+		{name: "tenant", raw: "TENANT", wantType: CredentialTypeTenant, wantToken: model.NFTTokenTenant},
+		{name: "agent", raw: "Agent", wantType: CredentialTypeAgent, wantToken: model.NFTTokenAgent},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotType, err := NormalizeType(tc.raw)
+			if err != nil {
+				t.Fatalf("NormalizeType(%q) error = %v", tc.raw, err)
+			}
+			if gotType != tc.wantType {
+				t.Fatalf("NormalizeType(%q) = %q, want %q", tc.raw, gotType, tc.wantType)
+			}
+
+			gotToken, err := TokenIDForType(gotType)
+			if err != nil {
+				t.Fatalf("TokenIDForType(%q) error = %v", gotType, err)
+			}
+			if gotToken != tc.wantToken {
+				t.Fatalf("TokenIDForType(%q) = %d, want %d", gotType, gotToken, tc.wantToken)
+			}
+
+			gotTypeForToken, err := TypeForTokenID(gotToken)
+			if err != nil {
+				t.Fatalf("TypeForTokenID(%d) error = %v", gotToken, err)
+			}
+			if gotTypeForToken != tc.wantType {
+				t.Fatalf("TypeForTokenID(%d) = %q, want %q", gotToken, gotTypeForToken, tc.wantType)
+			}
+		})
+	}
+}
+
+func TestNormalizeTypeRejectsInvalidInput(t *testing.T) {
+	if _, err := NormalizeType(""); err == nil {
+		t.Fatal("NormalizeType returned nil error for empty input")
+	}
+	if _, err := NormalizeType("guest"); err == nil {
+		t.Fatal("NormalizeType returned nil error for unsupported type")
+	}
+}
+
+func TestTokenIDMappingRejectsInvalidInput(t *testing.T) {
+	if _, err := TokenIDForType("GUEST"); err == nil {
+		t.Fatal("TokenIDForType returned nil error for unsupported type")
+	}
+	if _, err := TypeForTokenID(1); err == nil {
+		t.Fatal("TypeForTokenID returned nil error for unsupported token")
+	}
+}
+
+func TestEnsureActivatable(t *testing.T) {
+	t.Run("passed ready activates", func(t *testing.T) {
+		sub := &model.CredentialSubmission{
+			ReviewStatus:     CredentialReviewPassed,
+			ActivationStatus: ActivationStatusReady,
+		}
+		if err := EnsureActivatable(sub, false, false); err != nil {
+			t.Fatalf("EnsureActivatable returned error: %v", err)
+		}
+	})
+
+	t.Run("duplicate active credential blocked", func(t *testing.T) {
+		sub := &model.CredentialSubmission{
+			ReviewStatus:     CredentialReviewPassed,
+			ActivationStatus: ActivationStatusReady,
+		}
+		err := EnsureActivatable(sub, true, false)
+		if err == nil {
+			t.Fatal("EnsureActivatable returned nil error")
+		}
+		if got := err.Error(); !strings.Contains(got, "active credential") {
+			t.Fatalf("EnsureActivatable error = %q, want message mentioning active credential", got)
+		}
+	})
+
+	t.Run("superseded submission blocked", func(t *testing.T) {
+		sub := &model.CredentialSubmission{
+			ReviewStatus:     CredentialReviewPassed,
+			ActivationStatus: ActivationStatusReady,
+		}
+		err := EnsureActivatable(sub, false, true)
+		if err == nil {
+			t.Fatal("EnsureActivatable returned nil error")
+		}
+		if got := err.Error(); !strings.Contains(got, "superseded") {
+			t.Fatalf("EnsureActivatable error = %q, want message mentioning superseded", got)
+		}
+	})
+
+	t.Run("persisted superseded status blocked", func(t *testing.T) {
+		sub := &model.CredentialSubmission{
+			ReviewStatus:     CredentialReviewPassed,
+			ActivationStatus: ActivationStatusSuperseded,
+		}
+		err := EnsureActivatable(sub, false, false)
+		if err == nil {
+			t.Fatal("EnsureActivatable returned nil error")
+		}
+		if got := err.Error(); !strings.Contains(got, "superseded") {
+			t.Fatalf("EnsureActivatable error = %q, want message mentioning superseded", got)
+		}
+	})
+
+	t.Run("pending review blocked", func(t *testing.T) {
+		sub := &model.CredentialSubmission{
+			ReviewStatus:     CredentialReviewManualReviewing,
+			ActivationStatus: ActivationStatusReady,
+		}
+		err := EnsureActivatable(sub, false, false)
+		if err == nil {
+			t.Fatal("EnsureActivatable returned nil error")
+		}
+		if got := err.Error(); !strings.Contains(got, "passed review") {
+			t.Fatalf("EnsureActivatable error = %q, want message mentioning passed review", got)
+		}
+	})
+
+	t.Run("not ready blocked", func(t *testing.T) {
+		sub := &model.CredentialSubmission{
+			ReviewStatus:     CredentialReviewPassed,
+			ActivationStatus: ActivationStatusNotReady,
+		}
+		err := EnsureActivatable(sub, false, false)
+		if err == nil {
+			t.Fatal("EnsureActivatable returned nil error")
+		}
+		if got := err.Error(); !strings.Contains(got, "not ready") {
+			t.Fatalf("EnsureActivatable error = %q, want message mentioning not ready", got)
+		}
+	})
+
+	t.Run("missing submission blocked", func(t *testing.T) {
+		err := EnsureActivatable(nil, false, false)
+		if err == nil {
+			t.Fatal("EnsureActivatable returned nil error")
+		}
+		if got := err.Error(); !strings.Contains(got, "required") {
+			t.Fatalf("EnsureActivatable error = %q, want message mentioning required", got)
+		}
+	})
+}

@@ -30,10 +30,13 @@ Excel / 表格匯出請以：
   - `person_hash + wallet SIWE + password` 登入
   - 身份中心 / 會員資料頁
   - `listings` / `listing_appointments`
-- 第二階段正在收斂：
-  - `user_credentials` 的 OWNER / TENANT / AGENT 角色閉環
+- 第二階段 Gate 1A 已交付：
+  - `/credential/owner`、`/credential/tenant`、`/credential/agent`
+  - `credential_submissions` 角色申請 write model
+  - `user_credentials` 已啟用角色 read model
 - 鏈上正式已接線：
   - `IdentityNFT` 自然人 KYC 憑證與 indexer
+  - `IdentityNFT.CredentialMinted` 角色憑證同步
 - 後續 Gate：
   - `Property / Agency / Case / Stake`
 
@@ -48,6 +51,7 @@ Excel / 表格匯出請以：
 5. `infra/init/05-auth-password.sql`
 6. `infra/init/06-profile-fields.sql`
 7. `infra/init/07-listings.sql`
+8. `infra/init/08-credential-submissions.sql`
 
 ## Current Schema Domains
 
@@ -62,8 +66,12 @@ Excel / 表格匯出請以：
   - 正式 KYC 審核與稽核軌跡
 - `otp_codes`
   - Email / SMS OTP 記錄
+- `credential_submissions`
+  - OWNER / TENANT / AGENT 角色申請 write model
+  - 保存表單、OCR 結果、智能 / 人工審核路線、啟用狀態與 tx 回寫
 - `user_credentials`
-  - OWNER / TENANT / AGENT 憑證申請與審核記錄
+  - OWNER / TENANT / AGENT 已啟用角色 read model
+  - 保存 NFT token、交易 hash、撤銷狀態
 
 ### 2. Auth Domain
 
@@ -94,6 +102,7 @@ Excel / 表格匯出請以：
   - 每個 contract worker 的最後處理 block
 - `processed_events`
   - 事件冪等去重
+  - 目前正式對齊 `IdentityMinted` 與 `CredentialMinted`
 
 ### 5. Legacy Compatibility Tables
 
@@ -113,7 +122,8 @@ Excel / 表格匯出請以：
 
 - `listings` / `listing_appointments` 已是 live mainline，不可再寫成尚未進入正式 schema
 - `tasks` 不再是房屋平台主線，但實體表仍存在於初始化 SQL
-- `user_credentials` 已存在，不可再把角色憑證資料層寫成純規劃
+- `credential_submissions` 已成為 Gate 1A 正式 write model，不可再寫成純規劃
+- `user_credentials` 已從申請中間態收斂為已啟用角色 read model，不可再把整條申請流程只寫在這張表上
 
 ### 仍存在的相容殘留
 
@@ -126,9 +136,10 @@ Excel / 表格匯出請以：
 - `users` 是身份根表，不應再塞入大量 profile 畫像欄位來污染 auth root table
 - `kyc_sessions` 只承接 onboarding 中間態
 - `kyc_submissions` 是正式審核 / 稽核軌跡
-- `user_credentials` 是自然人 KYC 之上的次級角色憑證資料層
+- `credential_submissions` 是角色申請 write model
+- `user_credentials` 是角色啟用後的 read model，並保留撤銷狀態
 - `listings` 與 `listing_appointments` 是目前租屋主線的正式資料骨架
-- `indexer_checkpoints` 與 `processed_events` 必須與目前啟用中的鏈上 worker 對齊
+- `indexer_checkpoints` 與 `processed_events` 必須與目前啟用中的 `IdentityMinted / CredentialMinted` worker 對齊
 
 ## Schema Governance Rules
 

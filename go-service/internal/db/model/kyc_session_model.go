@@ -66,6 +66,8 @@ type UserCredential struct {
 	ReviewStatus     string // PENDING | VERIFIED | REJECTED
 	ReviewerNote     string
 	ReviewedByWallet sql.NullString
+	RevokedAt        sql.NullTime
+	RevokedReason    string
 
 	NFTTokenID sql.NullInt32
 	TxHash     sql.NullString
@@ -83,6 +85,7 @@ const (
 	CredentialReviewPending  = "PENDING"
 	CredentialReviewVerified = "VERIFIED"
 	CredentialReviewRejected = "REJECTED"
+	CredentialReviewRevoked  = "REVOKED"
 
 	// ERC-1155 token IDs (matches IdentityNFT.sol constants)
 	NFTTokenNaturalPerson = 1

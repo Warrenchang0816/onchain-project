@@ -5,6 +5,7 @@ import (
 
 	"go-service/internal/db/repository"
 	authmod "go-service/internal/modules/auth"
+	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
@@ -24,6 +25,8 @@ func SetupRouter(
 	userHandler *usermod.Handler,
 	adminHandler *usermod.AdminHandler,
 	onboardingHandler *onboardingmod.Handler,
+	credentialHandler *credentialmod.Handler,
+	credentialAdminHandler *credentialmod.AdminHandler,
 	sessionRepo *repository.SessionRepository,
 ) *gin.Engine {
 	r := gin.Default()
@@ -86,6 +89,16 @@ func SetupRouter(
 			// Admin
 			protected.GET("/admin/kyc/pending", adminHandler.ListPendingManual)
 			protected.PUT("/admin/kyc/:id/review", adminHandler.ReviewSubmission)
+			protected.GET("/admin/credentials/pending", credentialAdminHandler.ListPendingManual)
+			protected.PUT("/admin/credentials/:id/review", credentialAdminHandler.ReviewSubmission)
+
+			// Role credentials
+			protected.GET("/credentials/me", credentialHandler.GetMyCredentials)
+			protected.POST("/credentials/:type/submissions", credentialHandler.CreateSubmission)
+			protected.POST("/credentials/:type/submissions/:id/files", credentialHandler.UploadFiles)
+			protected.POST("/credentials/:type/submissions/:id/analyze", credentialHandler.AnalyzeSubmission)
+			protected.POST("/credentials/:type/submissions/:id/manual", credentialHandler.RequestManualReview)
+			protected.POST("/credentials/:type/submissions/:id/activate", credentialHandler.ActivateSubmission)
 		}
 
 		// ── Blockchain logs (public) ──────────────────────────────

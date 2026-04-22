@@ -6,6 +6,7 @@ import (
 
 	"go-service/internal/db/repository"
 	authmod "go-service/internal/modules/auth"
+	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
@@ -54,6 +55,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	otpRepo := repository.NewOTPRepository(postgresDB)
 	kycSessionRepo := repository.NewKYCSessionRepository(postgresDB)
 	credentialRepo := repository.NewUserCredentialRepository(postgresDB)
+	credentialSubmissionRepo := repository.NewCredentialSubmissionRepository(postgresDB)
 	listingRepo := repository.NewListingRepository(postgresDB)
 	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
 
@@ -115,6 +117,19 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 				log.Printf("[bootstrap] identity worker init failed: %v", err)
 			} else {
 				idx.RegisterWorker(identityWorker)
+			}
+
+			credentialWorker, err := credentialmod.NewWorker(
+				blockchainConfig.IdentityNFTAddress,
+				userRepo,
+				credentialRepo,
+				checkpointStore,
+				blockchainConfig.IdentityNFTStartBlock,
+			)
+			if err != nil {
+				log.Printf("[bootstrap] credential worker init failed: %v", err)
+			} else {
+				idx.RegisterWorker(credentialWorker)
 			}
 		}
 
@@ -190,11 +205,35 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
 
 	// ── 13. Listing module ────────────────────────────────────
+	credentialSvc := credentialmod.NewService(
+		userRepo,
+		credentialSubmissionRepo,
+		credentialRepo,
+		identityContractSvc,
+		minioClient,
+		visionClient,
+		chainSyncer,
+	)
+	credentialHandler := credentialmod.NewHandler(credentialSvc)
+	credentialAdminHandler := credentialmod.NewAdminHandler(credentialSvc, blockchainConfig.GodModeWalletAddress)
+
 	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
 	// ── 14. Router ────────────────────────────────────────────
-	r := SetupRouter(listingHandler, logHandler, authHandler, loginHandler, resetPasswordHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
+	r := SetupRouter(
+		listingHandler,
+		logHandler,
+		authHandler,
+		loginHandler,
+		resetPasswordHandler,
+		userHandler,
+		adminHandler,
+		onboardingHandler,
+		credentialHandler,
+		credentialAdminHandler,
+		sessionRepo,
+	)
 
 	return r, cleanupFn, nil
 }

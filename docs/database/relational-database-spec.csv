@@ -98,11 +98,36 @@ user_credentials,doc_path,VARCHAR(512),YES,NULL,,,user_credential_repo,Credentia
 user_credentials,review_status,VARCHAR(20),NO,PENDING,INDEX,,user_credential_repo,Credential review status
 user_credentials,reviewer_note,TEXT,NO,'' ,,,user_credential_repo,Reviewer note
 user_credentials,reviewed_by_wallet,VARCHAR(255),YES,NULL,,,user_credential_repo,Reviewer wallet
+user_credentials,revoked_at,TIMESTAMPTZ,YES,NULL,,,user_credential_repo,Credential revocation time
+user_credentials,revoked_reason,TEXT,NO,'' ,,,user_credential_repo,Credential revocation reason
 user_credentials,nft_token_id,INT,YES,NULL,,,user_credential_repo,Credential token id
 user_credentials,tx_hash,VARCHAR(66),YES,NULL,,,user_credential_repo,Credential mint transaction hash
 user_credentials,verified_at,TIMESTAMPTZ,YES,NULL,,,user_credential_repo,Verification time
 user_credentials,created_at,TIMESTAMPTZ,NO,NOW(),,,user_credential_repo,Row creation timestamp
 user_credentials,updated_at,TIMESTAMPTZ,NO,NOW(),,,user_credential_repo,Row update timestamp
+credential_submissions,id,BIGSERIAL,NO,,PK,,credential_submission_repo,Credential submission primary key
+credential_submissions,user_id,BIGINT,NO,,FK,users(id),credential_submission_repo,Owning user id
+credential_submissions,credential_type,VARCHAR(20),NO,,, ,credential_submission_repo,OWNER or TENANT or AGENT
+credential_submissions,review_route,VARCHAR(20),NO,,, ,credential_submission_repo,SMART or MANUAL
+credential_submissions,review_status,VARCHAR(30),NO,,,INDEX,,credential_submission_repo,SMART_REVIEWING or MANUAL_REVIEWING or PASSED or FAILED
+credential_submissions,activation_status,VARCHAR(20),NO,NOT_READY,,,credential_submission_repo,NOT_READY or READY or ACTIVATED or SUPERSEDED
+credential_submissions,form_payload_json,JSONB,NO,'{}'::jsonb,,,credential_submission_repo,Submitted form payload
+credential_submissions,main_doc_path,VARCHAR(512),YES,NULL,,,credential_submission_repo,Primary credential document path
+credential_submissions,support_doc_path,VARCHAR(512),YES,NULL,,,credential_submission_repo,Optional supporting document path
+credential_submissions,notes,TEXT,NO,'' ,,,credential_submission_repo,User notes
+credential_submissions,ocr_text_main,TEXT,NO,'' ,,,credential_submission_repo,OCR text from primary document
+credential_submissions,ocr_text_support,TEXT,NO,'' ,,,credential_submission_repo,OCR text from supporting document
+credential_submissions,check_result_json,JSONB,NO,'{}'::jsonb,,,credential_submission_repo,Smart review check results
+credential_submissions,decision_summary,TEXT,NO,'' ,,,credential_submission_repo,Decision summary shown to user
+credential_submissions,reviewer_note,TEXT,NO,'' ,,,credential_submission_repo,Admin reviewer note
+credential_submissions,reviewed_by_wallet,VARCHAR(255),YES,NULL,,,credential_submission_repo,Admin reviewer wallet
+credential_submissions,decided_at,TIMESTAMPTZ,YES,NULL,,,credential_submission_repo,Decision timestamp
+credential_submissions,activated_at,TIMESTAMPTZ,YES,NULL,,,credential_submission_repo,Activation timestamp
+credential_submissions,activation_tx_hash,VARCHAR(66),YES,NULL,,,credential_submission_repo,Activation mint transaction hash
+credential_submissions,activation_token_id,INT,YES,NULL,,,credential_submission_repo,Activated token id
+credential_submissions,superseded_by_submission_id,BIGINT,YES,NULL,FK,credential_submissions(id),credential_submission_repo,Newer submission that superseded this one
+credential_submissions,created_at,TIMESTAMPTZ,NO,NOW(),,,credential_submission_repo,Row creation timestamp
+credential_submissions,updated_at,TIMESTAMPTZ,NO,NOW(),,,credential_submission_repo,Row update timestamp
 listings,id,BIGSERIAL,NO,,PK,,listing_repo,Listing primary key
 listings,owner_user_id,BIGINT,NO,,FK,users(id),listing_repo,Owner user id
 listings,title,VARCHAR(200),NO,,, ,listing_repo,Listing title
