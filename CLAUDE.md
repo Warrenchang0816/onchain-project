@@ -135,6 +135,28 @@ VITE_API_BASE_URL=http://localhost:8081/api
 - Stage specific files only — never `git add .` (avoid accidental `.env` commits)
 - Commit format: `feat: 新增 xxx 功能`
 
+## Superpowers Skills
+
+Superpowers plugin is installed and enabled. Before responding to ANY request — including clarifying questions — check whether a skill applies and invoke it via the `Skill` tool.
+
+**Mandatory skill checks:**
+
+| Situation | Skill to invoke |
+|-----------|----------------|
+| 設計新功能 / 規劃下一步 | `superpowers:brainstorming` |
+| 有 spec，開始寫實作計畫 | `superpowers:writing-plans` |
+| 有 plan，開始執行 | `superpowers:executing-plans` |
+| 遇到 bug / 測試失敗 | `superpowers:systematic-debugging` |
+| 實作任何功能前 | `superpowers:test-driven-development` |
+| 宣稱完成 / 準備 commit | `superpowers:verification-before-completion` |
+| 完成實作，決定如何整合 | `superpowers:finishing-a-development-branch` |
+| 收到 code review 意見 | `superpowers:receiving-code-review` |
+
+**Rules:**
+- If there is even a 1% chance a skill applies, invoke it before doing anything else.
+- User typing `@Superpowers` in a message means: you MUST invoke the relevant skill before responding.
+- Do NOT rationalize skipping. "This is simple" or "I need context first" are not valid reasons to skip.
+
 ## What to Avoid
 
 - Do not add ORM libraries to the Go service — keep raw SQL in repositories
