@@ -6,6 +6,7 @@ export type CredentialDisplayStatus =
     | "NOT_STARTED"
     | "SMART_REVIEWING"
     | "MANUAL_REVIEWING"
+    | "STOPPED"
     | "PASSED_READY"
     | "FAILED"
     | "ACTIVATED"
@@ -120,4 +121,40 @@ export async function activateCredentialSubmission(type: CredentialType, submiss
         credentials: "include",
     });
     await unwrap<unknown>(res);
+}
+
+export type CredentialSubmissionDetail = {
+    submissionId: number;
+    credentialType: CredentialType;
+    reviewRoute: CredentialReviewRoute;
+    displayStatus: CredentialDisplayStatus;
+    formPayload: Record<string, string>;
+    notes: string;
+    summary?: string;
+    mainFileUrl?: string;
+    supportFileUrl?: string;
+    canStopReview: boolean;
+    canRestartReview: boolean;
+    canActivate: boolean;
+    activationTxHash?: string;
+};
+
+export async function getLatestCredentialSubmission(type: CredentialType): Promise<CredentialSubmissionDetail | null> {
+    const res = await fetch(`${API_BASE_URL}/credentials/${type.toLowerCase()}/submissions/latest`, {
+        method: "GET",
+        credentials: "include",
+    });
+    return unwrap<CredentialSubmissionDetail | null>(res);
+}
+
+export async function stopCredentialSubmission(type: CredentialType, submissionId: number): Promise<CredentialSubmissionDetail> {
+    const res = await fetch(`${API_BASE_URL}/credentials/${type.toLowerCase()}/submissions/${submissionId}/stop`, {
+        method: "POST",
+        credentials: "include",
+    });
+    return unwrap<CredentialSubmissionDetail>(res);
+}
+
+export function getCredentialSubmissionFileUrl(type: CredentialType, submissionId: number, kind: "main" | "support"): string {
+    return `${API_BASE_URL}/credentials/${type.toLowerCase()}/submissions/${submissionId}/files/${kind}`;
 }

@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useMemo, useEffect } from "react";
 
 type Props = {
     label: string;
@@ -10,6 +10,19 @@ type Props = {
 
 export default function CredentialDocumentUploader(props: Props) {
     const inputId = useId();
+
+    // Derive object URL from the file via useMemo so it's recomputed only when file changes.
+    const previewUrl = useMemo<string | null>(() => {
+        if (!props.file) return null;
+        return URL.createObjectURL(props.file);
+    }, [props.file]);
+
+    // Revoke the previous URL when it changes or on unmount.
+    useEffect(() => {
+        return () => {
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+        };
+    }, [previewUrl]);
 
     return (
         <div className="space-y-2 rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">
@@ -42,6 +55,12 @@ export default function CredentialDocumentUploader(props: Props) {
             <div className="rounded-xl bg-surface-container px-3 py-2 text-sm text-on-surface-variant">
                 {props.file ? props.file.name : "尚未選擇檔案"}
             </div>
+
+            {previewUrl ? (
+                <div className="onboarding-file-preview-shell">
+                    <img src={previewUrl} alt="預覽" className="onboarding-file-preview-image" />
+                </div>
+            ) : null}
         </div>
     );
 }

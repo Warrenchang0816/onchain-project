@@ -5,6 +5,7 @@ const STATUS_HELP_TEXT: Record<CredentialDisplayStatus, string> = {
     NOT_STARTED: "可先走智能審核，若不採用結果也可改送人工審核。",
     SMART_REVIEWING: "資料已送出，系統正在整理智能判定結果。",
     MANUAL_REVIEWING: "案件已改送人工審核，請等待平台回覆結果。",
+    STOPPED: "你已停止這次人工審核，如需繼續請重新發起一筆新申請。",
     PASSED_READY: "結果已通過，是否啟用 NFT 憑證由你自行決定。",
     FAILED: "本次申請未通過，你可以重新送智能審核或改走人工審核。",
     ACTIVATED: "此身份 NFT 憑證已啟用，可回身份中心查看狀態。",
@@ -16,6 +17,7 @@ function badgeClass(status: CredentialDisplayStatus): string {
     if (status === "PASSED_READY") return "border-secondary/20 bg-secondary/10 text-secondary";
     if (status === "FAILED" || status === "REVOKED") return "border-error/20 bg-error/10 text-error";
     if (status === "MANUAL_REVIEWING") return "border-amber-700/20 bg-amber-700/10 text-amber-700";
+    if (status === "STOPPED") return "border-outline-variant/20 bg-surface-container text-on-surface-variant";
     return "border-outline-variant/20 bg-surface-container text-on-surface-variant";
 }
 
