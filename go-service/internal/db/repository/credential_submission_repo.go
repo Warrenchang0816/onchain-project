@@ -180,6 +180,20 @@ func (r *CredentialSubmissionRepository) FindPendingManual(limit, offset int) ([
 	return r.scanAll(rows)
 }
 
+func (r *CredentialSubmissionRepository) MarkStopped(id int64) error {
+	_, err := r.db.Exec(`
+		UPDATE credential_submissions
+		SET review_status = 'STOPPED',
+		    activation_status = 'NOT_READY',
+		    updated_at = NOW()
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("credential_submission_repo: mark stopped: %w", err)
+	}
+	return nil
+}
+
 func (r *CredentialSubmissionRepository) SaveAdminDecision(id int64, reviewStatus, activationStatus, summary, reviewerNote, reviewerWallet string) error {
 	_, err := r.db.Exec(`
 		UPDATE credential_submissions

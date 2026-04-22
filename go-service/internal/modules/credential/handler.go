@@ -117,6 +117,51 @@ func (h *Handler) ActivateSubmission(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "身份憑證已啟用"})
 }
 
+func (h *Handler) GetLatestSubmission(c *gin.Context) {
+	resp, err := h.svc.GetLatestSubmissionDetail(c.Request.Context(), getWallet(c), c.Param("type"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
+}
+
+func (h *Handler) StopSubmission(c *gin.Context) {
+	submissionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid submission id"})
+		return
+	}
+	resp, err := h.svc.StopSubmission(c.Request.Context(), getWallet(c), c.Param("type"), submissionID)
+	if err != nil {
+		c.JSON(http.StatusConflict, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "已停止審核", "data": resp})
+}
+
+func (h *Handler) GetMainFile(c *gin.Context) {
+	h.serveSubmissionFile(c, "main")
+}
+
+func (h *Handler) GetSupportFile(c *gin.Context) {
+	h.serveSubmissionFile(c, "support")
+}
+
+func (h *Handler) serveSubmissionFile(c *gin.Context, kind string) {
+	submissionID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid submission id"})
+		return
+	}
+	data, contentType, err := h.svc.GetSubmissionFile(c.Request.Context(), getWallet(c), c.Param("type"), submissionID, kind)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
+		return
+	}
+	c.Data(http.StatusOK, contentType, data)
+}
+
 func getWallet(c *gin.Context) string {
 	value, _ := c.Get(auth.ContextWalletAddress)
 	wallet, _ := value.(string)
