@@ -144,15 +144,17 @@ func (s *Service) UploadFiles(ctx context.Context, wallet, credentialType string
 	}
 
 	basePath := fmt.Sprintf("credentials/%d/%s/%d", user.ID, strings.ToLower(sub.CredentialType), sub.ID)
-	mainPath := basePath + "/main" + objectExtension(mainDocData)
-	if err := s.storageSvc.Upload(ctx, mainPath, mainDocData, http.DetectContentType(mainDocData)); err != nil {
+	mainContentType := http.DetectContentType(mainDocData)
+	mainPath := basePath + "/main" + objectExtension(mainContentType)
+	if err := s.storageSvc.Upload(ctx, mainPath, mainDocData, mainContentType); err != nil {
 		return err
 	}
 
 	supportPath := ""
 	if len(supportDocData) > 0 {
-		supportPath = basePath + "/support" + objectExtension(supportDocData)
-		if err := s.storageSvc.Upload(ctx, supportPath, supportDocData, http.DetectContentType(supportDocData)); err != nil {
+		supportContentType := http.DetectContentType(supportDocData)
+		supportPath = basePath + "/support" + objectExtension(supportContentType)
+		if err := s.storageSvc.Upload(ctx, supportPath, supportDocData, supportContentType); err != nil {
 			return err
 		}
 	}
@@ -306,7 +308,7 @@ func (s *Service) ActivateSubmission(ctx context.Context, wallet, credentialType
 			return errors.New("鏈上已存在此身份憑證，請重新整理後確認身份中心狀態")
 		}
 	}
-	if err := EnsureActivatable(sub, activeCredential != nil, sub.SupersededBySubmissionID.Valid); err != nil {
+	if err := EnsureActivatable(sub, activeCredential != nil); err != nil {
 		return err
 	}
 	txHash, err := s.identitySvc.MintCredential(ctx, wallet, tokenID)
@@ -420,7 +422,7 @@ func (s *Service) requireOwnedSubmission(userID int64, credentialType string, su
 		return nil, errors.New("找不到身份申請")
 	}
 	if sub.UserID != userID || sub.CredentialType != normalizedType {
-		return nil, errors.New("forbidden")
+		return nil, errors.New("無權存取此申請案件")
 	}
 	return sub, nil
 }
@@ -495,12 +497,6 @@ func (s *Service) buildCenterItem(userID int64, credentialType string) (*Credent
 		case DisplayStatusActivated, DisplayStatusManualReviewing, DisplayStatusSmartReviewing, DisplayStatusPassedReady:
 			item.CanRetrySmart = false
 			item.CanRequestManual = false
-		case DisplayStatusStopped, DisplayStatusFailed:
-			item.CanRetrySmart = true
-			item.CanRequestManual = true
-		default:
-			item.CanRetrySmart = true
-			item.CanRequestManual = true
 		}
 
 		if displayStatus == DisplayStatusPassedReady {
@@ -574,21 +570,25 @@ func nullStringOrEmpty(value sql.NullString) string {
 	return ""
 }
 
-func objectExtension(data []byte) string {
-	contentType := http.DetectContentType(data)
+func objectExtension(contentType string) string {
 	switch contentType {
+	case "image/jpeg":
+		return ".jpg"
 	case "image/png":
 		return ".png"
+	case "image/webp":
+		return ".webp"
 	default:
-		return ".jpg"
+		return ".bin"
 	}
 }
 
 func stringPtr(value string) *string {
-	if strings.TrimSpace(value) == "" {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
 		return nil
 	}
-	return &value
+	return &trimmed
 }
 
 func int64Ptr(value int64) *int64 {

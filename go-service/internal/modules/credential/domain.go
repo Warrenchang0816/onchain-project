@@ -92,11 +92,11 @@ func TypeForTokenID(tokenID int64) (string, error) {
 	}
 }
 
-func EnsureActivatable(sub *model.CredentialSubmission, hasActiveCredential bool, superseded bool) error {
+func EnsureActivatable(sub *model.CredentialSubmission, hasActiveCredential bool) error {
 	if sub == nil {
 		return fmt.Errorf("credential submission is required")
 	}
-	if superseded || strings.EqualFold(sub.ActivationStatus, ActivationStatusSuperseded) {
+	if strings.EqualFold(sub.ActivationStatus, ActivationStatusSuperseded) {
 		return fmt.Errorf("credential submission has been superseded")
 	}
 	if hasActiveCredential {

@@ -135,7 +135,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusReady,
 		}
-		if err := EnsureActivatable(sub, false, false); err != nil {
+		if err := EnsureActivatable(sub, false); err != nil {
 			t.Fatalf("EnsureActivatable returned error: %v", err)
 		}
 	})
@@ -145,7 +145,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusReady,
 		}
-		err := EnsureActivatable(sub, true, false)
+		err := EnsureActivatable(sub, true)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -157,9 +157,9 @@ func TestEnsureActivatable(t *testing.T) {
 	t.Run("superseded submission blocked", func(t *testing.T) {
 		sub := &model.CredentialSubmission{
 			ReviewStatus:     CredentialReviewPassed,
-			ActivationStatus: ActivationStatusReady,
+			ActivationStatus: ActivationStatusSuperseded,
 		}
-		err := EnsureActivatable(sub, false, true)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -173,7 +173,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusSuperseded,
 		}
-		err := EnsureActivatable(sub, false, false)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -187,7 +187,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewManualReviewing,
 			ActivationStatus: ActivationStatusReady,
 		}
-		err := EnsureActivatable(sub, false, false)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -201,7 +201,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusNotReady,
 		}
-		err := EnsureActivatable(sub, false, false)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -211,7 +211,7 @@ func TestEnsureActivatable(t *testing.T) {
 	})
 
 	t.Run("missing submission blocked", func(t *testing.T) {
-		err := EnsureActivatable(nil, false, false)
+		err := EnsureActivatable(nil, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
