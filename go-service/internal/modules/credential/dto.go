@@ -48,6 +48,7 @@ const (
 	DisplayStatusNotStarted      = "NOT_STARTED"
 	DisplayStatusSmartReviewing  = "SMART_REVIEWING"
 	DisplayStatusManualReviewing = "MANUAL_REVIEWING"
+	DisplayStatusStopped         = "STOPPED"
 	DisplayStatusPassedReady     = "PASSED_READY"
 	DisplayStatusFailed          = "FAILED"
 	DisplayStatusActivated       = "ACTIVATED"

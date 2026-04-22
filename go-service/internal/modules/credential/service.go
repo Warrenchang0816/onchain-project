@@ -488,32 +488,23 @@ func (s *Service) buildCenterItem(userID int64, credentialType string) (*Credent
 			item.Summary = stringPtr(summary)
 		}
 
-		switch {
-		case sub.ActivationStatus == ActivationStatusActivated:
-			item.DisplayStatus = DisplayStatusActivated
+		displayStatus := DisplayStatusForSubmission(sub)
+		item.DisplayStatus = displayStatus
+
+		switch displayStatus {
+		case DisplayStatusActivated, DisplayStatusManualReviewing, DisplayStatusSmartReviewing, DisplayStatusPassedReady:
 			item.CanRetrySmart = false
 			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewManualReviewing:
-			item.DisplayStatus = DisplayStatusManualReviewing
-			item.CanRetrySmart = false
-			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewSmartReviewing:
-			item.DisplayStatus = DisplayStatusSmartReviewing
-			item.CanRetrySmart = false
-			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewPassed && sub.ActivationStatus == ActivationStatusReady:
-			item.DisplayStatus = DisplayStatusPassedReady
-			item.CanActivate = true
-			item.CanRetrySmart = false
-			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewFailed:
-			item.DisplayStatus = DisplayStatusFailed
+		case DisplayStatusStopped, DisplayStatusFailed:
 			item.CanRetrySmart = true
 			item.CanRequestManual = true
 		default:
-			item.DisplayStatus = DisplayStatusNotStarted
 			item.CanRetrySmart = true
 			item.CanRequestManual = true
+		}
+
+		if displayStatus == DisplayStatusPassedReady {
+			item.CanActivate = true
 		}
 	default:
 		item.DisplayStatus = DisplayStatusNotStarted

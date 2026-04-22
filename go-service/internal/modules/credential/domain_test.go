@@ -66,6 +66,69 @@ func TestTokenIDMappingRejectsInvalidInput(t *testing.T) {
 	}
 }
 
+func TestCanStopReview(t *testing.T) {
+	if !CanStopReview(CredentialReviewManualReviewing) {
+		t.Fatal("manual reviewing should be stoppable")
+	}
+	for _, status := range []string{
+		CredentialReviewSmartReviewing,
+		CredentialReviewPassed,
+		CredentialReviewFailed,
+		CredentialReviewStopped,
+	} {
+		if CanStopReview(status) {
+			t.Fatalf("status %s should not be stoppable", status)
+		}
+	}
+}
+
+func TestDisplayStatusForSubmission(t *testing.T) {
+	cases := []struct {
+		name string
+		sub  *model.CredentialSubmission
+		want string
+	}{
+		{
+			name: "stopped manual submission",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewStopped,
+				ActivationStatus: ActivationStatusNotReady,
+			},
+			want: DisplayStatusStopped,
+		},
+		{
+			name: "manual reviewing",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewManualReviewing,
+				ActivationStatus: ActivationStatusNotReady,
+			},
+			want: DisplayStatusManualReviewing,
+		},
+		{
+			name: "passed ready",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewPassed,
+				ActivationStatus: ActivationStatusReady,
+			},
+			want: DisplayStatusPassedReady,
+		},
+		{
+			name: "activated",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewPassed,
+				ActivationStatus: ActivationStatusActivated,
+			},
+			want: DisplayStatusActivated,
+		},
+	}
+
+	for _, tc := range cases {
+		if got := DisplayStatusForSubmission(tc.sub); got != tc.want {
+			t.Fatalf("%s: got %s want %s", tc.name, got, tc.want)
+		}
+	}
+}
+
 func TestEnsureActivatable(t *testing.T) {
 	t.Run("passed ready activates", func(t *testing.T) {
 		sub := &model.CredentialSubmission{

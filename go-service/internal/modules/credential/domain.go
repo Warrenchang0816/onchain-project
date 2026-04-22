@@ -19,12 +19,39 @@ const (
 	CredentialReviewManualReviewing = "MANUAL_REVIEWING"
 	CredentialReviewPassed          = "PASSED"
 	CredentialReviewFailed          = "FAILED"
+	CredentialReviewStopped         = "STOPPED"
 
 	ActivationStatusNotReady   = "NOT_READY"
 	ActivationStatusReady      = "READY"
 	ActivationStatusActivated  = "ACTIVATED"
 	ActivationStatusSuperseded = "SUPERSEDED"
 )
+
+func CanStopReview(reviewStatus string) bool {
+	return reviewStatus == CredentialReviewManualReviewing
+}
+
+func DisplayStatusForSubmission(sub *model.CredentialSubmission) string {
+	if sub == nil {
+		return DisplayStatusNotStarted
+	}
+	switch {
+	case sub.ActivationStatus == ActivationStatusActivated:
+		return DisplayStatusActivated
+	case sub.ReviewStatus == CredentialReviewStopped:
+		return DisplayStatusStopped
+	case sub.ReviewStatus == CredentialReviewManualReviewing:
+		return DisplayStatusManualReviewing
+	case sub.ReviewStatus == CredentialReviewSmartReviewing:
+		return DisplayStatusSmartReviewing
+	case sub.ReviewStatus == CredentialReviewPassed && sub.ActivationStatus == ActivationStatusReady:
+		return DisplayStatusPassedReady
+	case sub.ReviewStatus == CredentialReviewFailed:
+		return DisplayStatusFailed
+	default:
+		return DisplayStatusNotStarted
+	}
+}
 
 func NormalizeType(raw string) (string, error) {
 	switch strings.ToUpper(strings.TrimSpace(raw)) {
