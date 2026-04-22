@@ -1,8 +1,19 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import type { CredentialCenterItem, CredentialType } from "@/api/credentialApi";
+import type { CredentialCenterItem, CredentialSubmissionDetail, CredentialType } from "@/api/credentialApi";
+import {
+    activateCredentialSubmission,
+    analyzeCredentialSubmission,
+    createCredentialSubmission,
+    requestManualCredentialReview,
+    stopCredentialSubmission,
+    uploadCredentialFiles,
+    getCredentialSubmissionFileUrl,
+} from "@/api/credentialApi";
 import CredentialDocumentUploader from "./CredentialDocumentUploader";
 import CredentialStatusPanel from "./CredentialStatusPanel";
+import CredentialConfirmDialog from "./CredentialConfirmDialog";
+import CredentialSubmissionSnapshot from "./CredentialSubmissionSnapshot";
 
 type FieldConfig = {
     key: string;
@@ -16,12 +27,11 @@ type Props = {
     description: string;
     primaryFields: FieldConfig[];
     currentItem?: CredentialCenterItem;
-    onSubmitSmart: (payload: Record<string, string>, notes: string, mainDoc: File, supportDoc?: File) => Promise<void>;
-    onRequestManual: (payload: Record<string, string>, notes: string, mainDoc: File, supportDoc?: File) => Promise<void>;
-    onRetrySmart: (submissionId: number) => Promise<void>;
-    onSwitchToManual: (submissionId: number) => Promise<void>;
-    onActivate: (submissionId: number) => Promise<void>;
+    currentDetail?: CredentialSubmissionDetail;
+    onRefresh: () => Promise<void>;
 };
+
+type ConfirmAction = "SMART_SUBMIT" | "MANUAL_SUBMIT" | "STOP_REVIEW" | "ACTIVATE" | null;
 
 export default function CredentialApplicationShell(props: Props) {
     const [formValues, setFormValues] = useState<Record<string, string>>({});
@@ -31,18 +41,25 @@ export default function CredentialApplicationShell(props: Props) {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
+    const [forceEditMode, setForceEditMode] = useState(false);
 
+    const detail = props.currentDetail;
     const status = props.currentItem?.displayStatus;
     const latestSubmissionId = props.currentItem?.latestSubmissionId;
-    const canActivate = Boolean(latestSubmissionId && props.currentItem?.canActivate);
-    const canRetrySmart = props.currentItem ? props.currentItem.canRetrySmart : true;
-    const canRequestManual = props.currentItem ? props.currentItem.canRequestManual : true;
-    const hideForm =
-        status === "ACTIVATED" ||
-        status === "MANUAL_REVIEWING" ||
-        status === "SMART_REVIEWING" ||
-        status === "PASSED_READY" ||
-        status === "FAILED";
+
+    const snapshotMode =
+        !forceEditMode &&
+        Boolean(detail && detail.displayStatus !== "NOT_STARTED" && detail.displayStatus !== "SMART_REVIEWING");
+
+    const resetDraft = () => {
+        setFormValues({});
+        setNotes("");
+        setMainDoc(null);
+        setSupportDoc(null);
+        setError("");
+        setSuccess("");
+    };
 
     const ensureMainDoc = (): File => {
         if (!mainDoc) {
@@ -53,58 +70,115 @@ export default function CredentialApplicationShell(props: Props) {
 
     const handleSmartSubmit = async (event: FormEvent) => {
         event.preventDefault();
+        setConfirmAction("SMART_SUBMIT");
+    };
+
+    const handleManualSubmitClick = () => {
+        setConfirmAction("MANUAL_SUBMIT");
+    };
+
+    const doSmartSubmit = async () => {
         setSubmitting(true);
         setError("");
         setSuccess("");
         try {
-            await props.onSubmitSmart(formValues, notes, ensureMainDoc(), supportDoc ?? undefined);
+            const created = await createCredentialSubmission(props.credentialType, {
+                route: "SMART",
+                formPayload: formValues,
+                notes,
+            });
+            await uploadCredentialFiles(props.credentialType, created.submissionId, ensureMainDoc(), supportDoc ?? undefined);
+            await analyzeCredentialSubmission(props.credentialType, created.submissionId);
             setSuccess("智能審核結果已更新。");
+            setForceEditMode(false);
+            await props.onRefresh();
         } catch (err) {
             setError(err instanceof Error ? err.message : "智能審核失敗");
         } finally {
             setSubmitting(false);
+            setConfirmAction(null);
         }
     };
 
-    const handleManualSubmit = async () => {
+    const doManualSubmit = async () => {
         setSubmitting(true);
         setError("");
         setSuccess("");
         try {
-            await props.onRequestManual(formValues, notes, ensureMainDoc(), supportDoc ?? undefined);
+            const created = await createCredentialSubmission(props.credentialType, {
+                route: "MANUAL",
+                formPayload: formValues,
+                notes,
+            });
+            await uploadCredentialFiles(props.credentialType, created.submissionId, ensureMainDoc(), supportDoc ?? undefined);
+            await requestManualCredentialReview(props.credentialType, created.submissionId);
             setSuccess("案件已送交人工審核。");
+            setForceEditMode(false);
+            await props.onRefresh();
         } catch (err) {
             setError(err instanceof Error ? err.message : "人工審核送件失敗");
         } finally {
             setSubmitting(false);
+            setConfirmAction(null);
         }
     };
 
-    const handleActivate = async () => {
-        if (!latestSubmissionId) return;
-
+    const doStopReview = async () => {
+        if (!detail) return;
         setSubmitting(true);
         setError("");
         setSuccess("");
         try {
-            await props.onActivate(latestSubmissionId);
+            await stopCredentialSubmission(props.credentialType, detail.submissionId);
+            setSuccess("人工審核已停止。");
+            await props.onRefresh();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "停止審核失敗");
+        } finally {
+            setSubmitting(false);
+            setConfirmAction(null);
+        }
+    };
+
+    const doActivate = async () => {
+        if (!detail) return;
+        setSubmitting(true);
+        setError("");
+        setSuccess("");
+        try {
+            await activateCredentialSubmission(props.credentialType, detail.submissionId);
             setSuccess("身份 NFT 憑證已啟用。");
+            await props.onRefresh();
         } catch (err) {
             setError(err instanceof Error ? err.message : "啟用失敗");
         } finally {
             setSubmitting(false);
+            setConfirmAction(null);
         }
     };
 
+    const handleConfirm = async () => {
+        if (confirmAction === "SMART_SUBMIT") await doSmartSubmit();
+        else if (confirmAction === "MANUAL_SUBMIT") await doManualSubmit();
+        else if (confirmAction === "STOP_REVIEW") await doStopReview();
+        else if (confirmAction === "ACTIVATE") await doActivate();
+    };
+
+    const handleRestart = () => {
+        resetDraft();
+        setForceEditMode(true);
+    };
+
+    // Legacy handlers for FAILED status (retry smart / switch to manual using existing submissionId)
     const handleRetrySmart = async () => {
         if (!latestSubmissionId) return;
-
         setSubmitting(true);
         setError("");
         setSuccess("");
         try {
-            await props.onRetrySmart(latestSubmissionId);
+            await analyzeCredentialSubmission(props.credentialType, latestSubmissionId);
             setSuccess("已重新執行智能審核。");
+            await props.onRefresh();
         } catch (err) {
             setError(err instanceof Error ? err.message : "重新執行智能審核失敗");
         } finally {
@@ -114,13 +188,13 @@ export default function CredentialApplicationShell(props: Props) {
 
     const handleSwitchToManual = async () => {
         if (!latestSubmissionId) return;
-
         setSubmitting(true);
         setError("");
         setSuccess("");
         try {
-            await props.onSwitchToManual(latestSubmissionId);
+            await requestManualCredentialReview(props.credentialType, latestSubmissionId);
             setSuccess("案件已改送人工審核。");
+            await props.onRefresh();
         } catch (err) {
             setError(err instanceof Error ? err.message : "改送人工審核失敗");
         } finally {
@@ -128,8 +202,42 @@ export default function CredentialApplicationShell(props: Props) {
         }
     };
 
+    const canActivateLegacy = Boolean(latestSubmissionId && props.currentItem?.canActivate);
+    const canRetrySmart = props.currentItem ? props.currentItem.canRetrySmart : true;
+    const canRequestManual = props.currentItem ? props.currentItem.canRequestManual : true;
+    const hideForm =
+        status === "ACTIVATED" ||
+        status === "MANUAL_REVIEWING" ||
+        status === "SMART_REVIEWING" ||
+        status === "PASSED_READY" ||
+        status === "FAILED";
+
+    const dialogConfig: Record<NonNullable<ConfirmAction>, { title: string; description: string; confirmLabel: string }> = {
+        SMART_SUBMIT: {
+            title: "送出智能審核",
+            description: "確認後系統將上傳文件並執行智能審核，結果出來後你可以決定是否採用。",
+            confirmLabel: "送出智能審核",
+        },
+        MANUAL_SUBMIT: {
+            title: "送出人工審核",
+            description: "確認後將送交人工審核，審核人員會在一段時間後回覆結果，耗時較久。",
+            confirmLabel: "送出人工審核",
+        },
+        STOP_REVIEW: {
+            title: "停止人工審核",
+            description: "確認後此次人工審核將被停止。如需繼續，需重新發起一筆新的申請。",
+            confirmLabel: "確認停止",
+        },
+        ACTIVATE: {
+            title: "啟用身份 NFT",
+            description: "確認後系統將為你鑄造對應的身份 NFT 憑證，此動作無法還原。",
+            confirmLabel: "確認啟用",
+        },
+    };
+
     return (
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-8">
+            {/* Header */}
             <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 md:p-10">
                 <div className="space-y-3">
                     <div className="inline-flex rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
@@ -156,7 +264,71 @@ export default function CredentialApplicationShell(props: Props) {
                 </div>
             ) : null}
 
-            {canActivate ? (
+            {/* Snapshot mode */}
+            {snapshotMode && detail ? (
+                <>
+                    <CredentialSubmissionSnapshot
+                        fields={props.primaryFields.map((f) => ({ key: f.key, label: f.label }))}
+                        values={detail.formPayload}
+                        notes={detail.notes}
+                        mainFileUrl={
+                            detail.mainFileUrl
+                                ? getCredentialSubmissionFileUrl(props.credentialType, detail.submissionId, "main")
+                                : undefined
+                        }
+                        supportFileUrl={
+                            detail.supportFileUrl
+                                ? getCredentialSubmissionFileUrl(props.credentialType, detail.submissionId, "support")
+                                : undefined
+                        }
+                    />
+
+                    <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
+                        <div className="space-y-3">
+                            {detail.canActivate ? (
+                                <button
+                                    type="button"
+                                    disabled={submitting}
+                                    onClick={() => setConfirmAction("ACTIVATE")}
+                                    className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {submitting ? "處理中..." : "啟用身份 NFT"}
+                                </button>
+                            ) : null}
+                            {detail.canStopReview ? (
+                                <button
+                                    type="button"
+                                    disabled={submitting}
+                                    onClick={() => setConfirmAction("STOP_REVIEW")}
+                                    className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {submitting ? "處理中..." : "停止審核"}
+                                </button>
+                            ) : null}
+                            {detail.canRestartReview ? (
+                                <button
+                                    type="button"
+                                    disabled={submitting}
+                                    onClick={handleRestart}
+                                    className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    重新審核
+                                </button>
+                            ) : null}
+                        </div>
+                    </section>
+                </>
+            ) : null}
+
+            {/* SMART_REVIEWING waiting message */}
+            {!snapshotMode && status === "SMART_REVIEWING" ? (
+                <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 text-sm leading-[1.8] text-on-surface-variant">
+                    智能審核已建立，請先等待結果回寫。結果出來後，你可以決定是否採用結果，或在未通過時改送人工審核。
+                </section>
+            ) : null}
+
+            {/* Legacy: activate button when not in snapshot mode */}
+            {!snapshotMode && canActivateLegacy ? (
                 <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
                     <div className="space-y-4">
                         <h2 className="text-2xl font-bold text-on-surface">是否啟用身份 NFT</h2>
@@ -166,7 +338,7 @@ export default function CredentialApplicationShell(props: Props) {
                         <button
                             type="button"
                             disabled={submitting}
-                            onClick={handleActivate}
+                            onClick={() => setConfirmAction("ACTIVATE")}
                             className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             {submitting ? "啟用中..." : "啟用 NFT 憑證"}
@@ -175,7 +347,8 @@ export default function CredentialApplicationShell(props: Props) {
                 </section>
             ) : null}
 
-            {status === "FAILED" && latestSubmissionId ? (
+            {/* Legacy: FAILED retry section (non-snapshot mode) */}
+            {!snapshotMode && status === "FAILED" && latestSubmissionId ? (
                 <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
                     <div className="space-y-4">
                         <h2 className="text-2xl font-bold text-on-surface">重新處理本次申請</h2>
@@ -208,7 +381,8 @@ export default function CredentialApplicationShell(props: Props) {
                 </section>
             ) : null}
 
-            {!hideForm ? (
+            {/* Edit mode form */}
+            {!snapshotMode && !hideForm ? (
                 <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
                     <form onSubmit={handleSmartSubmit} className="space-y-6">
                         <div className="grid gap-4 md:grid-cols-2">
@@ -264,32 +438,40 @@ export default function CredentialApplicationShell(props: Props) {
                             >
                                 {submitting ? "送出中..." : "送出智能審核"}
                             </button>
-                            <button
-                                type="button"
-                                disabled={submitting}
-                                onClick={handleManualSubmit}
-                                className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                                改送人工審核
-                            </button>
-                            <p className="text-xs leading-[1.8] text-on-surface-variant">
-                                智能審核為主要引導；若你不採用智能結果，或希望由人工覆核，也可以直接改送人工審核。
+                            <p className="text-right text-sm leading-[1.8] text-on-surface-variant">
+                                可以選擇
+                                <button
+                                    type="button"
+                                    onClick={handleManualSubmitClick}
+                                    className="mx-1 font-semibold text-on-surface underline underline-offset-4"
+                                >
+                                    人工審核
+                                </button>
+                                ，將會耗時較久
                             </p>
                         </div>
                     </form>
                 </section>
             ) : null}
 
-            {status === "MANUAL_REVIEWING" ? (
+            {/* MANUAL_REVIEWING waiting message (non-snapshot) */}
+            {!snapshotMode && status === "MANUAL_REVIEWING" ? (
                 <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 text-sm leading-[1.8] text-on-surface-variant">
                     你的案件目前正在人工審核中，這段期間不需要重複送件。若後續未通過，可再重新跑一次智能審核或改送人工審核。
                 </section>
             ) : null}
 
-            {status === "SMART_REVIEWING" ? (
-                <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 text-sm leading-[1.8] text-on-surface-variant">
-                    智能審核已建立，請先等待結果回寫。結果出來後，你可以決定是否採用結果，或在未通過時改送人工審核。
-                </section>
+            {/* Confirm dialog */}
+            {confirmAction ? (
+                <CredentialConfirmDialog
+                    open={Boolean(confirmAction)}
+                    title={dialogConfig[confirmAction].title}
+                    description={dialogConfig[confirmAction].description}
+                    confirmLabel={dialogConfig[confirmAction].confirmLabel}
+                    onConfirm={() => void handleConfirm()}
+                    onCancel={() => setConfirmAction(null)}
+                    busy={submitting}
+                />
             ) : null}
         </div>
     );
