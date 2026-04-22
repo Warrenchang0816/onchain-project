@@ -1,4 +1,4 @@
-import { useId, useMemo, useEffect } from "react";
+import { useId, useState, useEffect } from "react";
 
 type Props = {
     label: string;
@@ -11,18 +11,18 @@ type Props = {
 export default function CredentialDocumentUploader(props: Props) {
     const inputId = useId();
 
-    // Derive object URL from the file via useMemo so it's recomputed only when file changes.
-    const previewUrl = useMemo<string | null>(() => {
-        if (!props.file) return null;
-        return URL.createObjectURL(props.file);
-    }, [props.file]);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-    // Revoke the previous URL when it changes or on unmount.
     useEffect(() => {
-        return () => {
-            if (previewUrl) URL.revokeObjectURL(previewUrl);
-        };
-    }, [previewUrl]);
+        if (!props.file) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setPreviewUrl(null);
+            return;
+        }
+        const url = URL.createObjectURL(props.file);
+        setPreviewUrl(url);
+        return () => URL.revokeObjectURL(url);
+    }, [props.file]);
 
     return (
         <div className="space-y-2 rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">

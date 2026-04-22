@@ -12,10 +12,16 @@ type Props = {
 export default function CredentialConfirmDialog(props: Props) {
     if (!props.open) return null;
     return (
-        <div className="credential-dialog-overlay">
-            <div className="credential-dialog">
-                <h2 className="credential-dialog__title">{props.title}</h2>
-                <p className="credential-dialog__desc">{props.description}</p>
+        <div className="credential-dialog-overlay" aria-hidden="true">
+            <div
+                className="credential-dialog"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="cred-dialog-title"
+                aria-describedby="cred-dialog-desc"
+            >
+                <h2 id="cred-dialog-title" className="credential-dialog__title">{props.title}</h2>
+                <p id="cred-dialog-desc" className="credential-dialog__desc">{props.description}</p>
                 <div className="credential-dialog__actions">
                     <button type="button" onClick={props.onCancel} className="btn-secondary">
                         {props.cancelLabel ?? "取消"}
