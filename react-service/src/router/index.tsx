@@ -2,6 +2,7 @@
 import HomePage from "../pages/HomePage";
 import ListingListPage from "../pages/ListingListPage";
 import ListingDetailPage from "../pages/ListingDetailPage";
+import ListingCreatePage from "../pages/ListingCreatePage";
 import BlockchainLogsPage from "../pages/BlockchainLogsPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import IdentityCenterPage from "../pages/IdentityCenterPage";
@@ -18,6 +19,10 @@ const router = createBrowserRouter([
     {
         path: "/listings",
         element: <ListingListPage />,
+    },
+    {
+        path: "/listings/new",
+        element: <ListingCreatePage />,
     },
     {
         path: "/listings/:id",

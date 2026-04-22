@@ -57,7 +57,7 @@ export type Listing = {
     created_at: string;
     updated_at: string;
     is_owner: boolean;
-    image_url?: string; // optional cover photo (populated by placeholder; will come from API eventually)
+    image_url?: string; // optional cover photo when the backend provides one; UI must not synthesize fake inventory
 };
 
 export type CreateListingPayload = {
@@ -227,7 +227,7 @@ export async function cancelAppointment(listingId: number, apptId: number): Prom
 /** 鏈上足跡會用到先暫留，後續再修改調整 **/
 export type BlockchainLog = {
     id: number;
-    taskId: string;
+    taskId: string; // legacy reference id from the pre-housing task flow; field name stays until backend schema changes
     walletAddress: string;
     action: string;
     txHash: string;

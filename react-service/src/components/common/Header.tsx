@@ -100,7 +100,6 @@ const Header = () => {
                 <nav className="hidden md:flex items-center gap-8">
                     <NavLink to="/" end className={navLinkCls}>首頁</NavLink>
                     <NavLink to="/listings" className={navLinkCls}>列表</NavLink>
-                    <NavLink to="/logs" className={navLinkCls}>足跡</NavLink>
                 </nav>
 
                 {/* Trailing — third flex child, stays right */}
@@ -141,6 +140,7 @@ const Header = () => {
                                         {[
                                             { label: "會員資料", path: "/profile" },
                                             { label: "身份中心", path: "/member" },
+                                            { label: "Legacy logs", path: "/logs" },
                                             { label: "設定",     path: "/settings" },
                                         ].map(({ label, path }) => (
                                             <button

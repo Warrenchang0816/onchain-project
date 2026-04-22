@@ -38,7 +38,7 @@ func LoadSIWEConfig() *SIWEConfig {
 	return &SIWEConfig{
 		AppDomain:         GetEnv("APP_DOMAIN", "localhost:5173"),
 		AppURI:            GetEnv("APP_URI", "http://localhost:5173"),
-		SIWEStatement:     GetEnv("SIWE_STATEMENT", "Sign in to On-chain Task Tracker."),
+		SIWEStatement:     GetEnv("SIWE_STATEMENT", "Sign in to Trusted Housing Platform."),
 		SIWEVersion:       GetEnv("SIWE_VERSION", "1"),
 		SIWEChainID:       GetEnv("SIWE_CHAIN_ID", "11155111"),
 		NonceExpire:       GetEnv("SIWE_NONCE_EXPIRE", "300"),

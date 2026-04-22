@@ -6,13 +6,7 @@ import tseslint from "typescript-eslint";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-    globalIgnores([
-        "dist",
-        "src/api/caseApi.ts",
-        "src/api/dashboardApi.ts",
-        "src/components/task/**",
-        "src/pages/Task*.tsx",
-    ]),
+    globalIgnores(["dist"]),
     {
         files: ["**/*.{ts,tsx}"],
         extends: [

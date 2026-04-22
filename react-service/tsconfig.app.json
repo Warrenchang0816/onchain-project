@@ -29,10 +29,5 @@
         }
     },
     "include": ["src"],
-    "exclude": [
-        "src/api/caseApi.ts",
-        "src/api/dashboardApi.ts",
-        "src/components/task/**/*",
-        "src/pages/Task*.tsx"
-    ]
+    "exclude": []
 }
