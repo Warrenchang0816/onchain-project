@@ -99,7 +99,8 @@ const Header = () => {
                 {/* Navigation — second flex child, justify-between centres it */}
                 <nav className="hidden md:flex items-center gap-8">
                     <NavLink to="/" end className={navLinkCls}>首頁</NavLink>
-                    <NavLink to="/listings" className={navLinkCls}>列表</NavLink>
+                    <NavLink to="/listings" className={navLinkCls}>房源列表</NavLink>
+                    <NavLink to="/agents" className={navLinkCls}>仲介列表</NavLink>
                 </nav>
 
                 {/* Trailing — third flex child, stays right */}
