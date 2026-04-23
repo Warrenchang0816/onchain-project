@@ -32,8 +32,7 @@ func (r *CredentialSubmissionRepository) Create(userID int64, credentialType, re
 	}
 
 	route := strings.ToUpper(strings.TrimSpace(reviewRoute))
-	reviewStatus, err := reviewStatusForRoute(route)
-	if err != nil {
+	if err := validateReviewRoute(route); err != nil {
 		return 0, fmt.Errorf("credential_submission_repo: create: %w", err)
 	}
 
@@ -47,7 +46,7 @@ func (r *CredentialSubmissionRepository) Create(userID int64, credentialType, re
 			COALESCE(NULLIF($6, '')::jsonb, '{}'::jsonb), $7
 		)
 		RETURNING id
-	`, userID, normalizedType, route, reviewStatus, activationStatusNotReady, formPayload, notes).Scan(&id)
+	`, userID, normalizedType, route, reviewStatusDraft, activationStatusNotReady, formPayload, notes).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("credential_submission_repo: create: %w", err)
 	}
@@ -180,6 +179,20 @@ func (r *CredentialSubmissionRepository) FindPendingManual(limit, offset int) ([
 	return r.scanAll(rows)
 }
 
+func (r *CredentialSubmissionRepository) MarkStopped(id int64) error {
+	_, err := r.db.Exec(`
+		UPDATE credential_submissions
+		SET review_status = 'STOPPED',
+		    activation_status = 'NOT_READY',
+		    updated_at = NOW()
+		WHERE id = $1
+	`, id)
+	if err != nil {
+		return fmt.Errorf("credential_submission_repo: mark stopped: %w", err)
+	}
+	return nil
+}
+
 func (r *CredentialSubmissionRepository) SaveAdminDecision(id int64, reviewStatus, activationStatus, summary, reviewerNote, reviewerWallet string) error {
 	_, err := r.db.Exec(`
 		UPDATE credential_submissions
@@ -235,14 +248,14 @@ func (r *CredentialSubmissionRepository) scanAll(rows *sql.Rows) ([]*model.Crede
 	return list, rows.Err()
 }
 
-func reviewStatusForRoute(reviewRoute string) (string, error) {
+func validateReviewRoute(reviewRoute string) error {
 	switch reviewRoute {
 	case reviewRouteSmart:
-		return reviewStatusSmartReviewing, nil
+		return nil
 	case reviewRouteManual:
-		return reviewStatusManualReviewing, nil
+		return nil
 	default:
-		return "", fmt.Errorf("invalid review route %q", reviewRoute)
+		return fmt.Errorf("invalid review route %q", reviewRoute)
 	}
 }
 
@@ -262,6 +275,7 @@ func normalizeCredentialType(raw string) (string, error) {
 const (
 	reviewRouteSmart            = "SMART"
 	reviewRouteManual           = "MANUAL"
+	reviewStatusDraft           = "DRAFT"
 	reviewStatusSmartReviewing  = "SMART_REVIEWING"
 	reviewStatusManualReviewing = "MANUAL_REVIEWING"
 	activationStatusNotReady    = "NOT_READY"

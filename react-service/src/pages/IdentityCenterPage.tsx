@@ -144,6 +144,12 @@ function roleAction(item: CredentialCenterItem | undefined, fallbackPath: string
                 description: "此身份憑證已撤銷，如需恢復可重新送件。",
                 onClick: () => navigate(fallbackPath),
             };
+        case "STOPPED":
+            return {
+                label: "重新審核",
+                description: "這筆人工審核已停止，若要繼續需重新開一筆新的申請。",
+                onClick: () => navigate(fallbackPath),
+            };
         default:
             return {
                 label: "開始申請",

@@ -1,6 +1,7 @@
 package credential
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 
@@ -66,13 +67,102 @@ func TestTokenIDMappingRejectsInvalidInput(t *testing.T) {
 	}
 }
 
+func TestCanStopReview(t *testing.T) {
+	if !CanStopReview(CredentialReviewManualReviewing) {
+		t.Fatal("manual reviewing should be stoppable")
+	}
+	for _, status := range []string{
+		CredentialReviewSmartReviewing,
+		CredentialReviewPassed,
+		CredentialReviewFailed,
+		CredentialReviewStopped,
+	} {
+		if CanStopReview(status) {
+			t.Fatalf("status %s should not be stoppable", status)
+		}
+	}
+}
+
+func TestDisplayStatusForSubmission(t *testing.T) {
+	cases := []struct {
+		name string
+		sub  *model.CredentialSubmission
+		want string
+	}{
+		{
+			name: "draft submission stays not started",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewDraft,
+				ActivationStatus: ActivationStatusNotReady,
+			},
+			want: DisplayStatusNotStarted,
+		},
+		{
+			name: "smart reviewing without main file stays not started",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewSmartReviewing,
+				ActivationStatus: ActivationStatusNotReady,
+				MainDocPath:      sql.NullString{},
+			},
+			want: DisplayStatusNotStarted,
+		},
+		{
+			name: "stopped manual submission",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewStopped,
+				ActivationStatus: ActivationStatusNotReady,
+			},
+			want: DisplayStatusStopped,
+		},
+		{
+			name: "smart reviewing with main file stays reviewing",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewSmartReviewing,
+				ActivationStatus: ActivationStatusNotReady,
+				MainDocPath:      sql.NullString{String: "credentials/1/owner/1/main.png", Valid: true},
+			},
+			want: DisplayStatusSmartReviewing,
+		},
+		{
+			name: "manual reviewing",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewManualReviewing,
+				ActivationStatus: ActivationStatusNotReady,
+			},
+			want: DisplayStatusManualReviewing,
+		},
+		{
+			name: "passed ready",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewPassed,
+				ActivationStatus: ActivationStatusReady,
+			},
+			want: DisplayStatusPassedReady,
+		},
+		{
+			name: "activated",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewPassed,
+				ActivationStatus: ActivationStatusActivated,
+			},
+			want: DisplayStatusActivated,
+		},
+	}
+
+	for _, tc := range cases {
+		if got := DisplayStatusForSubmission(tc.sub); got != tc.want {
+			t.Fatalf("%s: got %s want %s", tc.name, got, tc.want)
+		}
+	}
+}
+
 func TestEnsureActivatable(t *testing.T) {
 	t.Run("passed ready activates", func(t *testing.T) {
 		sub := &model.CredentialSubmission{
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusReady,
 		}
-		if err := EnsureActivatable(sub, false, false); err != nil {
+		if err := EnsureActivatable(sub, false); err != nil {
 			t.Fatalf("EnsureActivatable returned error: %v", err)
 		}
 	})
@@ -82,7 +172,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusReady,
 		}
-		err := EnsureActivatable(sub, true, false)
+		err := EnsureActivatable(sub, true)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -94,9 +184,9 @@ func TestEnsureActivatable(t *testing.T) {
 	t.Run("superseded submission blocked", func(t *testing.T) {
 		sub := &model.CredentialSubmission{
 			ReviewStatus:     CredentialReviewPassed,
-			ActivationStatus: ActivationStatusReady,
+			ActivationStatus: ActivationStatusSuperseded,
 		}
-		err := EnsureActivatable(sub, false, true)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -110,7 +200,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusSuperseded,
 		}
-		err := EnsureActivatable(sub, false, false)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -124,7 +214,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewManualReviewing,
 			ActivationStatus: ActivationStatusReady,
 		}
-		err := EnsureActivatable(sub, false, false)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -138,7 +228,7 @@ func TestEnsureActivatable(t *testing.T) {
 			ReviewStatus:     CredentialReviewPassed,
 			ActivationStatus: ActivationStatusNotReady,
 		}
-		err := EnsureActivatable(sub, false, false)
+		err := EnsureActivatable(sub, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}
@@ -148,7 +238,7 @@ func TestEnsureActivatable(t *testing.T) {
 	})
 
 	t.Run("missing submission blocked", func(t *testing.T) {
-		err := EnsureActivatable(nil, false, false)
+		err := EnsureActivatable(nil, false)
 		if err == nil {
 			t.Fatal("EnsureActivatable returned nil error")
 		}

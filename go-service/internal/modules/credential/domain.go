@@ -15,16 +15,49 @@ const (
 	ReviewRouteSmart  = "SMART"
 	ReviewRouteManual = "MANUAL"
 
+	CredentialReviewDraft           = "DRAFT"
 	CredentialReviewSmartReviewing  = "SMART_REVIEWING"
 	CredentialReviewManualReviewing = "MANUAL_REVIEWING"
 	CredentialReviewPassed          = "PASSED"
 	CredentialReviewFailed          = "FAILED"
+	CredentialReviewStopped         = "STOPPED"
 
 	ActivationStatusNotReady   = "NOT_READY"
 	ActivationStatusReady      = "READY"
 	ActivationStatusActivated  = "ACTIVATED"
 	ActivationStatusSuperseded = "SUPERSEDED"
 )
+
+func CanStopReview(reviewStatus string) bool {
+	return reviewStatus == CredentialReviewManualReviewing
+}
+
+func DisplayStatusForSubmission(sub *model.CredentialSubmission) string {
+	if sub == nil {
+		return DisplayStatusNotStarted
+	}
+	switch {
+	case sub.ActivationStatus == ActivationStatusActivated:
+		return DisplayStatusActivated
+	case sub.ReviewStatus == CredentialReviewDraft:
+		return DisplayStatusNotStarted
+	case sub.ReviewStatus == CredentialReviewStopped:
+		return DisplayStatusStopped
+	case sub.ReviewStatus == CredentialReviewManualReviewing:
+		return DisplayStatusManualReviewing
+	case sub.ReviewStatus == CredentialReviewSmartReviewing &&
+		(!sub.MainDocPath.Valid || strings.TrimSpace(sub.MainDocPath.String) == ""):
+		return DisplayStatusNotStarted
+	case sub.ReviewStatus == CredentialReviewSmartReviewing:
+		return DisplayStatusSmartReviewing
+	case sub.ReviewStatus == CredentialReviewPassed && sub.ActivationStatus == ActivationStatusReady:
+		return DisplayStatusPassedReady
+	case sub.ReviewStatus == CredentialReviewFailed:
+		return DisplayStatusFailed
+	default:
+		return DisplayStatusNotStarted
+	}
+}
 
 func NormalizeType(raw string) (string, error) {
 	switch strings.ToUpper(strings.TrimSpace(raw)) {
@@ -65,11 +98,11 @@ func TypeForTokenID(tokenID int64) (string, error) {
 	}
 }
 
-func EnsureActivatable(sub *model.CredentialSubmission, hasActiveCredential bool, superseded bool) error {
+func EnsureActivatable(sub *model.CredentialSubmission, hasActiveCredential bool) error {
 	if sub == nil {
 		return fmt.Errorf("credential submission is required")
 	}
-	if superseded || strings.EqualFold(sub.ActivationStatus, ActivationStatusSuperseded) {
+	if strings.EqualFold(sub.ActivationStatus, ActivationStatusSuperseded) {
 		return fmt.Errorf("credential submission has been superseded")
 	}
 	if hasActiveCredential {

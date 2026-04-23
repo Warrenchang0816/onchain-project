@@ -50,6 +50,121 @@ func NewService(
 	}
 }
 
+func (s *Service) buildSubmissionDetail(sub *model.CredentialSubmission) (*CredentialSubmissionDetailResponse, error) {
+	formPayload, err := decodeFormPayload(sub.FormPayloadJSON)
+	if err != nil {
+		return nil, err
+	}
+
+	displayStatus := DisplayStatusForSubmission(sub)
+
+	detail := &CredentialSubmissionDetailResponse{
+		SubmissionID:     sub.ID,
+		CredentialType:   sub.CredentialType,
+		ReviewRoute:      sub.ReviewRoute,
+		DisplayStatus:    displayStatus,
+		FormPayload:      formPayload,
+		Notes:            sub.Notes,
+		CanStopReview:    CanStopReview(sub.ReviewStatus),
+		CanRestartReview: sub.ReviewStatus == CredentialReviewStopped || sub.ReviewStatus == CredentialReviewFailed,
+		CanActivate:      sub.ReviewStatus == CredentialReviewPassed && sub.ActivationStatus == ActivationStatusReady,
+	}
+
+	if summary := strings.TrimSpace(sub.DecisionSummary); summary != "" {
+		detail.Summary = stringPtr(summary)
+	}
+	if txHash := strings.TrimSpace(nullStringOrEmpty(sub.ActivationTxHash)); txHash != "" {
+		detail.ActivationTxHash = stringPtr(txHash)
+	}
+	if sub.MainDocPath.Valid && strings.TrimSpace(sub.MainDocPath.String) != "" {
+		url := fmt.Sprintf("/api/credentials/%s/submissions/%d/files/main", strings.ToLower(sub.CredentialType), sub.ID)
+		detail.MainFileURL = &url
+	}
+	if sub.SupportDocPath.Valid && strings.TrimSpace(sub.SupportDocPath.String) != "" {
+		url := fmt.Sprintf("/api/credentials/%s/submissions/%d/files/support", strings.ToLower(sub.CredentialType), sub.ID)
+		detail.SupportFileURL = &url
+	}
+	return detail, nil
+}
+
+func (s *Service) GetLatestSubmissionDetail(ctx context.Context, wallet, credentialType string) (*CredentialSubmissionDetailResponse, error) {
+	user, err := s.requireVerifiedUser(wallet)
+	if err != nil {
+		return nil, err
+	}
+	normalizedType, err := NormalizeType(credentialType)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := s.submissionRepo.FindLatestByUserAndType(user.ID, normalizedType)
+	if err != nil {
+		return nil, err
+	}
+	if sub == nil {
+		return nil, nil
+	}
+	if DisplayStatusForSubmission(sub) == DisplayStatusNotStarted {
+		return nil, nil
+	}
+	return s.buildSubmissionDetail(sub)
+}
+
+func (s *Service) StopSubmission(ctx context.Context, wallet, credentialType string, submissionID int64) (*CredentialSubmissionDetailResponse, error) {
+	user, err := s.requireVerifiedUser(wallet)
+	if err != nil {
+		return nil, err
+	}
+	sub, err := s.requireOwnedSubmission(user.ID, credentialType, submissionID)
+	if err != nil {
+		return nil, err
+	}
+	if !CanStopReview(sub.ReviewStatus) {
+		return nil, errors.New("目前只有人工審核中的案件可以停止")
+	}
+	if err := s.submissionRepo.MarkStopped(sub.ID); err != nil {
+		return nil, err
+	}
+	updated, err := s.submissionRepo.FindByID(sub.ID)
+	if err != nil {
+		return nil, err
+	}
+	return s.buildSubmissionDetail(updated)
+}
+
+func (s *Service) GetSubmissionFile(ctx context.Context, wallet, credentialType string, submissionID int64, kind string) ([]byte, string, error) {
+	user, err := s.requireVerifiedUser(wallet)
+	if err != nil {
+		return nil, "", err
+	}
+	sub, err := s.requireOwnedSubmission(user.ID, credentialType, submissionID)
+	if err != nil {
+		return nil, "", err
+	}
+	if s.storageSvc == nil {
+		return nil, "", errors.New("檔案儲存服務未啟用")
+	}
+
+	var objectPath string
+	switch kind {
+	case "main":
+		objectPath = nullStringOrEmpty(sub.MainDocPath)
+	case "support":
+		objectPath = nullStringOrEmpty(sub.SupportDocPath)
+	default:
+		return nil, "", errors.New("unknown file kind")
+	}
+	if strings.TrimSpace(objectPath) == "" {
+		return nil, "", errors.New("file not found")
+	}
+
+	data, err := s.storageSvc.Download(ctx, objectPath)
+	if err != nil {
+		return nil, "", err
+	}
+	contentType := http.DetectContentType(data)
+	return data, contentType, nil
+}
+
 func (s *Service) GetMyCredentials(wallet string) (*CredentialCenterResponse, error) {
 	user, err := s.userRepo.FindByWallet(wallet)
 	if err != nil {
@@ -107,7 +222,7 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 		switch {
 		case latestSubmission.ActivationStatus == ActivationStatusActivated:
 			return nil, errors.New("此身份申請已啟用，請直接回身份中心查看狀態")
-		case latestSubmission.ReviewStatus == CredentialReviewSmartReviewing || latestSubmission.ReviewStatus == CredentialReviewManualReviewing:
+		case latestSubmission.ReviewStatus == CredentialReviewManualReviewing:
 			return nil, errors.New("此身份已有進行中的申請，請等待審核結果")
 		case latestSubmission.ReviewStatus == CredentialReviewPassed && latestSubmission.ActivationStatus == ActivationStatusReady:
 			return nil, errors.New("此身份申請已通過，請先決定是否啟用 NFT 憑證")
@@ -144,15 +259,17 @@ func (s *Service) UploadFiles(ctx context.Context, wallet, credentialType string
 	}
 
 	basePath := fmt.Sprintf("credentials/%d/%s/%d", user.ID, strings.ToLower(sub.CredentialType), sub.ID)
-	mainPath := basePath + "/main" + objectExtension(mainDocData)
-	if err := s.storageSvc.Upload(ctx, mainPath, mainDocData, http.DetectContentType(mainDocData)); err != nil {
+	mainContentType := http.DetectContentType(mainDocData)
+	mainPath := basePath + "/main" + objectExtension(mainContentType)
+	if err := s.storageSvc.Upload(ctx, mainPath, mainDocData, mainContentType); err != nil {
 		return err
 	}
 
 	supportPath := ""
 	if len(supportDocData) > 0 {
-		supportPath = basePath + "/support" + objectExtension(supportDocData)
-		if err := s.storageSvc.Upload(ctx, supportPath, supportDocData, http.DetectContentType(supportDocData)); err != nil {
+		supportContentType := http.DetectContentType(supportDocData)
+		supportPath = basePath + "/support" + objectExtension(supportContentType)
+		if err := s.storageSvc.Upload(ctx, supportPath, supportDocData, supportContentType); err != nil {
 			return err
 		}
 	}
@@ -306,7 +423,7 @@ func (s *Service) ActivateSubmission(ctx context.Context, wallet, credentialType
 			return errors.New("鏈上已存在此身份憑證，請重新整理後確認身份中心狀態")
 		}
 	}
-	if err := EnsureActivatable(sub, activeCredential != nil, sub.SupersededBySubmissionID.Valid); err != nil {
+	if err := EnsureActivatable(sub, activeCredential != nil); err != nil {
 		return err
 	}
 	txHash, err := s.identitySvc.MintCredential(ctx, wallet, tokenID)
@@ -420,7 +537,7 @@ func (s *Service) requireOwnedSubmission(userID int64, credentialType string, su
 		return nil, errors.New("找不到身份申請")
 	}
 	if sub.UserID != userID || sub.CredentialType != normalizedType {
-		return nil, errors.New("forbidden")
+		return nil, errors.New("無權存取此申請案件")
 	}
 	return sub, nil
 }
@@ -477,6 +594,12 @@ func (s *Service) buildCenterItem(userID int64, credentialType string) (*Credent
 			item.Summary = stringPtr(reason)
 		}
 	case sub != nil:
+		displayStatus := DisplayStatusForSubmission(sub)
+		item.DisplayStatus = displayStatus
+		if displayStatus == DisplayStatusNotStarted {
+			break
+		}
+
 		item.LatestSubmissionID = int64Ptr(sub.ID)
 		if sub.ReviewRoute != "" {
 			item.ReviewRoute = stringPtr(sub.ReviewRoute)
@@ -488,32 +611,14 @@ func (s *Service) buildCenterItem(userID int64, credentialType string) (*Credent
 			item.Summary = stringPtr(summary)
 		}
 
-		switch {
-		case sub.ActivationStatus == ActivationStatusActivated:
-			item.DisplayStatus = DisplayStatusActivated
+		switch displayStatus {
+		case DisplayStatusActivated, DisplayStatusManualReviewing, DisplayStatusSmartReviewing, DisplayStatusPassedReady:
 			item.CanRetrySmart = false
 			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewManualReviewing:
-			item.DisplayStatus = DisplayStatusManualReviewing
-			item.CanRetrySmart = false
-			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewSmartReviewing:
-			item.DisplayStatus = DisplayStatusSmartReviewing
-			item.CanRetrySmart = false
-			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewPassed && sub.ActivationStatus == ActivationStatusReady:
-			item.DisplayStatus = DisplayStatusPassedReady
+		}
+
+		if displayStatus == DisplayStatusPassedReady {
 			item.CanActivate = true
-			item.CanRetrySmart = false
-			item.CanRequestManual = false
-		case sub.ReviewStatus == CredentialReviewFailed:
-			item.DisplayStatus = DisplayStatusFailed
-			item.CanRetrySmart = true
-			item.CanRequestManual = true
-		default:
-			item.DisplayStatus = DisplayStatusNotStarted
-			item.CanRetrySmart = true
-			item.CanRequestManual = true
 		}
 	default:
 		item.DisplayStatus = DisplayStatusNotStarted
@@ -583,21 +688,25 @@ func nullStringOrEmpty(value sql.NullString) string {
 	return ""
 }
 
-func objectExtension(data []byte) string {
-	contentType := http.DetectContentType(data)
+func objectExtension(contentType string) string {
 	switch contentType {
+	case "image/jpeg":
+		return ".jpg"
 	case "image/png":
 		return ".png"
+	case "image/webp":
+		return ".webp"
 	default:
-		return ".jpg"
+		return ".bin"
 	}
 }
 
 func stringPtr(value string) *string {
-	if strings.TrimSpace(value) == "" {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
 		return nil
 	}
-	return &value
+	return &trimmed
 }
 
 func int64Ptr(value int64) *int64 {

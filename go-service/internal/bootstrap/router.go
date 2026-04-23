@@ -95,10 +95,14 @@ func SetupRouter(
 			// Role credentials
 			protected.GET("/credentials/me", credentialHandler.GetMyCredentials)
 			protected.POST("/credentials/:type/submissions", credentialHandler.CreateSubmission)
+			protected.GET("/credentials/:type/submissions/latest", credentialHandler.GetLatestSubmission)
 			protected.POST("/credentials/:type/submissions/:id/files", credentialHandler.UploadFiles)
 			protected.POST("/credentials/:type/submissions/:id/analyze", credentialHandler.AnalyzeSubmission)
 			protected.POST("/credentials/:type/submissions/:id/manual", credentialHandler.RequestManualReview)
 			protected.POST("/credentials/:type/submissions/:id/activate", credentialHandler.ActivateSubmission)
+			protected.POST("/credentials/:type/submissions/:id/stop", credentialHandler.StopSubmission)
+			protected.GET("/credentials/:type/submissions/:id/files/main", credentialHandler.GetMainFile)
+			protected.GET("/credentials/:type/submissions/:id/files/support", credentialHandler.GetSupportFile)
 		}
 
 		// ── Blockchain logs (public) ──────────────────────────────

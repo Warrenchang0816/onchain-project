@@ -44,10 +44,27 @@ type AdminCredentialItem struct {
 	CreatedAt      string  `json:"createdAt"`
 }
 
+type CredentialSubmissionDetailResponse struct {
+	SubmissionID     int64             `json:"submissionId"`
+	CredentialType   string            `json:"credentialType"`
+	ReviewRoute      string            `json:"reviewRoute"`
+	DisplayStatus    string            `json:"displayStatus"`
+	FormPayload      map[string]string `json:"formPayload"`
+	Notes            string            `json:"notes"`
+	Summary          *string           `json:"summary,omitempty"`
+	MainFileURL      *string           `json:"mainFileUrl,omitempty"`
+	SupportFileURL   *string           `json:"supportFileUrl,omitempty"`
+	CanStopReview    bool              `json:"canStopReview"`
+	CanRestartReview bool              `json:"canRestartReview"`
+	CanActivate      bool              `json:"canActivate"`
+	ActivationTxHash *string           `json:"activationTxHash,omitempty"`
+}
+
 const (
 	DisplayStatusNotStarted      = "NOT_STARTED"
 	DisplayStatusSmartReviewing  = "SMART_REVIEWING"
 	DisplayStatusManualReviewing = "MANUAL_REVIEWING"
+	DisplayStatusStopped         = "STOPPED"
 	DisplayStatusPassedReady     = "PASSED_READY"
 	DisplayStatusFailed          = "FAILED"
 	DisplayStatusActivated       = "ACTIVATED"
