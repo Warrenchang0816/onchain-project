@@ -155,13 +155,16 @@ func firstNonEmpty(values ...string) string {
 }
 
 // partialNameMatch returns true if any consecutive 2-character bigram from name
-// appears in combined (both already normalised via normalizeReviewText).
+// appears in combined. Both strings are normalised internally, so callers do not
+// need to pre-normalise either argument.
 // A 2-char sliding window tolerates one OCR-misread character at the end of a
-// 3-char name without losing the whole match.
+// 3-char (or longer) name without losing the whole match. For 2-char names the
+// only bigram is the full name itself, so no OCR tolerance is provided.
 func partialNameMatch(name, combined string) bool {
 	if name == "" {
 		return false
 	}
+	combined = normalizeReviewText(combined)
 	runes := []rune(name)
 	if len(runes) < 2 {
 		return strings.Contains(combined, normalizeReviewText(name))
