@@ -200,3 +200,70 @@ func (r *UserCredentialRepository) scanAll(rows *sql.Rows) ([]*model.UserCredent
 	}
 	return list, rows.Err()
 }
+
+// AgentRecord is the result of user_credentials JOIN users for AGENT type.
+type AgentRecord struct {
+	WalletAddress string
+	DisplayName   sql.NullString
+	NFTTokenID    sql.NullInt32
+	TxHash        sql.NullString
+	ActivatedAt   time.Time
+}
+
+// FindAllAgents returns all non-revoked AGENT credentials joined with user data.
+func (r *UserCredentialRepository) FindAllAgents() ([]AgentRecord, error) {
+	rows, err := r.db.Query(`
+		SELECT u.wallet_address, u.display_name,
+		       uc.nft_token_id, uc.tx_hash, uc.verified_at
+		FROM user_credentials uc
+		JOIN users u ON u.id = uc.user_id
+		WHERE uc.credential_type = $1
+		  AND uc.review_status = $2
+		  AND uc.revoked_at IS NULL
+		ORDER BY uc.verified_at DESC
+	`, model.CredentialTypeAgent, model.CredentialReviewVerified)
+	if err != nil {
+		return nil, fmt.Errorf("user_credential_repo: find all agents: %w", err)
+	}
+	defer rows.Close()
+
+	var result []AgentRecord
+	for rows.Next() {
+		var rec AgentRecord
+		if err := rows.Scan(
+			&rec.WalletAddress, &rec.DisplayName,
+			&rec.NFTTokenID, &rec.TxHash, &rec.ActivatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("user_credential_repo: find all agents scan: %w", err)
+		}
+		result = append(result, rec)
+	}
+	return result, rows.Err()
+}
+
+// FindAgentByWallet returns the AGENT credential for a given wallet address, or nil if not found.
+func (r *UserCredentialRepository) FindAgentByWallet(walletAddress string) (*AgentRecord, error) {
+	row := r.db.QueryRow(`
+		SELECT u.wallet_address, u.display_name,
+		       uc.nft_token_id, uc.tx_hash, uc.verified_at
+		FROM user_credentials uc
+		JOIN users u ON u.id = uc.user_id
+		WHERE u.wallet_address = $1
+		  AND uc.credential_type = $2
+		  AND uc.review_status = $3
+		  AND uc.revoked_at IS NULL
+		LIMIT 1
+	`, walletAddress, model.CredentialTypeAgent, model.CredentialReviewVerified)
+
+	var rec AgentRecord
+	if err := row.Scan(
+		&rec.WalletAddress, &rec.DisplayName,
+		&rec.NFTTokenID, &rec.TxHash, &rec.ActivatedAt,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("user_credential_repo: find agent by wallet: %w", err)
+	}
+	return &rec, nil
+}
