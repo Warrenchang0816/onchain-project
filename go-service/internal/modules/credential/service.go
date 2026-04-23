@@ -73,7 +73,7 @@ func (s *Service) buildSubmissionDetail(sub *model.CredentialSubmission) (*Crede
 	if summary := strings.TrimSpace(sub.DecisionSummary); summary != "" {
 		detail.Summary = stringPtr(summary)
 	}
-	if raw := strings.TrimSpace(sub.CheckResultJSON); raw != "" && raw != "{}" {
+	if raw := strings.TrimSpace(sub.CheckResultJSON); raw != "" && raw != "{}" && raw != "null" {
 		checks := map[string]string{}
 		if jsonErr := json.Unmarshal([]byte(raw), &checks); jsonErr == nil && len(checks) > 0 {
 			detail.Checks = checks
