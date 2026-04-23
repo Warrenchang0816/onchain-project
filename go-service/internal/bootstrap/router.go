@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"go-service/internal/db/repository"
+	agentmod "go-service/internal/modules/agent"
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
@@ -28,6 +29,7 @@ func SetupRouter(
 	credentialHandler *credentialmod.Handler,
 	credentialAdminHandler *credentialmod.AdminHandler,
 	sessionRepo *repository.SessionRepository,
+	agentHandler *agentmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -107,6 +109,10 @@ func SetupRouter(
 
 		// ── Blockchain logs (public) ──────────────────────────────
 		api.GET("/blockchain-logs", logHandler.GetLogs)
+
+		// ── Agent directory (public) ─────────────────────────────
+		api.GET("/agents", agentHandler.ListAgents)
+		api.GET("/agents/:wallet", agentHandler.GetAgentByWallet)
 
 		// ── Auth ──────────────────────────────────────────────────
 		api.POST("/auth/wallet/siwe/message", authHandler.SIWEMessageHandler)

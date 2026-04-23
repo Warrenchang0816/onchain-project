@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"go-service/internal/db/repository"
+	agentmod "go-service/internal/modules/agent"
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
@@ -220,7 +221,11 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
-	// ── 14. Router ────────────────────────────────────────────
+	// ── 14. Agent directory module ────────────────────────────
+	agentSvc := agentmod.NewService(credentialRepo)
+	agentHandler := agentmod.NewHandler(agentSvc)
+
+	// ── 15. Router ────────────────────────────────────────────
 	r := SetupRouter(
 		listingHandler,
 		logHandler,
@@ -233,6 +238,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		credentialHandler,
 		credentialAdminHandler,
 		sessionRepo,
+		agentHandler,
 	)
 
 	return r, cleanupFn, nil
