@@ -13,6 +13,9 @@ import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import OwnerCredentialPage from "../pages/OwnerCredentialPage";
 import TenantCredentialPage from "../pages/TenantCredentialPage";
 import AgentCredentialPage from "../pages/AgentCredentialPage";
+import RequireCredential from "../components/common/RequireCredential";
+import AgentListPage from "../pages/AgentListPage";
+import AgentDetailPage from "../pages/AgentDetailPage";
 
 const router = createBrowserRouter([
     {
@@ -25,11 +28,19 @@ const router = createBrowserRouter([
     },
     {
         path: "/listings/new",
-        element: <ListingCreatePage />,
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <ListingCreatePage />
+            </RequireCredential>
+        ),
     },
     {
         path: "/listings/:id",
-        element: <ListingDetailPage />,
+        element: (
+            <RequireCredential anyOf={["OWNER", "TENANT", "AGENT"]}>
+                <ListingDetailPage />
+            </RequireCredential>
+        ),
     },
     {
         path: "/logs",
@@ -70,6 +81,14 @@ const router = createBrowserRouter([
     {
         path: "/forgot-password",
         element: <ForgotPasswordPage />,
+    },
+    {
+        path: "/agents",
+        element: <AgentListPage />,
+    },
+    {
+        path: "/agents/:wallet",
+        element: <AgentDetailPage />,
     },
 ]);
 
