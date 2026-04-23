@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
+import { useIdentity } from "../hooks/useIdentity";
 import {
     bookAppointment,
     cancelAppointment,
@@ -251,6 +252,7 @@ function badgeClass(status: string): string {
 export default function ListingDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { hasRole } = useIdentity();
 
     const [listing, setListing] = useState<Listing | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -340,7 +342,7 @@ export default function ListingDetailPage() {
 
     const isOwner = listing.is_owner;
     const appointments = listing.appointments ?? [];
-    const canBook = isAuthenticated && !isOwner && listing.status === "ACTIVE";
+    const canBook = hasRole("TENANT") && !isOwner && listing.status === "ACTIVE";
     const confirmedAppointment = appointments.find((item) => item.status === "CONFIRMED");
 
     const handlePublish = (days: number) =>

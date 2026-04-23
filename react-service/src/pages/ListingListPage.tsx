@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
+import { getKYCStatus, type KYCStatus } from "../api/kycApi";
 import { getListings, getMyListings, type Listing, type ListingType } from "../api/listingApi";
 import SiteLayout from "../layouts/SiteLayout";
 
@@ -95,6 +96,7 @@ export default function ListingListPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isOwner, setIsOwner] = useState(false);
 
     const typeParam = searchParams.get("type");
     const typeFilter: TypeFilter = typeParam === "RENT" || typeParam === "SALE" ? typeParam : "ALL";
@@ -122,6 +124,8 @@ export default function ListingListPage() {
                 if (auth.authenticated) {
                     const mine = await getMyListings().catch(() => [] as Listing[]);
                     setMyListings(mine);
+                    const kyc = await getKYCStatus().catch(() => ({ kycStatus: "UNVERIFIED" as KYCStatus, credentials: [] as string[] }));
+                    setIsOwner(kyc.credentials?.includes("OWNER") ?? false);
                 } else {
                     setMyListings([]);
                 }
@@ -192,14 +196,14 @@ export default function ListingListPage() {
                         <button type="button" onClick={() => setType("RENT")} className={tabCls(typeFilter === "RENT")}>Rent</button>
                         <button type="button" onClick={() => setType("SALE")} className={tabCls(typeFilter === "SALE")}>Sale</button>
                     </div>
-                    {isAuthenticated ? (
+                    {isOwner ? (
                         <button
                             type="button"
                             onClick={() => navigate("/listings/new")}
                             className="flex items-center gap-2 rounded-lg bg-primary-container px-4 py-2 text-on-surface transition-colors hover:bg-inverse-primary"
                         >
                             <span className="material-symbols-outlined text-sm">add</span>
-                            <span className="text-sm font-medium">Create draft listing</span>
+                            <span className="text-sm font-medium">刊登房源</span>
                         </button>
                     ) : null}
                 </div>
