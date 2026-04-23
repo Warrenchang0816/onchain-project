@@ -107,3 +107,35 @@ func TestEvaluateSmartReviewUnsupportedTypeFails(t *testing.T) {
 		t.Fatalf("credentialType check = %s, want %s", decision.Checks["credentialType"], checkFail)
 	}
 }
+
+func TestEvaluateSmartReviewTenantPassesWhenOCRMisreadsOneCharacter(t *testing.T) {
+	// KYCName has rare character "徫"; OCR returns "偉" instead — bigram "張期" still matches
+	decision := EvaluateSmartReview(ReviewInput{
+		CredentialType: CredentialTypeTenant,
+		KYCName:        "張期徫",
+		MainOCRText:    "在職證明 薪資 張期偉 2026/04",
+	})
+
+	if decision.ReviewStatus != CredentialReviewPassed {
+		t.Fatalf("EvaluateSmartReview() status = %s, want %s (OCR mismatch on last char should still pass)", decision.ReviewStatus, CredentialReviewPassed)
+	}
+	if decision.Checks["nameMatch"] != checkPass {
+		t.Fatalf("nameMatch check = %s, want %s (bigram '張期' should match)", decision.Checks["nameMatch"], checkPass)
+	}
+}
+
+func TestEvaluateSmartReviewTenantFailsWhenNameCompletelyAbsent(t *testing.T) {
+	// OCR text has correct keywords but a completely different name — should still fail
+	decision := EvaluateSmartReview(ReviewInput{
+		CredentialType: CredentialTypeTenant,
+		KYCName:        "張期徫",
+		MainOCRText:    "在職證明 薪資 李明德 2026/04",
+	})
+
+	if decision.ReviewStatus != CredentialReviewFailed {
+		t.Fatalf("EvaluateSmartReview() status = %s, want %s (completely wrong name should fail)", decision.ReviewStatus, CredentialReviewFailed)
+	}
+	if decision.Checks["nameMatch"] != checkFail {
+		t.Fatalf("nameMatch check = %s, want %s", decision.Checks["nameMatch"], checkFail)
+	}
+}

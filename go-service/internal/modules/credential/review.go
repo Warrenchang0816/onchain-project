@@ -32,7 +32,7 @@ func EvaluateSmartReview(in ReviewInput) ReviewDecision {
 
 	combined := normalizeReviewText(in.MainOCRText + "\n" + in.SupportOCRText)
 	subjectName := firstNonEmpty(strings.TrimSpace(in.KYCName), formValue(in.FormPayload, "holderName"))
-	nameMatch := subjectName != "" && strings.Contains(combined, normalizeReviewText(subjectName))
+	nameMatch := partialNameMatch(subjectName, combined)
 
 	switch credentialType {
 	case CredentialTypeOwner:
@@ -152,4 +152,25 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+// partialNameMatch returns true if any consecutive 2-character bigram from name
+// appears in combined (both already normalised via normalizeReviewText).
+// A 2-char sliding window tolerates one OCR-misread character at the end of a
+// 3-char name without losing the whole match.
+func partialNameMatch(name, combined string) bool {
+	if name == "" {
+		return false
+	}
+	runes := []rune(name)
+	if len(runes) < 2 {
+		return strings.Contains(combined, normalizeReviewText(name))
+	}
+	for i := 0; i <= len(runes)-2; i++ {
+		bigram := normalizeReviewText(string(runes[i : i+2]))
+		if strings.Contains(combined, bigram) {
+			return true
+		}
+	}
+	return false
 }
