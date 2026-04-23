@@ -43,6 +43,12 @@ function SnapshotImageCard(props: { title: string; imageUrl?: string }) {
     );
 }
 
+function checkValueDisplay(value: string): { label: string; className: string } {
+    if (value === "PASS") return { label: "通過", className: "text-tertiary" };
+    if (value === "FAIL") return { label: "未通過", className: "text-error" };
+    return { label: value, className: "text-on-surface-variant" };
+}
+
 function CheckResultPanel(props: { checks: Record<string, string> }) {
     const entries = Object.entries(props.checks);
     if (entries.length === 0) return null;
@@ -50,18 +56,17 @@ function CheckResultPanel(props: { checks: Record<string, string> }) {
         <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">
             <div className="text-xs font-semibold uppercase tracking-[0.16em] text-on-surface-variant">審核項目明細</div>
             <div className="mt-3 divide-y divide-outline-variant/10">
-                {entries.map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between py-2">
-                        <span className="text-sm text-on-surface">{CHECK_LABELS[key] ?? key}</span>
-                        <span
-                            className={`text-xs font-bold ${
-                                value === "PASS" ? "text-tertiary" : "text-error"
-                            }`}
-                        >
-                            {value === "PASS" ? "通過" : "未通過"}
-                        </span>
-                    </div>
-                ))}
+                {entries.map(([key, value]) => {
+                    const display = checkValueDisplay(value);
+                    return (
+                        <div key={key} className="flex items-center justify-between py-2">
+                            <span className="text-sm text-on-surface">{CHECK_LABELS[key] ?? key}</span>
+                            <span className={`text-xs font-bold ${display.className}`}>
+                                {display.label}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
