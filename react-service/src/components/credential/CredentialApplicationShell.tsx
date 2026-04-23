@@ -5,15 +5,17 @@ import {
     activateCredentialSubmission,
     analyzeCredentialSubmission,
     createCredentialSubmission,
+    getCredentialSubmissionFileUrl,
     requestManualCredentialReview,
     stopCredentialSubmission,
     uploadCredentialFiles,
-    getCredentialSubmissionFileUrl,
 } from "@/api/credentialApi";
+import LoadingOverlay from "@/components/common/LoadingOverlay";
+import CredentialConfirmDialog from "./CredentialConfirmDialog";
 import CredentialDocumentUploader from "./CredentialDocumentUploader";
 import CredentialStatusPanel from "./CredentialStatusPanel";
-import CredentialConfirmDialog from "./CredentialConfirmDialog";
 import CredentialSubmissionSnapshot from "./CredentialSubmissionSnapshot";
+import { getSnapshotActionCopy, shouldRenderForm, shouldRenderSnapshot } from "./credentialViewState";
 
 type FieldConfig = {
     key: string;
@@ -33,24 +35,32 @@ type Props = {
 
 type ConfirmAction = "SMART_SUBMIT" | "MANUAL_SUBMIT" | "STOP_REVIEW" | "ACTIVATE" | null;
 
+function getErrorMessage(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback;
+}
+
 export default function CredentialApplicationShell(props: Props) {
     const [formValues, setFormValues] = useState<Record<string, string>>({});
     const [notes, setNotes] = useState("");
     const [mainDoc, setMainDoc] = useState<File | null>(null);
     const [supportDoc, setSupportDoc] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [smartReviewing, setSmartReviewing] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
     const [forceEditMode, setForceEditMode] = useState(false);
 
     const detail = props.currentDetail;
-    const status = props.currentItem?.displayStatus;
-    const latestSubmissionId = props.currentItem?.latestSubmissionId;
+    const currentStatus = detail?.displayStatus ?? props.currentItem?.displayStatus ?? "NOT_STARTED";
+    const latestSubmissionId = detail?.submissionId ?? props.currentItem?.latestSubmissionId;
+    const busy = submitting || smartReviewing;
 
-    const snapshotMode =
-        !forceEditMode &&
-        Boolean(detail && detail.displayStatus !== "NOT_STARTED" && detail.displayStatus !== "SMART_REVIEWING");
+    const snapshotMode = shouldRenderSnapshot(detail, forceEditMode);
+    const formMode = shouldRenderForm(detail, forceEditMode);
+    const canRetrySmart = Boolean(latestSubmissionId && props.currentItem?.canRetrySmart && currentStatus === "FAILED");
+    const canRequestManual = Boolean(latestSubmissionId && props.currentItem?.canRequestManual && currentStatus === "FAILED");
+    const snapshotActionCopy = getSnapshotActionCopy(currentStatus);
 
     const resetDraft = () => {
         setFormValues({});
@@ -61,62 +71,114 @@ export default function CredentialApplicationShell(props: Props) {
         setSuccess("");
     };
 
-    const ensureMainDoc = (): File => {
-        if (!mainDoc) {
-            throw new Error("請先上傳主要文件");
-        }
-        return mainDoc;
+    const handleFieldChange = (key: string, value: string) => {
+        setFormValues((current) => ({
+            ...current,
+            [key]: value,
+        }));
+        setError("");
     };
 
-    const handleSmartSubmit = async (event: FormEvent) => {
+    const validateDraft = (): string | null => {
+        for (const field of props.primaryFields) {
+            if (!formValues[field.key]?.trim()) {
+                return `請先填寫「${field.label}」`;
+            }
+        }
+
+        if (!mainDoc) {
+            return "請先上傳主要文件";
+        }
+
+        return null;
+    };
+
+    const openConfirm = (action: Exclude<ConfirmAction, "STOP_REVIEW" | "ACTIVATE" | null>) => {
+        const validationError = validateDraft();
+        if (validationError) {
+            setError(validationError);
+            setSuccess("");
+            return;
+        }
+
+        setError("");
+        setSuccess("");
+        setConfirmAction(action);
+    };
+
+    const handleSmartSubmit = (event: FormEvent) => {
         event.preventDefault();
-        setConfirmAction("SMART_SUBMIT");
+        openConfirm("SMART_SUBMIT");
     };
 
     const handleManualSubmitClick = () => {
-        setConfirmAction("MANUAL_SUBMIT");
+        openConfirm("MANUAL_SUBMIT");
     };
 
     const doSmartSubmit = async () => {
+        const validationError = validateDraft();
+        if (validationError || !mainDoc) {
+            setError(validationError ?? "請先上傳主要文件");
+            setSuccess("");
+            setConfirmAction(null);
+            return;
+        }
+
         setSubmitting(true);
+        setSmartReviewing(true);
         setError("");
         setSuccess("");
+
         try {
             const created = await createCredentialSubmission(props.credentialType, {
                 route: "SMART",
                 formPayload: formValues,
                 notes,
             });
-            await uploadCredentialFiles(props.credentialType, created.submissionId, ensureMainDoc(), supportDoc ?? undefined);
+
+            await uploadCredentialFiles(props.credentialType, created.submissionId, mainDoc, supportDoc ?? undefined);
             await analyzeCredentialSubmission(props.credentialType, created.submissionId);
-            setSuccess("智能審核結果已更新。");
+
             setForceEditMode(false);
+            setSuccess("智能審核已完成，請查看結果。");
             await props.onRefresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "智能審核失敗");
+        } catch (submissionError) {
+            setError(getErrorMessage(submissionError, "智能審核送出失敗"));
         } finally {
+            setSmartReviewing(false);
             setSubmitting(false);
             setConfirmAction(null);
         }
     };
 
     const doManualSubmit = async () => {
+        const validationError = validateDraft();
+        if (validationError || !mainDoc) {
+            setError(validationError ?? "請先上傳主要文件");
+            setSuccess("");
+            setConfirmAction(null);
+            return;
+        }
+
         setSubmitting(true);
         setError("");
         setSuccess("");
+
         try {
             const created = await createCredentialSubmission(props.credentialType, {
                 route: "MANUAL",
                 formPayload: formValues,
                 notes,
             });
-            await uploadCredentialFiles(props.credentialType, created.submissionId, ensureMainDoc(), supportDoc ?? undefined);
+
+            await uploadCredentialFiles(props.credentialType, created.submissionId, mainDoc, supportDoc ?? undefined);
             await requestManualCredentialReview(props.credentialType, created.submissionId);
-            setSuccess("案件已送交人工審核。");
+
             setForceEditMode(false);
+            setSuccess("已送出人工審核，請等待審核結果。");
             await props.onRefresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "人工審核送件失敗");
+        } catch (submissionError) {
+            setError(getErrorMessage(submissionError, "人工審核送出失敗"));
         } finally {
             setSubmitting(false);
             setConfirmAction(null);
@@ -125,15 +187,17 @@ export default function CredentialApplicationShell(props: Props) {
 
     const doStopReview = async () => {
         if (!detail) return;
+
         setSubmitting(true);
         setError("");
         setSuccess("");
+
         try {
             await stopCredentialSubmission(props.credentialType, detail.submissionId);
-            setSuccess("人工審核已停止。");
+            setSuccess("已停止人工審核。");
             await props.onRefresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "停止審核失敗");
+        } catch (submissionError) {
+            setError(getErrorMessage(submissionError, "停止審核失敗"));
         } finally {
             setSubmitting(false);
             setConfirmAction(null);
@@ -142,15 +206,17 @@ export default function CredentialApplicationShell(props: Props) {
 
     const doActivate = async () => {
         if (!detail) return;
+
         setSubmitting(true);
         setError("");
         setSuccess("");
+
         try {
             await activateCredentialSubmission(props.credentialType, detail.submissionId);
-            setSuccess("身份 NFT 憑證已啟用。");
+            setSuccess("身份已啟用，NFT 憑證已送出。");
             await props.onRefresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "啟用失敗");
+        } catch (submissionError) {
+            setError(getErrorMessage(submissionError, "啟用身份失敗"));
         } finally {
             setSubmitting(false);
             setConfirmAction(null);
@@ -158,86 +224,94 @@ export default function CredentialApplicationShell(props: Props) {
     };
 
     const handleConfirm = async () => {
-        if (confirmAction === "SMART_SUBMIT") await doSmartSubmit();
-        else if (confirmAction === "MANUAL_SUBMIT") await doManualSubmit();
-        else if (confirmAction === "STOP_REVIEW") await doStopReview();
-        else if (confirmAction === "ACTIVATE") await doActivate();
+        if (confirmAction === "SMART_SUBMIT") {
+            await doSmartSubmit();
+            return;
+        }
+        if (confirmAction === "MANUAL_SUBMIT") {
+            await doManualSubmit();
+            return;
+        }
+        if (confirmAction === "STOP_REVIEW") {
+            await doStopReview();
+            return;
+        }
+        if (confirmAction === "ACTIVATE") {
+            await doActivate();
+        }
     };
 
     const handleRestart = () => {
         resetDraft();
         setForceEditMode(true);
+        setSuccess("已開啟新的送審表單，請重新填寫資料與文件。");
     };
 
-    // Legacy handlers for FAILED status (retry smart / switch to manual using existing submissionId)
     const handleRetrySmart = async () => {
         if (!latestSubmissionId) return;
+
         setSubmitting(true);
+        setSmartReviewing(true);
         setError("");
         setSuccess("");
+
         try {
             await analyzeCredentialSubmission(props.credentialType, latestSubmissionId);
-            setSuccess("已重新執行智能審核。");
+            setSuccess("已重新完成智能審核，請查看結果。");
             await props.onRefresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "重新執行智能審核失敗");
+        } catch (submissionError) {
+            setError(getErrorMessage(submissionError, "重新智能審核失敗"));
         } finally {
+            setSmartReviewing(false);
             setSubmitting(false);
         }
     };
 
     const handleSwitchToManual = async () => {
         if (!latestSubmissionId) return;
+
         setSubmitting(true);
         setError("");
         setSuccess("");
+
         try {
             await requestManualCredentialReview(props.credentialType, latestSubmissionId);
-            setSuccess("案件已改送人工審核。");
+            setSuccess("已改送人工審核。");
             await props.onRefresh();
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "改送人工審核失敗");
+        } catch (submissionError) {
+            setError(getErrorMessage(submissionError, "改送人工審核失敗"));
         } finally {
             setSubmitting(false);
         }
     };
 
-    const canActivateLegacy = Boolean(latestSubmissionId && props.currentItem?.canActivate);
-    const canRetrySmart = props.currentItem ? props.currentItem.canRetrySmart : true;
-    const canRequestManual = props.currentItem ? props.currentItem.canRequestManual : true;
-    const hideForm =
-        status === "ACTIVATED" ||
-        status === "MANUAL_REVIEWING" ||
-        status === "SMART_REVIEWING" ||
-        status === "PASSED_READY" ||
-        status === "FAILED";
-
     const dialogConfig: Record<NonNullable<ConfirmAction>, { title: string; description: string; confirmLabel: string }> = {
         SMART_SUBMIT: {
             title: "送出智能審核",
-            description: "確認後系統將上傳文件並執行智能審核，結果出來後你可以決定是否採用。",
-            confirmLabel: "送出智能審核",
+            description: "系統將依照你填寫的資料與上傳文件進行智能判定。送出後會立即開始處理，完成後再由你決定是否採用結果。",
+            confirmLabel: "確認送出智能審核",
         },
         MANUAL_SUBMIT: {
             title: "送出人工審核",
-            description: "確認後將送交人工審核，審核人員會在一段時間後回覆結果，耗時較久。",
-            confirmLabel: "送出人工審核",
+            description: "送出後會進入人工審核流程，時間通常較長。審核期間你可以查看成品，也可以選擇停止審核。",
+            confirmLabel: "確認送出人工審核",
         },
         STOP_REVIEW: {
             title: "停止人工審核",
-            description: "確認後此次人工審核將被停止。如需繼續，需重新發起一筆新的申請。",
-            confirmLabel: "確認停止",
+            description: "停止後，本次人工審核會結束，狀態將改為「已停止審核」。若要再送件，需要重新開啟一份新的申請。",
+            confirmLabel: "確認停止審核",
         },
         ACTIVATE: {
             title: "啟用身份 NFT",
-            description: "確認後系統將為你鑄造對應的身份 NFT 憑證，此動作無法還原。",
-            confirmLabel: "確認啟用",
+            description: "啟用後會正式鑄造身份 NFT 憑證。完成後身份中心會顯示為已啟用，請確認你要現在啟用。",
+            confirmLabel: "確認啟用身份",
         },
     };
 
     return (
         <div className="mx-auto flex w-full max-w-[960px] flex-col gap-8">
-            {/* Header */}
+            <LoadingOverlay isVisible={smartReviewing} message="智能審核中，請稍候..." />
+
             <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 md:p-10">
                 <div className="space-y-3">
                     <div className="inline-flex rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-on-surface-variant">
@@ -264,11 +338,10 @@ export default function CredentialApplicationShell(props: Props) {
                 </div>
             ) : null}
 
-            {/* Snapshot mode */}
             {snapshotMode && detail ? (
                 <>
                     <CredentialSubmissionSnapshot
-                        fields={props.primaryFields.map((f) => ({ key: f.key, label: f.label }))}
+                        fields={props.primaryFields.map((field) => ({ key: field.key, label: field.label }))}
                         values={detail.formPayload}
                         notes={detail.notes}
                         mainFileUrl={
@@ -284,105 +357,74 @@ export default function CredentialApplicationShell(props: Props) {
                     />
 
                     <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
-                        <div className="space-y-3">
-                            {detail.canActivate ? (
-                                <button
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={() => setConfirmAction("ACTIVATE")}
-                                    className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {submitting ? "處理中..." : "啟用身份 NFT"}
-                                </button>
-                            ) : null}
-                            {detail.canStopReview ? (
-                                <button
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={() => setConfirmAction("STOP_REVIEW")}
-                                    className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {submitting ? "處理中..." : "停止審核"}
-                                </button>
-                            ) : null}
-                            {detail.canRestartReview ? (
-                                <button
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={handleRestart}
-                                    className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    重新審核
-                                </button>
-                            ) : null}
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <h2 className="text-2xl font-bold text-on-surface">{snapshotActionCopy.title}</h2>
+                                <p className="text-sm leading-[1.8] text-on-surface-variant">{snapshotActionCopy.description}</p>
+                            </div>
+
+                            <div className="space-y-3">
+                                {detail.canActivate ? (
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={() => setConfirmAction("ACTIVATE")}
+                                        className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {busy ? "處理中..." : "確認啟用身份"}
+                                    </button>
+                                ) : null}
+
+                                {canRetrySmart ? (
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={handleRetrySmart}
+                                        className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {busy ? "處理中..." : "重新跑智能審核"}
+                                    </button>
+                                ) : null}
+
+                                {canRequestManual ? (
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={handleSwitchToManual}
+                                        className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        改送人工審核
+                                    </button>
+                                ) : null}
+
+                                {detail.canStopReview ? (
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={() => setConfirmAction("STOP_REVIEW")}
+                                        className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {busy ? "處理中..." : "停止審核"}
+                                    </button>
+                                ) : null}
+
+                                {detail.canRestartReview ? (
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={handleRestart}
+                                        className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        重新審核
+                                    </button>
+                                ) : null}
+                            </div>
                         </div>
                     </section>
                 </>
             ) : null}
 
-            {/* SMART_REVIEWING waiting message */}
-            {!snapshotMode && status === "SMART_REVIEWING" ? (
-                <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 text-sm leading-[1.8] text-on-surface-variant">
-                    智能審核已建立，請先等待結果回寫。結果出來後，你可以決定是否採用結果，或在未通過時改送人工審核。
-                </section>
-            ) : null}
-
-            {/* Legacy: activate button when not in snapshot mode */}
-            {!snapshotMode && canActivateLegacy ? (
-                <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
-                    <div className="space-y-4">
-                        <h2 className="text-2xl font-bold text-on-surface">是否啟用身份 NFT</h2>
-                        <p className="text-sm leading-[1.8] text-on-surface-variant">
-                            此次審核結果已通過，但是否採用結果由你自行決定。點擊啟用後，系統才會為你鑄造對應的身份 NFT 憑證。
-                        </p>
-                        <button
-                            type="button"
-                            disabled={submitting}
-                            onClick={() => setConfirmAction("ACTIVATE")}
-                            className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                            {submitting ? "啟用中..." : "啟用 NFT 憑證"}
-                        </button>
-                    </div>
-                </section>
-            ) : null}
-
-            {/* Legacy: FAILED retry section (non-snapshot mode) */}
-            {!snapshotMode && status === "FAILED" && latestSubmissionId ? (
-                <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
-                    <div className="space-y-4">
-                        <h2 className="text-2xl font-bold text-on-surface">重新處理本次申請</h2>
-                        <p className="text-sm leading-[1.8] text-on-surface-variant">
-                            這筆申請目前未通過。你可以直接重新跑一次智能審核，或改送人工審核，系統會沿用這筆申請已上傳的資料。
-                        </p>
-                        <div className="space-y-3">
-                            {canRetrySmart ? (
-                                <button
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={handleRetrySmart}
-                                    className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    {submitting ? "處理中..." : "重新跑智能審核"}
-                                </button>
-                            ) : null}
-                            {canRequestManual ? (
-                                <button
-                                    type="button"
-                                    disabled={submitting}
-                                    onClick={handleSwitchToManual}
-                                    className="w-full rounded-xl border border-outline-variant/20 bg-surface-container px-5 py-3 text-sm font-semibold text-on-surface transition-colors hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
-                                >
-                                    改送人工審核
-                                </button>
-                            ) : null}
-                        </div>
-                    </div>
-                </section>
-            ) : null}
-
-            {/* Edit mode form */}
-            {!snapshotMode && !hideForm ? (
+            {formMode ? (
                 <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
                     <form onSubmit={handleSmartSubmit} className="space-y-6">
                         <div className="grid gap-4 md:grid-cols-2">
@@ -391,12 +433,7 @@ export default function CredentialApplicationShell(props: Props) {
                                     <span className="text-sm font-semibold text-on-surface">{field.label}</span>
                                     <input
                                         value={formValues[field.key] ?? ""}
-                                        onChange={(event) =>
-                                            setFormValues((current) => ({
-                                                ...current,
-                                                [field.key]: event.target.value,
-                                            }))
-                                        }
+                                        onChange={(event) => handleFieldChange(field.key, event.target.value)}
                                         placeholder={field.placeholder}
                                         className="w-full rounded-xl border border-outline-variant/15 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none transition-colors focus:border-primary-container"
                                     />
@@ -408,60 +445,65 @@ export default function CredentialApplicationShell(props: Props) {
                             label="主要文件"
                             helperText="請上傳本次身份申請最主要的證明文件。"
                             file={mainDoc}
-                            onChange={setMainDoc}
+                            onChange={(file) => {
+                                setMainDoc(file);
+                                setError("");
+                            }}
                             required
                         />
 
                         <CredentialDocumentUploader
-                            label="輔助文件"
-                            helperText="若你有補充資料，可一起上傳讓審核依據更完整。"
+                            label="補充文件"
+                            helperText="如有補充證明、來源資料或補件說明，可一併附上。"
                             file={supportDoc}
-                            onChange={setSupportDoc}
+                            onChange={(file) => {
+                                setSupportDoc(file);
+                                setError("");
+                            }}
                         />
 
                         <label className="space-y-2">
                             <span className="text-sm font-semibold text-on-surface">補充說明</span>
                             <textarea
                                 value={notes}
-                                onChange={(event) => setNotes(event.target.value)}
+                                onChange={(event) => {
+                                    setNotes(event.target.value);
+                                    setError("");
+                                }}
                                 placeholder="如有需要，可補充說明文件來源、身份情境或人工審核重點。"
                                 rows={5}
                                 className="w-full rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none transition-colors focus:border-primary-container"
                             />
                         </label>
 
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             <button
                                 type="submit"
-                                disabled={submitting}
+                                disabled={busy}
                                 className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                             >
-                                {submitting ? "送出中..." : "送出智能審核"}
+                                {busy ? "處理中..." : "送出智能審核"}
                             </button>
-                            <p className="text-right text-sm leading-[1.8] text-on-surface-variant">
-                                可以選擇
-                                <button
-                                    type="button"
-                                    onClick={handleManualSubmitClick}
-                                    className="mx-1 font-semibold text-on-surface underline underline-offset-4"
-                                >
-                                    人工審核
-                                </button>
-                                ，將會耗時較久
-                            </p>
+
+                            <div className="flex justify-end">
+                                <p className="text-right text-sm leading-[1.8] text-on-surface-variant">
+                                    可以選擇
+                                    <button
+                                        type="button"
+                                        disabled={busy}
+                                        onClick={handleManualSubmitClick}
+                                        className="mx-1 rounded-none bg-transparent p-0 font-semibold text-on-surface underline underline-offset-4 transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        [人工審核]
+                                    </button>
+                                    ，將會耗時較久
+                                </p>
+                            </div>
                         </div>
                     </form>
                 </section>
             ) : null}
 
-            {/* MANUAL_REVIEWING waiting message (non-snapshot) */}
-            {!snapshotMode && status === "MANUAL_REVIEWING" ? (
-                <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8 text-sm leading-[1.8] text-on-surface-variant">
-                    你的案件目前正在人工審核中，這段期間不需要重複送件。若後續未通過，可再重新跑一次智能審核或改送人工審核。
-                </section>
-            ) : null}
-
-            {/* Confirm dialog */}
             {confirmAction ? (
                 <CredentialConfirmDialog
                     open={Boolean(confirmAction)}
@@ -470,7 +512,7 @@ export default function CredentialApplicationShell(props: Props) {
                     confirmLabel={dialogConfig[confirmAction].confirmLabel}
                     onConfirm={() => void handleConfirm()}
                     onCancel={() => setConfirmAction(null)}
-                    busy={submitting}
+                    busy={busy}
                 />
             ) : null}
         </div>

@@ -1,4 +1,4 @@
-import { useId, useState, useEffect } from "react";
+import { useEffect, useId, useMemo } from "react";
 
 type Props = {
     label: string;
@@ -10,22 +10,18 @@ type Props = {
 
 export default function CredentialDocumentUploader(props: Props) {
     const inputId = useId();
-
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+    const previewUrl = useMemo(() => (props.file ? URL.createObjectURL(props.file) : null), [props.file]);
 
     useEffect(() => {
-        if (!props.file) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setPreviewUrl(null);
-            return;
-        }
-        const url = URL.createObjectURL(props.file);
-        setPreviewUrl(url);
-        return () => URL.revokeObjectURL(url);
-    }, [props.file]);
+        return () => {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+            }
+        };
+    }, [previewUrl]);
 
     return (
-        <div className="space-y-2 rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">
+        <div className="space-y-3 rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">
             <div className="flex items-center justify-between gap-4">
                 <div className="space-y-1">
                     <label htmlFor={inputId} className="text-sm font-semibold text-on-surface">
@@ -36,9 +32,10 @@ export default function CredentialDocumentUploader(props: Props) {
                         <p className="text-xs leading-[1.7] text-on-surface-variant">{props.helperText}</p>
                     ) : null}
                 </div>
+
                 <label
                     htmlFor={inputId}
-                    className="inline-flex cursor-pointer items-center rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-2 text-sm font-semibold text-on-surface transition-colors hover:bg-surface"
+                    className="inline-flex cursor-pointer items-center rounded-xl border border-outline-variant/20 bg-surface px-4 py-2 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container"
                 >
                     選擇檔案
                 </label>
@@ -52,13 +49,13 @@ export default function CredentialDocumentUploader(props: Props) {
                 onChange={(event) => props.onChange(event.target.files?.[0] ?? null)}
             />
 
-            <div className="rounded-xl bg-surface-container px-3 py-2 text-sm text-on-surface-variant">
+            <div className="rounded-xl bg-surface px-3 py-2 text-sm text-on-surface-variant">
                 {props.file ? props.file.name : "尚未選擇檔案"}
             </div>
 
             {previewUrl ? (
-                <div className="onboarding-file-preview-shell">
-                    <img src={previewUrl} alt="預覽" className="onboarding-file-preview-image" />
+                <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[20px] border border-outline-variant/15 bg-white px-4 py-4">
+                    <img src={previewUrl} alt={`${props.label}預覽`} className="block max-h-[360px] w-full object-contain" />
                 </div>
             ) : null}
         </div>

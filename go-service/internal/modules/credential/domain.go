@@ -15,6 +15,7 @@ const (
 	ReviewRouteSmart  = "SMART"
 	ReviewRouteManual = "MANUAL"
 
+	CredentialReviewDraft           = "DRAFT"
 	CredentialReviewSmartReviewing  = "SMART_REVIEWING"
 	CredentialReviewManualReviewing = "MANUAL_REVIEWING"
 	CredentialReviewPassed          = "PASSED"
@@ -38,10 +39,15 @@ func DisplayStatusForSubmission(sub *model.CredentialSubmission) string {
 	switch {
 	case sub.ActivationStatus == ActivationStatusActivated:
 		return DisplayStatusActivated
+	case sub.ReviewStatus == CredentialReviewDraft:
+		return DisplayStatusNotStarted
 	case sub.ReviewStatus == CredentialReviewStopped:
 		return DisplayStatusStopped
 	case sub.ReviewStatus == CredentialReviewManualReviewing:
 		return DisplayStatusManualReviewing
+	case sub.ReviewStatus == CredentialReviewSmartReviewing &&
+		(!sub.MainDocPath.Valid || strings.TrimSpace(sub.MainDocPath.String) == ""):
+		return DisplayStatusNotStarted
 	case sub.ReviewStatus == CredentialReviewSmartReviewing:
 		return DisplayStatusSmartReviewing
 	case sub.ReviewStatus == CredentialReviewPassed && sub.ActivationStatus == ActivationStatusReady:

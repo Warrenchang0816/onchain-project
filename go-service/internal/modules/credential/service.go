@@ -103,6 +103,9 @@ func (s *Service) GetLatestSubmissionDetail(ctx context.Context, wallet, credent
 	if sub == nil {
 		return nil, nil
 	}
+	if DisplayStatusForSubmission(sub) == DisplayStatusNotStarted {
+		return nil, nil
+	}
 	return s.buildSubmissionDetail(sub)
 }
 
@@ -219,7 +222,7 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 		switch {
 		case latestSubmission.ActivationStatus == ActivationStatusActivated:
 			return nil, errors.New("此身份申請已啟用，請直接回身份中心查看狀態")
-		case latestSubmission.ReviewStatus == CredentialReviewSmartReviewing || latestSubmission.ReviewStatus == CredentialReviewManualReviewing:
+		case latestSubmission.ReviewStatus == CredentialReviewManualReviewing:
 			return nil, errors.New("此身份已有進行中的申請，請等待審核結果")
 		case latestSubmission.ReviewStatus == CredentialReviewPassed && latestSubmission.ActivationStatus == ActivationStatusReady:
 			return nil, errors.New("此身份申請已通過，請先決定是否啟用 NFT 憑證")
@@ -591,6 +594,12 @@ func (s *Service) buildCenterItem(userID int64, credentialType string) (*Credent
 			item.Summary = stringPtr(reason)
 		}
 	case sub != nil:
+		displayStatus := DisplayStatusForSubmission(sub)
+		item.DisplayStatus = displayStatus
+		if displayStatus == DisplayStatusNotStarted {
+			break
+		}
+
 		item.LatestSubmissionID = int64Ptr(sub.ID)
 		if sub.ReviewRoute != "" {
 			item.ReviewRoute = stringPtr(sub.ReviewRoute)
@@ -601,9 +610,6 @@ func (s *Service) buildCenterItem(userID int64, credentialType string) (*Credent
 		if summary := strings.TrimSpace(sub.DecisionSummary); summary != "" {
 			item.Summary = stringPtr(summary)
 		}
-
-		displayStatus := DisplayStatusForSubmission(sub)
-		item.DisplayStatus = displayStatus
 
 		switch displayStatus {
 		case DisplayStatusActivated, DisplayStatusManualReviewing, DisplayStatusSmartReviewing, DisplayStatusPassedReady:

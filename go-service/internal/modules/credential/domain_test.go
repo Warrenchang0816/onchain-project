@@ -1,6 +1,7 @@
 package credential
 
 import (
+	"database/sql"
 	"strings"
 	"testing"
 
@@ -89,12 +90,38 @@ func TestDisplayStatusForSubmission(t *testing.T) {
 		want string
 	}{
 		{
+			name: "draft submission stays not started",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewDraft,
+				ActivationStatus: ActivationStatusNotReady,
+			},
+			want: DisplayStatusNotStarted,
+		},
+		{
+			name: "smart reviewing without main file stays not started",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewSmartReviewing,
+				ActivationStatus: ActivationStatusNotReady,
+				MainDocPath:      sql.NullString{},
+			},
+			want: DisplayStatusNotStarted,
+		},
+		{
 			name: "stopped manual submission",
 			sub: &model.CredentialSubmission{
 				ReviewStatus:     CredentialReviewStopped,
 				ActivationStatus: ActivationStatusNotReady,
 			},
 			want: DisplayStatusStopped,
+		},
+		{
+			name: "smart reviewing with main file stays reviewing",
+			sub: &model.CredentialSubmission{
+				ReviewStatus:     CredentialReviewSmartReviewing,
+				ActivationStatus: ActivationStatusNotReady,
+				MainDocPath:      sql.NullString{String: "credentials/1/owner/1/main.png", Valid: true},
+			},
+			want: DisplayStatusSmartReviewing,
 		},
 		{
 			name: "manual reviewing",
