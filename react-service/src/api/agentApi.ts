@@ -33,7 +33,7 @@ async function unwrap<T>(res: Response): Promise<T> {
         }
     }
     if (!res.ok || !parsed?.success) {
-        throw new Error(parsed?.message || parsed?.error || `Request failed: ${res.status}`);
+        throw new Error(parsed?.message || parsed?.error || raw.trim() || `Request failed: ${res.status}`);
     }
     return parsed.data as T;
 }
