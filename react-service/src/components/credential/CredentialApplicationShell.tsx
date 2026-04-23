@@ -344,6 +344,7 @@ export default function CredentialApplicationShell(props: Props) {
                         fields={props.primaryFields.map((field) => ({ key: field.key, label: field.label }))}
                         values={detail.formPayload}
                         notes={detail.notes}
+                        checks={detail.checks}
                         mainFileUrl={
                             detail.mainFileUrl
                                 ? getCredentialSubmissionFileUrl(props.credentialType, detail.submissionId, "main")

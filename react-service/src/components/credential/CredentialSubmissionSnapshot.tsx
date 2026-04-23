@@ -1,9 +1,18 @@
+const CHECK_LABELS: Record<string, string> = {
+    keyword: "關鍵字符合",
+    nameMatch: "姓名比對",
+    addressHint: "地址提供",
+    licenseNumber: "證照號碼比對",
+    credentialType: "身份類型",
+};
+
 type Props = {
     fields: Array<{ key: string; label: string }>;
     values: Record<string, string>;
     notes: string;
     mainFileUrl?: string;
     supportFileUrl?: string;
+    checks?: Record<string, string>;
 };
 
 function SnapshotField(props: { label: string; value: string }) {
@@ -34,6 +43,30 @@ function SnapshotImageCard(props: { title: string; imageUrl?: string }) {
     );
 }
 
+function CheckResultPanel(props: { checks: Record<string, string> }) {
+    const entries = Object.entries(props.checks);
+    if (entries.length === 0) return null;
+    return (
+        <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">
+            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-on-surface-variant">審核項目明細</div>
+            <div className="mt-3 divide-y divide-outline-variant/10">
+                {entries.map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between py-2">
+                        <span className="text-sm text-on-surface">{CHECK_LABELS[key] ?? key}</span>
+                        <span
+                            className={`text-xs font-bold ${
+                                value === "PASS" ? "text-tertiary" : "text-error"
+                            }`}
+                        >
+                            {value === "PASS" ? "通過" : "未通過"}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 export default function CredentialSubmissionSnapshot(props: Props) {
     return (
         <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
@@ -50,6 +83,10 @@ export default function CredentialSubmissionSnapshot(props: Props) {
                 </div>
 
                 <SnapshotField label="補充說明" value={props.notes} />
+
+                {props.checks && Object.keys(props.checks).length > 0 ? (
+                    <CheckResultPanel checks={props.checks} />
+                ) : null}
 
                 <div className="grid gap-4 md:grid-cols-2">
                     <SnapshotImageCard title="主要文件" imageUrl={props.mainFileUrl} />

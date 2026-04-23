@@ -131,6 +131,7 @@ export type CredentialSubmissionDetail = {
     formPayload: Record<string, string>;
     notes: string;
     summary?: string;
+    checks?: Record<string, string>;
     mainFileUrl?: string;
     supportFileUrl?: string;
     canStopReview: boolean;
