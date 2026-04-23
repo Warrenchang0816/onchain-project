@@ -52,6 +52,7 @@ type CredentialSubmissionDetailResponse struct {
 	FormPayload      map[string]string `json:"formPayload"`
 	Notes            string            `json:"notes"`
 	Summary          *string           `json:"summary,omitempty"`
+	Checks           map[string]string `json:"checks,omitempty"`
 	MainFileURL      *string           `json:"mainFileUrl,omitempty"`
 	SupportFileURL   *string           `json:"supportFileUrl,omitempty"`
 	CanStopReview    bool              `json:"canStopReview"`
