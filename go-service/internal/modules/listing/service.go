@@ -1,9 +1,12 @@
 package listing
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/lib/pq"
 
 	"go-service/internal/db/model"
 	"go-service/internal/db/repository"
@@ -148,6 +151,10 @@ func (s *Service) BootstrapOwnerActivationDraft(ownerUserID, submissionID int64,
 
 	_, err = s.listingRepo.CreateBootstrapDraft(ownerUserID, submissionID, address)
 	if err != nil {
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
+			return nil
+		}
 		return fmt.Errorf("listing: BootstrapOwnerActivationDraft create: %w", err)
 	}
 	return nil
@@ -174,10 +181,42 @@ func (s *Service) Update(listingID int64, walletAddress string, req UpdateListin
 		return ErrInvalidStatus
 	}
 
+	listType := l.ListType
+	if req.ListType != "" {
+		listType = req.ListType
+	}
+
+	candidate := &model.Listing{
+		Status:        l.Status,
+		SetupStatus:   l.SetupStatus,
+		Title:         req.Title,
+		Address:       req.Address,
+		ListType:      listType,
+		Price:         req.Price,
+		AreaPing:      sql.NullFloat64{},
+		RoomCount:     sql.NullInt64{},
+		BathroomCount: sql.NullInt64{},
+	}
+	if req.AreaPing != nil {
+		candidate.AreaPing = sql.NullFloat64{Float64: *req.AreaPing, Valid: true}
+	}
+	if req.RoomCount != nil {
+		candidate.RoomCount = sql.NullInt64{Int64: int64(*req.RoomCount), Valid: true}
+	}
+	if req.BathroomCount != nil {
+		candidate.BathroomCount = sql.NullInt64{Int64: int64(*req.BathroomCount), Valid: true}
+	}
+
+	setupStatus := l.SetupStatus
+	if l.Status == model.ListingStatusDraft {
+		setupStatus = ComputeSetupStatus(candidate)
+	}
+
 	return s.listingRepo.UpdateInfo(
 		listingID,
 		req.Title, req.Address,
 		req.Description, req.District,
+		listType, setupStatus,
 		req.Price, req.AreaPing,
 		req.Floor, req.TotalFloors, req.RoomCount, req.BathroomCount,
 		req.IsPetAllowed, req.IsParkingIncluded,

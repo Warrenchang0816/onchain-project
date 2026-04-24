@@ -26,6 +26,7 @@ type UpdateListingRequest struct {
 	Description       *string  `json:"description"`
 	Address           string   `json:"address"            binding:"required"`
 	District          *string  `json:"district"`
+	ListType          string   `json:"list_type"          binding:"omitempty,oneof=UNSET RENT SALE"`
 	Price             float64  `json:"price"              binding:"required,gt=0"`
 	AreaPing          *float64 `json:"area_ping"`
 	Floor             *int     `json:"floor"`

@@ -214,6 +214,8 @@ func (r *ListingRepository) UpdateInfo(
 	id int64,
 	title, address string,
 	description, district *string,
+	listType string,
+	setupStatus string,
 	price float64,
 	areaPing *float64,
 	floor, totalFloors, roomCount, bathroomCount *int,
@@ -222,12 +224,14 @@ func (r *ListingRepository) UpdateInfo(
 	_, err := r.db.Exec(`
 		UPDATE listings
 		SET title=$1, description=$2, address=$3, district=$4,
-		    price=$5, area_ping=$6, floor=$7, total_floors=$8,
-		    room_count=$9, bathroom_count=$10,
-		    is_pet_allowed=$11, is_parking_included=$12,
+		    list_type=$5, setup_status=$6,
+		    price=$7, area_ping=$8, floor=$9, total_floors=$10,
+		    room_count=$11, bathroom_count=$12,
+		    is_pet_allowed=$13, is_parking_included=$14,
 		    updated_at=NOW()
-		WHERE id=$13`,
+		WHERE id=$15`,
 		title, description, address, district,
+		listType, setupStatus,
 		price, areaPing, floor, totalFloors, roomCount, bathroomCount,
 		isPetAllowed, isParkingIncluded, id,
 	)

@@ -58,6 +58,34 @@ func TestIsReadyForPublish(t *testing.T) {
 	}
 }
 
+func TestComputeSetupStatus(t *testing.T) {
+	ready := &model.Listing{
+		Title:         "民生社區兩房",
+		Address:       "台北市松山區民生東路四段 100 號",
+		ListType:      model.ListingTypeSale,
+		Price:         18800000,
+		AreaPing:      nullFloat(32.2),
+		RoomCount:     nullInt(3),
+		BathroomCount: nullInt(2),
+	}
+	if got := ComputeSetupStatus(ready); got != model.ListingSetupStatusReady {
+		t.Fatalf("ComputeSetupStatus(ready) = %q, want %q", got, model.ListingSetupStatusReady)
+	}
+
+	missingType := &model.Listing{
+		Title:         "民生社區兩房",
+		Address:       "台北市松山區民生東路四段 100 號",
+		ListType:      model.ListingTypeUnset,
+		Price:         18800000,
+		AreaPing:      nullFloat(32.2),
+		RoomCount:     nullInt(3),
+		BathroomCount: nullInt(2),
+	}
+	if got := ComputeSetupStatus(missingType); got != model.ListingSetupStatusIncomplete {
+		t.Fatalf("ComputeSetupStatus(missingType) = %q, want %q", got, model.ListingSetupStatusIncomplete)
+	}
+}
+
 func nullFloat(v float64) sql.NullFloat64 { return sql.NullFloat64{Float64: v, Valid: true} }
 
 func nullInt(v int64) sql.NullInt64 { return sql.NullInt64{Int64: v, Valid: true} }
