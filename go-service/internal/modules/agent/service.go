@@ -94,6 +94,12 @@ func (s *Service) GetByWallet(walletAddress string) (*AgentDetailResponse, error
 	if r.Headline.Valid && r.Headline.String != "" {
 		resp.Headline = &r.Headline.String
 	}
+	if r.Bio.Valid && r.Bio.String != "" {
+		resp.Bio = &r.Bio.String
+	}
+	if r.LicenseNote.Valid && r.LicenseNote.String != "" {
+		resp.LicenseNote = &r.LicenseNote.String
+	}
 	return resp, nil
 }
 

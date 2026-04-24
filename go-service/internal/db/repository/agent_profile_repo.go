@@ -101,7 +101,9 @@ type AgentWithProfile struct {
 	TxHash            sql.NullString
 	ActivatedAt       time.Time
 	Headline          sql.NullString
+	Bio               sql.NullString
 	ServiceAreasJSON  sql.NullString
+	LicenseNote       sql.NullString
 	IsProfileComplete sql.NullBool
 }
 
@@ -145,7 +147,7 @@ func (r *AgentProfileRepository) FindOneWithProfile(wallet string) (*AgentWithPr
 	err := r.db.QueryRow(`
 		SELECT u.wallet_address, u.display_name,
 		       uc.nft_token_id, uc.tx_hash, uc.verified_at,
-		       ap.headline, ap.service_areas_json::text, ap.is_profile_complete
+		       ap.headline, ap.bio, ap.service_areas_json::text, ap.license_note, ap.is_profile_complete
 		FROM user_credentials uc
 		JOIN users u ON u.id = uc.user_id
 		LEFT JOIN agent_profiles ap ON ap.user_id = uc.user_id
@@ -157,7 +159,7 @@ func (r *AgentProfileRepository) FindOneWithProfile(wallet string) (*AgentWithPr
 	`, wallet).Scan(
 		&a.WalletAddress, &a.DisplayName,
 		&a.NFTTokenID, &a.TxHash, &a.ActivatedAt,
-		&a.Headline, &a.ServiceAreasJSON, &a.IsProfileComplete,
+		&a.Headline, &a.Bio, &a.ServiceAreasJSON, &a.LicenseNote, &a.IsProfileComplete,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
