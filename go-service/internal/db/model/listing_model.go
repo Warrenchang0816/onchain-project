@@ -5,20 +5,26 @@ import (
 	"time"
 )
 
-// Listing status constants
 const (
 	ListingStatusDraft       = "DRAFT"
 	ListingStatusActive      = "ACTIVE"
 	ListingStatusNegotiating = "NEGOTIATING"
-	ListingStatusLocked      = "LOCKED"  // triggered by on-chain CaseTracker event
-	ListingStatusSigning     = "SIGNING" // triggered by on-chain CaseTracker event
+	ListingStatusLocked      = "LOCKED"
+	ListingStatusSigning     = "SIGNING"
 	ListingStatusClosed      = "CLOSED"
 	ListingStatusExpired     = "EXPIRED"
 	ListingStatusRemoved     = "REMOVED"
 	ListingStatusSuspended   = "SUSPENDED"
 
-	ListingTypeRent = "RENT"
-	ListingTypeSale = "SALE"
+	ListingTypeUnset = "UNSET"
+	ListingTypeRent  = "RENT"
+	ListingTypeSale  = "SALE"
+
+	ListingDraftOriginManualCreate    = "MANUAL_CREATE"
+	ListingDraftOriginOwnerActivation = "OWNER_ACTIVATION"
+
+	ListingSetupStatusIncomplete = "INCOMPLETE"
+	ListingSetupStatusReady      = "READY"
 )
 
 type Listing struct {
@@ -40,8 +46,11 @@ type Listing struct {
 	IsPetAllowed      bool
 	IsParkingIncluded bool
 
-	Status                   string
-	NegotiatingAppointmentID sql.NullInt64
+	Status                       string
+	DraftOrigin                  string
+	SetupStatus                  string
+	SourceCredentialSubmissionID sql.NullInt64
+	NegotiatingAppointmentID     sql.NullInt64
 
 	DailyFeeNTD float64
 
