@@ -16,8 +16,11 @@ ALTER TABLE listings
 ALTER TABLE listings
     ALTER COLUMN list_type SET DEFAULT 'UNSET';
 
-CREATE INDEX IF NOT EXISTS idx_listings_source_credential_submission_id
-    ON listings (source_credential_submission_id);
+DROP INDEX IF EXISTS idx_listings_source_credential_submission_id;
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_listings_source_credential_submission_id
+    ON listings (source_credential_submission_id)
+    WHERE source_credential_submission_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS tenant_profiles (
     id                   BIGSERIAL PRIMARY KEY,

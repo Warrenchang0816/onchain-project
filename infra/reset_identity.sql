@@ -68,6 +68,21 @@ BEGIN
         DELETE FROM auth_nonce
         WHERE v_wallets IS NOT NULL AND wallet_address = ANY(v_wallets);
 
+        DELETE FROM tenant_profile_documents
+        USING tenant_profiles
+        WHERE tenant_profile_documents.tenant_profile_id = tenant_profiles.id
+          AND v_user_ids IS NOT NULL
+          AND tenant_profiles.user_id = ANY(v_user_ids);
+
+        DELETE FROM tenant_profiles
+        WHERE v_user_ids IS NOT NULL AND user_id = ANY(v_user_ids);
+
+        DELETE FROM tenant_requirements
+        WHERE v_user_ids IS NOT NULL AND user_id = ANY(v_user_ids);
+
+        DELETE FROM agent_profiles
+        WHERE v_user_ids IS NOT NULL AND user_id = ANY(v_user_ids);
+
         DELETE FROM users
         WHERE v_user_ids IS NOT NULL AND id = ANY(v_user_ids);
 
@@ -85,6 +100,10 @@ BEGIN
         DELETE FROM kyc_sessions;
         DELETE FROM wallet_session;
         DELETE FROM auth_nonce;
+        DELETE FROM tenant_profile_documents;
+        DELETE FROM tenant_profiles;
+        DELETE FROM tenant_requirements;
+        DELETE FROM agent_profiles;
         DELETE FROM users;
 
         RAISE NOTICE 'Done. Cleared all users, KYC, and listings data.';
