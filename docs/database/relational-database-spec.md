@@ -141,6 +141,21 @@ Excel / 表格匯出請以：
 - `listings` 與 `listing_appointments` 是目前租屋主線的正式資料骨架
 - `indexer_checkpoints` 與 `processed_events` 必須與目前啟用中的 `IdentityMinted / CredentialMinted` worker 對齊
 
+## Role Workbench Mainline
+
+Updated on 2026-04-24 for the OWNER / TENANT / AGENT role workbench slice.
+
+- `infra/init/09-role-workbench.sql` is part of bootstrap after `08-credential-submissions.sql`.
+- `listings` includes `draft_origin`, `setup_status`, and `source_credential_submission_id` for owner activation drafts.
+- `listings.list_type` allows `UNSET`, `RENT`, and `SALE`; owner activation drafts start as private `UNSET` + `INCOMPLETE` records.
+- OWNER credential activation may bootstrap the first private listing draft from the approved credential submission.
+- `tenant_profiles` stores lightweight tenant profile data and `advanced_data_status`.
+- `tenant_profile_documents` stores optional tenant supplemental document references.
+- `tenant_requirements` stores tenant-created demand records with `OPEN`, `PAUSED`, and `CLOSED` states.
+- `agent_profiles` stores public agent profile fields, service area JSON, contact preferences, and completion state.
+- Public listing pages must not expose `DRAFT` or `INCOMPLETE` bootstrap drafts.
+- Public agent pages may expose profile fields when present; private profile writes require an active AGENT credential.
+
 ## Schema Governance Rules
 
 - DB / read model 先定義，再談合約事件與後端同步

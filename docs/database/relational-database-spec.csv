@@ -204,3 +204,45 @@ task_submissions,result_content,TEXT,NO,'' ,,,legacy_only,Legacy result content
 task_submissions,result_file_url,VARCHAR(512),YES,NULL,,,legacy_only,Legacy result file URL
 task_submissions,result_hash,VARCHAR(128),YES,NULL,,,legacy_only,Legacy result hash
 task_submissions,submitted_at,TIMESTAMPTZ,NO,NOW(),,,legacy_only,Legacy submission time
+listings,draft_origin,VARCHAR(20),NO,MANUAL_CREATE,,,listing_repo+credential_service,Listing draft source
+listings,setup_status,VARCHAR(20),NO,READY,,,listing_repo+listing_service,Listing setup completeness
+listings,source_credential_submission_id,BIGINT,YES,NULL,FK,credential_submissions(id),credential_service,Credential submission that created owner bootstrap draft
+tenant_profiles,id,BIGSERIAL,NO,,PK,,tenant_profile_repo,Tenant profile primary key
+tenant_profiles,user_id,BIGINT,NO,,UNIQUE+FK,users(id),tenant_profile_repo,Tenant user id
+tenant_profiles,occupation_type,VARCHAR(50),NO,'' ,,,tenant_profile_repo,Tenant occupation category
+tenant_profiles,org_name,VARCHAR(120),NO,'' ,,,tenant_profile_repo,Tenant workplace or organization
+tenant_profiles,income_range,VARCHAR(50),NO,'' ,,,tenant_profile_repo,Tenant income range
+tenant_profiles,household_size,INT,NO,0,,,tenant_profile_repo,Tenant household size
+tenant_profiles,co_resident_note,TEXT,NO,'' ,,,tenant_profile_repo,Tenant co-resident note
+tenant_profiles,move_in_timeline,VARCHAR(80),NO,'' ,,,tenant_profile_repo,Tenant move-in timeline
+tenant_profiles,additional_note,TEXT,NO,'' ,,,tenant_profile_repo,Tenant additional note
+tenant_profiles,advanced_data_status,VARCHAR(20),NO,BASIC,,,tenant_profile_repo,Tenant advanced data status
+tenant_profiles,created_at,TIMESTAMPTZ,NO,NOW(),,,tenant_profile_repo,Row creation timestamp
+tenant_profiles,updated_at,TIMESTAMPTZ,NO,NOW(),,,tenant_profile_repo,Row update timestamp
+tenant_profile_documents,id,BIGSERIAL,NO,,PK,,tenant_profile_repo,Tenant document primary key
+tenant_profile_documents,tenant_profile_id,BIGINT,NO,,FK,tenant_profiles(id),tenant_profile_repo,Owning tenant profile id
+tenant_profile_documents,doc_type,VARCHAR(30),NO,,,,tenant_profile_repo,Tenant document type
+tenant_profile_documents,file_path,VARCHAR(512),NO,,,,tenant_profile_repo,Tenant document storage path
+tenant_profile_documents,created_at,TIMESTAMPTZ,NO,NOW(),,,tenant_profile_repo,Row creation timestamp
+tenant_requirements,id,BIGSERIAL,NO,,PK,,tenant_requirement_repo,Tenant requirement primary key
+tenant_requirements,user_id,BIGINT,NO,,FK,users(id),tenant_requirement_repo,Owning tenant user id
+tenant_requirements,target_district,VARCHAR(80),NO,'' ,INDEX,,tenant_requirement_repo,Target district
+tenant_requirements,budget_min,"NUMERIC(14,2)",NO,0,,,tenant_requirement_repo,Minimum budget
+tenant_requirements,budget_max,"NUMERIC(14,2)",NO,0,,,tenant_requirement_repo,Maximum budget
+tenant_requirements,layout_note,TEXT,NO,'' ,,,tenant_requirement_repo,Layout and condition note
+tenant_requirements,move_in_date,DATE,YES,NULL,,,tenant_requirement_repo,Desired move-in date
+tenant_requirements,pet_friendly_needed,BOOLEAN,NO,FALSE,,,tenant_requirement_repo,Pet friendly requirement
+tenant_requirements,parking_needed,BOOLEAN,NO,FALSE,,,tenant_requirement_repo,Parking requirement
+tenant_requirements,status,VARCHAR(20),NO,OPEN,INDEX,,tenant_requirement_repo,Requirement status
+tenant_requirements,created_at,TIMESTAMPTZ,NO,NOW(),,,tenant_requirement_repo,Row creation timestamp
+tenant_requirements,updated_at,TIMESTAMPTZ,NO,NOW(),,,tenant_requirement_repo,Row update timestamp
+agent_profiles,id,BIGSERIAL,NO,,PK,,agent_profile_repo,Agent profile primary key
+agent_profiles,user_id,BIGINT,NO,,UNIQUE+FK,users(id),agent_profile_repo,Agent user id
+agent_profiles,headline,VARCHAR(160),NO,'' ,,,agent_profile_repo,Agent profile headline
+agent_profiles,bio,TEXT,NO,'' ,,,agent_profile_repo,Agent profile biography
+agent_profiles,service_areas_json,JSONB,NO,'[]'::jsonb,,,agent_profile_repo,Agent service areas JSON array
+agent_profiles,license_note,TEXT,NO,'' ,,,agent_profile_repo,Agent license or experience note
+agent_profiles,contact_preferences,TEXT,NO,'' ,,,agent_profile_repo,Agent contact preferences
+agent_profiles,is_profile_complete,BOOLEAN,NO,FALSE,,,agent_profile_repo,Agent profile completion flag
+agent_profiles,created_at,TIMESTAMPTZ,NO,NOW(),,,agent_profile_repo,Row creation timestamp
+agent_profiles,updated_at,TIMESTAMPTZ,NO,NOW(),,,agent_profile_repo,Row update timestamp
