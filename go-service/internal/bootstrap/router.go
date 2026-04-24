@@ -108,6 +108,10 @@ func SetupRouter(
 			protected.GET("/credentials/:type/submissions/:id/files/main", credentialHandler.GetMainFile)
 			protected.GET("/credentials/:type/submissions/:id/files/support", credentialHandler.GetSupportFile)
 
+			// Agent private profile
+			protected.GET("/agents/me/profile", agentHandler.GetMyProfile)
+			protected.PUT("/agents/me/profile", agentHandler.UpsertMyProfile)
+
 			// Tenant profile and requirements (tenant-only)
 			protected.GET("/tenant/profile", tenantHandler.GetMyProfile)
 			protected.PUT("/tenant/profile", tenantHandler.UpsertMyProfile)

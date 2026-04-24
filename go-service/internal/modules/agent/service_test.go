@@ -56,3 +56,15 @@ func TestAgentListItemMapping(t *testing.T) {
 		t.Errorf("unexpected ActivatedAt format: %v", item.ActivatedAt)
 	}
 }
+
+func TestMapProfileCompleteFlag(t *testing.T) {
+	got := normalizeProfileCompleteFilter("complete")
+	if got == nil || *got != true {
+		t.Fatalf("normalizeProfileCompleteFilter(complete) = %v, want true", got)
+	}
+
+	got = normalizeProfileCompleteFilter("all")
+	if got != nil {
+		t.Fatalf("normalizeProfileCompleteFilter(all) = %v, want nil", got)
+	}
+}

@@ -62,6 +62,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
 	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
+	agentProfileRepo := repository.NewAgentProfileRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -226,7 +227,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	credentialAdminHandler := credentialmod.NewAdminHandler(credentialSvc, blockchainConfig.GodModeWalletAddress)
 
 	// ── 14. Agent directory module ────────────────────────────
-	agentSvc := agentmod.NewService(credentialRepo)
+	agentSvc := agentmod.NewService(credentialRepo, agentProfileRepo, userRepo)
 	agentHandler := agentmod.NewHandler(agentSvc)
 
 	// ── 15. Tenant module ─────────────────────────────────────
