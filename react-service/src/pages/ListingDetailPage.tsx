@@ -4,18 +4,12 @@ import { getAuthMe } from "../api/authApi";
 import { useIdentity } from "../hooks/useIdentity";
 import {
     bookAppointment,
-    cancelAppointment,
     closeListing,
-    confirmAppointment,
     getListing,
-    lockNegotiation,
     publishListing,
     removeListing,
-    type Appointment,
     type Listing,
     type UpdateListingPayload,
-    unlockNegotiation,
-    updateAppointmentStatus,
     updateListing,
 } from "../api/listingApi";
 import ListingEditorForm from "../components/listing/ListingEditorForm";
@@ -23,48 +17,24 @@ import { listingToEditorValues } from "../components/listing/listingEditorValues
 import SiteLayout from "../layouts/SiteLayout";
 
 const STATUS_LABEL: Record<string, string> = {
-    DRAFT: "Draft",
-    ACTIVE: "Active",
-    NEGOTIATING: "Negotiating",
-    LOCKED: "Locked",
-    SIGNING: "Signing",
-    CLOSED: "Closed",
-    EXPIRED: "Expired",
-    REMOVED: "Removed",
-    SUSPENDED: "Suspended",
+    DRAFT: "草稿",
+    ACTIVE: "上架中",
+    NEGOTIATING: "媒合中",
+    LOCKED: "已鎖定",
+    SIGNING: "簽約中",
+    CLOSED: "已結案",
+    EXPIRED: "已到期",
+    REMOVED: "已下架",
+    SUSPENDED: "已暫停",
 };
 
-const APPOINTMENT_STATUS_LABEL: Record<string, string> = {
-    PENDING: "Pending",
-    CONFIRMED: "Confirmed",
-    VIEWED: "Viewed",
-    INTERESTED: "Interested",
-    CANCELLED: "Cancelled",
-};
+type ModalType = "publish" | "edit" | "book" | null;
 
-const inputCls =
-    "block w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-0 " +
-    "focus:ring-2 focus:ring-primary-container transition-colors text-sm outline-none placeholder:text-outline";
-
-type ModalType = "publish" | "edit" | "book" | "confirm-appt" | null;
-type ConfirmType = "remove" | "close" | "unlock" | null;
-
-function ActionButton(props: {
-    children: ReactNode;
-    onClick?: () => void;
-    variant?: "primary" | "secondary" | "danger";
-    disabled?: boolean;
-}) {
+function ActionButton(props: { children: ReactNode; onClick?: () => void; variant?: "primary" | "secondary" | "danger"; disabled?: boolean }) {
     const cls = {
-        primary:
-            "w-full bg-[#E8B800] text-[#1C1917] font-bold py-3 px-4 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] " +
-            "hover:brightness-105 transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
-        secondary:
-            "w-full bg-surface-container-lowest text-on-surface font-medium py-3 px-4 rounded-xl border border-outline-variant/20 " +
-            "hover:bg-surface-container-low transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
-        danger:
-            "w-full bg-surface-container-lowest text-error font-medium py-3 px-4 rounded-xl border border-error/20 " +
-            "hover:bg-error-container transition-all duration-200 active:scale-[0.98] disabled:opacity-50",
+        primary: "w-full rounded-xl bg-primary-container px-4 py-3 font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:opacity-50",
+        secondary: "w-full rounded-xl border border-outline-variant/20 bg-surface-container-lowest px-4 py-3 font-medium text-on-surface transition-colors hover:bg-surface-container-low disabled:opacity-50",
+        danger: "w-full rounded-xl border border-error/20 bg-surface-container-lowest px-4 py-3 font-medium text-error transition-colors hover:bg-error-container disabled:opacity-50",
     }[props.variant ?? "secondary"];
 
     return (
@@ -74,25 +44,15 @@ function ActionButton(props: {
     );
 }
 
-function Field(props: { label: string; children: ReactNode }) {
-    return (
-        <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-on-surface-variant">{props.label}</label>
-            {props.children}
-        </div>
-    );
-}
-
 function Modal(props: { isOpen: boolean; title: string; onClose: () => void; children: ReactNode }) {
     if (!props.isOpen) return null;
-
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={props.onClose} />
-            <div className="relative bg-surface-container-lowest rounded-xl shadow-[0_24px_64px_rgba(28,25,23,0.18)] w-full max-w-lg max-h-[90vh] overflow-y-auto border border-outline-variant/10">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-surface-container">
+            <button type="button" aria-label="關閉視窗" className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={props.onClose} />
+            <div className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-outline-variant/10 bg-surface-container-lowest shadow-[0_24px_64px_rgba(28,25,23,0.18)]">
+                <div className="flex items-center justify-between border-b border-surface-container px-6 py-4">
                     <h2 className="text-base font-bold text-on-surface">{props.title}</h2>
-                    <button type="button" onClick={props.onClose} className="text-on-surface-variant hover:text-on-surface transition-colors bg-transparent">
+                    <button type="button" onClick={props.onClose} className="bg-transparent text-on-surface-variant hover:text-on-surface">
                         <span className="material-symbols-outlined">close</span>
                     </button>
                 </div>
@@ -102,184 +62,43 @@ function Modal(props: { isOpen: boolean; title: string; onClose: () => void; chi
     );
 }
 
-function ConfirmDialog(props: {
-    isOpen: boolean;
-    title: string;
-    description: string;
-    isLoading: boolean;
-    onConfirm: () => void;
-    onCancel: () => void;
-}) {
-    if (!props.isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={props.onCancel} />
-            <div className="relative bg-surface-container-lowest rounded-xl shadow-[0_24px_64px_rgba(28,25,23,0.18)] w-full max-w-sm p-6 border border-outline-variant/10">
-                <h2 className="text-base font-bold text-on-surface mb-2">{props.title}</h2>
-                <p className="text-sm text-on-surface-variant mb-6">{props.description}</p>
-                <div className="flex justify-end gap-3">
-                    <button
-                        type="button"
-                        className="px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface border border-outline-variant/50 bg-transparent hover:bg-surface-container transition-colors"
-                        onClick={props.onCancel}
-                        disabled={props.isLoading}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        className="px-5 py-2.5 rounded-lg text-sm font-bold text-error bg-transparent hover:bg-error-container transition-colors disabled:opacity-50"
-                        onClick={props.onConfirm}
-                        disabled={props.isLoading}
-                    >
-                        {props.isLoading ? "Working..." : "Confirm"}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function PublishForm(props: { onSubmit: (days: number) => void; onCancel: () => void }) {
-    const [days, setDays] = useState(30);
-
-    return (
-        <div className="flex flex-col gap-5">
-            <Field label="Publish duration (days)">
-                <input type="number" min={7} max={180} className={inputCls} value={days} onChange={(e) => setDays(Number(e.target.value))} />
-                <p className="text-xs text-on-surface-variant mt-1">Platform fee preview: NT$ {(days * 40).toLocaleString()}</p>
-            </Field>
-            <div className="flex justify-end gap-3">
-                <button
-                    type="button"
-                    className="px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface border border-outline-variant/50 bg-transparent hover:bg-surface-container transition-colors"
-                    onClick={props.onCancel}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    className="px-5 py-2.5 rounded-lg text-sm font-bold bg-primary-container text-on-surface hover:bg-inverse-primary transition-colors"
-                    onClick={() => props.onSubmit(days)}
-                >
-                    Publish
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function BookingForm(props: { onSubmit: (time: string, note: string) => void; onCancel: () => void }) {
-    const [preferredTime, setPreferredTime] = useState("");
-    const [note, setNote] = useState("");
-
-    return (
-        <div className="flex flex-col gap-5">
-            <Field label="Preferred viewing time">
-                <input type="datetime-local" className={inputCls} value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} />
-            </Field>
-            <Field label="Note">
-                <input className={inputCls} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Anything the owner should know?" />
-            </Field>
-            <div className="flex justify-end gap-3">
-                <button
-                    type="button"
-                    className="px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface border border-outline-variant/50 bg-transparent hover:bg-surface-container transition-colors"
-                    onClick={props.onCancel}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    disabled={!preferredTime}
-                    className="px-5 py-2.5 rounded-lg text-sm font-bold bg-primary-container text-on-surface hover:bg-inverse-primary transition-colors disabled:opacity-50"
-                    onClick={() => props.onSubmit(new Date(preferredTime).toISOString(), note)}
-                >
-                    Book viewing
-                </button>
-            </div>
-        </div>
-    );
-}
-
-function ConfirmAppointmentForm(props: { onSubmit: (time: string) => void; onCancel: () => void }) {
-    const [time, setTime] = useState("");
-
-    return (
-        <div className="flex flex-col gap-5">
-            <Field label="Confirmed time">
-                <input type="datetime-local" className={inputCls} value={time} onChange={(e) => setTime(e.target.value)} />
-            </Field>
-            <div className="flex justify-end gap-3">
-                <button
-                    type="button"
-                    className="px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface border border-outline-variant/50 bg-transparent hover:bg-surface-container transition-colors"
-                    onClick={props.onCancel}
-                >
-                    Cancel
-                </button>
-                <button
-                    type="button"
-                    disabled={!time}
-                    className="px-5 py-2.5 rounded-lg text-sm font-bold bg-primary-container text-on-surface hover:bg-inverse-primary transition-colors disabled:opacity-50"
-                    onClick={() => props.onSubmit(new Date(time).toISOString())}
-                >
-                    Confirm
-                </button>
-            </div>
-        </div>
-    );
-}
-
 function formatPrice(listing: Listing): string {
-    if (listing.list_type === "RENT") return `NT$ ${listing.price.toLocaleString()} / month`;
-    return `NT$ ${listing.price.toLocaleString()}`;
-}
-
-function formatAppointmentTime(value?: string): string {
-    if (!value) return "Not set";
-    return new Date(value).toLocaleString("zh-TW");
-}
-
-function badgeClass(status: string): string {
-    if (status === "ACTIVE") return "bg-tertiary/10 text-tertiary";
-    if (status === "NEGOTIATING") return "bg-amber-700/10 text-amber-700";
-    if (status === "DRAFT") return "bg-surface-container text-on-surface-variant";
-    return "bg-surface-container text-on-surface-variant";
+    if (listing.price <= 0) return "價格未設定";
+    if (listing.list_type === "RENT") return `NT$ ${listing.price.toLocaleString()} / 月`;
+    if (listing.list_type === "SALE") return `NT$ ${listing.price.toLocaleString()}`;
+    return "尚未選擇出租或出售";
 }
 
 export default function ListingDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { hasRole } = useIdentity();
-
     const [listing, setListing] = useState<Listing | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [successMsg, setSuccessMsg] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
     const [modal, setModal] = useState<ModalType>(null);
-    const [confirmAction, setConfirmAction] = useState<ConfirmType>(null);
     const [isActionLoading, setIsActionLoading] = useState(false);
-    const [confirmApptId, setConfirmApptId] = useState<number | null>(null);
+    const [publishDays, setPublishDays] = useState(30);
+    const [preferredTime, setPreferredTime] = useState("");
+    const [bookingNote, setBookingNote] = useState("");
 
     const listingId = id ? parseInt(id, 10) : Number.NaN;
 
     const load = async () => {
         if (Number.isNaN(listingId)) {
-            setErrorMsg("Invalid listing id.");
+            setErrorMsg("房源編號不正確。");
             setIsLoading(false);
             return;
         }
-
         try {
             setIsLoading(true);
             setErrorMsg("");
             setListing(await getListing(listingId));
         } catch (err) {
             setListing(null);
-            setErrorMsg(err instanceof Error ? err.message : "Failed to load listing.");
+            setErrorMsg(err instanceof Error ? err.message : "讀取房源失敗。");
         } finally {
             setIsLoading(false);
         }
@@ -300,10 +119,9 @@ export default function ListingDetailPage() {
             setSuccessMsg(successMessage);
             await load();
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : "Action failed.");
+            setErrorMsg(err instanceof Error ? err.message : "操作失敗。");
         } finally {
             setIsActionLoading(false);
-            setConfirmAction(null);
             setModal(null);
         }
     };
@@ -312,7 +130,7 @@ export default function ListingDetailPage() {
         return (
             <SiteLayout>
                 <div className="flex items-center justify-center py-32">
-                    <span className="text-sm text-on-surface-variant animate-pulse">Loading listing...</span>
+                    <span className="animate-pulse text-sm text-on-surface-variant">讀取房源中...</span>
                 </div>
             </SiteLayout>
         );
@@ -321,19 +139,13 @@ export default function ListingDetailPage() {
     if (!listing) {
         return (
             <SiteLayout>
-                <main className="w-full max-w-[960px] mx-auto px-6 md:px-12 py-20">
-                    <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10 flex flex-col gap-4">
-                        <h1 className="text-3xl font-extrabold text-on-background">Listing not available</h1>
-                        <p className="text-sm text-on-surface-variant">{errorMsg || "This listing was removed or does not exist."}</p>
-                        <div>
-                            <button
-                                type="button"
-                                className="px-5 py-2.5 rounded-lg text-sm font-bold bg-primary-container text-on-surface hover:bg-inverse-primary transition-colors"
-                                onClick={() => navigate("/listings")}
-                            >
-                                Back to listings
-                            </button>
-                        </div>
+                <main className="mx-auto w-full max-w-[960px] px-6 py-20 md:px-12">
+                    <div className="flex flex-col gap-4 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10">
+                        <h1 className="text-3xl font-extrabold text-on-background">找不到房源</h1>
+                        <p className="text-sm text-on-surface-variant">{errorMsg || "此房源可能已下架或不存在。"}</p>
+                        <button type="button" className="self-start rounded-lg bg-primary-container px-5 py-2.5 text-sm font-bold text-on-primary-container" onClick={() => navigate("/listings")}>
+                            返回房源列表
+                        </button>
                     </div>
                 </main>
             </SiteLayout>
@@ -341,428 +153,125 @@ export default function ListingDetailPage() {
     }
 
     const isOwner = listing.is_owner;
-    const appointments = listing.appointments ?? [];
     const canBook = hasRole("TENANT") && !isOwner && listing.status === "ACTIVE";
-    const confirmedAppointment = appointments.find((item) => item.status === "CONFIRMED");
+    const appointments = listing.appointments ?? [];
 
-    const handlePublish = (days: number) =>
-        runAction(() => publishListing(listingId, days), `Listing published for ${days} days.`);
-    const handleEdit = (payload: UpdateListingPayload) =>
-        runAction(() => updateListing(listingId, payload), "Listing updated.");
-    const handleRemove = () => runAction(() => removeListing(listingId), "Listing removed.");
-    const handleClose = () => runAction(() => closeListing(listingId), "Listing closed.");
-    const handleUnlock = () => runAction(() => unlockNegotiation(listingId), "Negotiation unlocked.");
-    const handleLock = (appointmentId: number) =>
-        runAction(() => lockNegotiation(listingId, appointmentId), "Negotiation locked to this queue.");
-    const handleBook = (time: string, note: string) =>
-        runAction(() => bookAppointment(listingId, time, note).then(() => undefined), "Viewing request submitted.");
-    const handleConfirmAppointment = (appointmentId: number, time: string) =>
-        runAction(() => confirmAppointment(listingId, appointmentId, time), "Viewing time confirmed.");
-    const handleCancelAppointment = (appointmentId: number) =>
-        runAction(() => cancelAppointment(listingId, appointmentId), "Appointment cancelled.");
-    const handleViewed = () => {
-        const target = appointments.find((item) => item.status !== "CANCELLED");
-        return target
-            ? runAction(() => updateAppointmentStatus(listingId, target.id, "VIEWED"), "Marked as viewed.")
-            : undefined;
+    const handlePublish = () => runAction(() => publishListing(listingId, publishDays), `房源已上架 ${publishDays} 天。`);
+    const handleEdit = (payload: UpdateListingPayload) => runAction(() => updateListing(listingId, payload), "房源已更新。");
+    const handleRemove = () => runAction(() => removeListing(listingId), "房源已下架。");
+    const handleClose = () => runAction(() => closeListing(listingId), "房源已結案。");
+    const handleBook = () => {
+        if (!preferredTime) return;
+        return runAction(() => bookAppointment(listingId, new Date(preferredTime).toISOString(), bookingNote).then(() => undefined), "看房預約已送出。");
     };
-    const handleInterested = () => {
-        const target = appointments.find((item) => item.status !== "CANCELLED");
-        return target
-            ? runAction(() => updateAppointmentStatus(listingId, target.id, "INTERESTED"), "Marked as interested.")
-            : undefined;
-    };
-
-    const confirmTitle: Record<NonNullable<ConfirmType>, string> = {
-        remove: "Remove listing",
-        close: "Close listing",
-        unlock: "Unlock negotiation",
-    };
-
-    const confirmDescription: Record<NonNullable<ConfirmType>, string> = {
-        remove: "This removes the listing from the active marketplace.",
-        close: "This marks the listing as closed and stops further progress.",
-        unlock: "This sends the listing back to the active queue.",
-    };
-
-    const handleConfirmOk = () => {
-        if (confirmAction === "remove") void handleRemove();
-        if (confirmAction === "close") void handleClose();
-        if (confirmAction === "unlock") void handleUnlock();
-    };
-
-    const queueSummary = listing.negotiating_appointment
-        ? `Locked to queue #${listing.negotiating_appointment.queue_position}`
-        : `${appointments.length} appointment(s)`;
 
     return (
         <SiteLayout>
-            <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-8 flex flex-col gap-8">
-                <div>
-                    <button
-                        type="button"
-                        onClick={() => navigate("/listings")}
-                        className="inline-flex items-center gap-2 text-on-surface-variant hover:text-primary-container transition-colors duration-200 text-sm font-medium bg-transparent"
-                    >
-                        <span className="material-symbols-outlined text-sm">arrow_back</span>
-                        Back to listings
-                    </button>
-                </div>
+            <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-6 py-8 md:px-12">
+                <button type="button" onClick={() => navigate("/listings")} className="self-start bg-transparent text-sm text-on-surface-variant hover:text-primary-container">
+                    返回房源列表
+                </button>
 
-                {successMsg ? (
-                    <div className="bg-tertiary/10 border border-tertiary/20 rounded-xl p-4 flex items-center gap-3">
-                        <span className="material-symbols-outlined text-tertiary" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-                        <p className="text-tertiary font-medium text-sm">{successMsg}</p>
+                {successMsg ? <div className="rounded-xl border border-tertiary/20 bg-tertiary/10 p-4 text-sm font-medium text-tertiary">{successMsg}</div> : null}
+                {errorMsg ? <div className="rounded-xl border border-error/20 bg-error-container p-4 text-sm text-on-error-container">{errorMsg}</div> : null}
+
+                {listing.status === "DRAFT" && listing.setup_status === "INCOMPLETE" ? (
+                    <div className="rounded-xl border border-amber-700/20 bg-amber-700/10 p-4 text-sm text-amber-700">
+                        這筆房源仍是未完善草稿，不會出現在公開列表。請補齊出租/出售類型、價格、坪數、房間數與衛浴數後再上架。
                     </div>
                 ) : null}
 
-                {errorMsg ? (
-                    <div className="bg-error-container border border-error/20 rounded-xl p-4">
-                        <p className="text-on-error-container text-sm">{errorMsg}</p>
-                    </div>
-                ) : null}
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    <div className="lg:col-span-8 flex flex-col gap-8">
-                        <div className="grid grid-cols-4 grid-rows-2 gap-4 h-[400px] md:h-[500px]">
-                            <div className="col-span-4 md:col-span-3 row-span-2 rounded-xl overflow-hidden relative group bg-surface-variant">
-                                {listing.image_url ? (
-                                    <img
-                                        src={listing.image_url}
-                                        alt={listing.title}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                    />
-                                ) : (
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <span className="material-symbols-outlined text-8xl text-on-surface-variant/20" style={{ fontVariationSettings: "'FILL' 1" }}>
-                                            home
-                                        </span>
-                                    </div>
-                                )}
-                                <div className="absolute top-4 left-4 flex gap-2">
-                                    <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-sm ${badgeClass(listing.status)}`}>
-                                        {STATUS_LABEL[listing.status] ?? listing.status}
-                                    </span>
-                                </div>
-                            </div>
-                            <div className="hidden md:flex col-span-1 row-span-1 rounded-xl overflow-hidden relative bg-surface-container-high p-4 flex-col justify-between">
-                                <span className="text-xs uppercase tracking-wider text-on-surface-variant">District</span>
-                                <span className="text-lg font-bold text-on-surface">{listing.district ?? "N/A"}</span>
-                                <span className="text-xs text-on-surface-variant">{listing.list_type}</span>
-                            </div>
-                            <div className="hidden md:flex col-span-1 row-span-1 rounded-xl overflow-hidden relative bg-surface-container p-4 flex-col justify-between">
-                                <span className="text-xs uppercase tracking-wider text-on-surface-variant">Queue</span>
-                                <span className="text-lg font-bold text-on-surface">{appointments.length}</span>
-                                <span className="text-xs text-on-surface-variant">{queueSummary}</span>
-                            </div>
-                        </div>
-
-                        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-[0_4px_32px_rgba(28,25,23,0.02)] border border-outline-variant/15 flex flex-col gap-6">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-surface-container-highest pb-6">
-                                <div className="flex flex-col gap-2">
-                                    <h1 className="text-3xl md:text-4xl font-extrabold text-on-surface tracking-tight leading-tight font-headline">
-                                        {listing.title}
-                                    </h1>
-                                    <p className="text-on-surface-variant text-sm flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-base">location_on</span>
-                                        {listing.district ? `${listing.district} ` : ""}
-                                        {listing.address}
-                                    </p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm text-on-surface-variant mb-1">{listing.list_type === "RENT" ? "Rental price" : "Sale price"}</p>
-                                    <p className="text-3xl md:text-4xl font-bold text-[#E8B800] tracking-tight font-headline">{formatPrice(listing)}</p>
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 py-4">
-                                {listing.room_count !== undefined ? (
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-sm text-on-surface-variant font-medium">Rooms</span>
-                                        <span className="text-lg font-bold text-on-surface">{listing.room_count}</span>
-                                    </div>
-                                ) : null}
-                                {listing.bathroom_count !== undefined ? (
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-sm text-on-surface-variant font-medium">Bathrooms</span>
-                                        <span className="text-lg font-bold text-on-surface">{listing.bathroom_count}</span>
-                                    </div>
-                                ) : null}
-                                {listing.area_ping !== undefined ? (
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-sm text-on-surface-variant font-medium">Area</span>
-                                        <span className="text-lg font-bold text-on-surface">{listing.area_ping} ping</span>
-                                    </div>
-                                ) : null}
-                                {(listing.floor !== undefined || listing.total_floors !== undefined) ? (
-                                    <div className="flex flex-col gap-1">
-                                        <span className="text-sm text-on-surface-variant font-medium">Floor</span>
-                                        <span className="text-lg font-bold text-on-surface">
-                                            {listing.floor ?? "?"}{listing.total_floors !== undefined ? ` / ${listing.total_floors}` : ""}
-                                        </span>
-                                    </div>
-                                ) : null}
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-sm text-on-surface-variant font-medium">Pet friendly</span>
-                                    <span className="text-lg font-bold text-on-surface">{listing.is_pet_allowed ? "Yes" : "No"}</span>
-                                </div>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-sm text-on-surface-variant font-medium">Parking</span>
-                                    <span className="text-lg font-bold text-on-surface">{listing.is_parking_included ? "Included" : "Not included"}</span>
-                                </div>
-                            </div>
-
-                            {listing.description ? (
-                                <div className="prose max-w-none text-on-surface-variant leading-[1.75]">
-                                    <p className="whitespace-pre-wrap">{listing.description}</p>
-                                </div>
+                <section className="grid gap-8 lg:grid-cols-[1fr_360px]">
+                    <article className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
+                        <div className="mb-5 flex flex-wrap gap-2">
+                            <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface-variant">{STATUS_LABEL[listing.status] ?? listing.status}</span>
+                            <span className="rounded-full bg-primary-container/15 px-3 py-1 text-xs font-bold text-primary-container">
+                                {listing.setup_status === "READY" ? "資料可上架" : "尚未完善"}
+                            </span>
+                            {listing.draft_origin === "OWNER_ACTIVATION" ? (
+                                <span className="rounded-full bg-tertiary/10 px-3 py-1 text-xs font-bold text-tertiary">屋主認證草稿</span>
                             ) : null}
                         </div>
+                        <h1 className="text-4xl font-extrabold text-on-surface">{listing.title || "未命名房源"}</h1>
+                        <p className="mt-3 text-sm leading-[1.8] text-on-surface-variant">{listing.address || "尚未填寫地址"}</p>
+                        <p className="mt-6 text-3xl font-extrabold text-primary-container">{formatPrice(listing)}</p>
 
-                        <div className="bg-surface-container-low rounded-xl p-6 border border-outline-variant/15 flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-tertiary">contract</span>
+                        <div className="mt-8 grid gap-4 md:grid-cols-3">
+                            <div className="rounded-xl bg-surface-container-low p-4">
+                                <p className="text-sm text-on-surface-variant">坪數</p>
+                                <p className="mt-1 text-lg font-bold text-on-surface">{listing.area_ping !== undefined ? `${listing.area_ping} 坪` : "未填寫"}</p>
                             </div>
-                            <div>
-                                <h3 className="text-base font-bold text-on-surface mb-1">On-chain roadmap note</h3>
-                                <p className="text-sm text-on-surface-variant leading-[1.75]">
-                                    This page is still using the off-chain Gate 0 listing workflow. Property, Agency, Case, and Stake proof surfaces will arrive in later gates.
+                            <div className="rounded-xl bg-surface-container-low p-4">
+                                <p className="text-sm text-on-surface-variant">格局</p>
+                                <p className="mt-1 text-lg font-bold text-on-surface">
+                                    {listing.room_count !== undefined ? `${listing.room_count} 房` : "未填寫"}
+                                    {listing.bathroom_count !== undefined ? ` / ${listing.bathroom_count} 衛` : ""}
+                                </p>
+                            </div>
+                            <div className="rounded-xl bg-surface-container-low p-4">
+                                <p className="text-sm text-on-surface-variant">樓層</p>
+                                <p className="mt-1 text-lg font-bold text-on-surface">
+                                    {listing.floor ?? "?"}{listing.total_floors !== undefined ? ` / ${listing.total_floors}` : ""}
                                 </p>
                             </div>
                         </div>
 
-                        {isOwner && isAuthenticated && appointments.length > 0 ? (
-                            <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_32px_rgba(28,25,23,0.02)] border border-outline-variant/15 flex flex-col gap-4">
-                                <h3 className="text-lg font-bold text-on-surface font-headline border-b border-surface-container-highest pb-3">
-                                    Viewing queue
-                                </h3>
-                                <div className="flex flex-col gap-4">
-                                    {appointments.map((appointment) => {
-                                        const isNegotiating = appointment.id === listing.negotiating_appointment?.id;
-                                        const canLockQueue = listing.status === "ACTIVE" && appointment.status !== "CANCELLED";
-                                        const canUnlockQueue = isNegotiating && listing.status === "NEGOTIATING";
+                        {listing.description ? <p className="mt-8 whitespace-pre-wrap text-sm leading-[1.9] text-on-surface-variant">{listing.description}</p> : null}
+                    </article>
 
-                                        return (
-                                            <div key={appointment.id} className="flex items-center justify-between gap-4 p-3 rounded-lg bg-surface-container-low border border-outline-variant/10">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center">
-                                                        <span className="material-symbols-outlined text-on-surface-variant">person</span>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm font-bold text-on-surface">
-                                                            Queue #{appointment.queue_position}
-                                                            <span className="ml-2 text-xs font-normal text-on-surface-variant">
-                                                                {APPOINTMENT_STATUS_LABEL[appointment.status] ?? appointment.status}
-                                                            </span>
-                                                            {isNegotiating ? <span className="ml-2 text-xs font-bold text-primary-container">Negotiating</span> : null}
-                                                        </p>
-                                                        <p className="text-xs text-on-surface-variant">
-                                                            Requested: {formatAppointmentTime(appointment.preferred_time)}
-                                                        </p>
-                                                        {appointment.confirmed_time ? (
-                                                            <p className="text-xs text-on-surface-variant">
-                                                                Confirmed: {formatAppointmentTime(appointment.confirmed_time)}
-                                                            </p>
-                                                        ) : null}
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-wrap gap-2 justify-end">
-                                                    {appointment.status === "PENDING" ? (
-                                                        <button
-                                                            type="button"
-                                                            className="text-xs font-medium bg-surface-container-lowest border border-outline-variant/20 text-on-surface px-3 py-1.5 rounded-lg hover:bg-surface-variant transition-colors"
-                                                            onClick={() => {
-                                                                setConfirmApptId(appointment.id);
-                                                                setModal("confirm-appt");
-                                                            }}
-                                                        >
-                                                            Confirm time
-                                                        </button>
-                                                    ) : null}
-                                                    {canLockQueue ? (
-                                                        <button
-                                                            type="button"
-                                                            className="text-xs font-medium bg-surface-container-lowest border border-outline-variant/20 text-on-surface px-3 py-1.5 rounded-lg hover:bg-surface-variant transition-colors"
-                                                            onClick={() => void handleLock(appointment.id)}
-                                                        >
-                                                            Lock negotiation
-                                                        </button>
-                                                    ) : null}
-                                                    {canUnlockQueue ? (
-                                                        <button
-                                                            type="button"
-                                                            className="text-xs font-medium bg-[#E8B800] text-[#1C1917] px-3 py-1.5 rounded-lg hover:brightness-105 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]"
-                                                            onClick={() => setConfirmAction("unlock")}
-                                                        >
-                                                            Unlock
-                                                        </button>
-                                                    ) : null}
-                                                    {appointment.status !== "CANCELLED" ? (
-                                                        <button
-                                                            type="button"
-                                                            className="text-xs font-medium text-error bg-transparent hover:bg-error-container px-3 py-1.5 rounded-lg transition-colors"
-                                                            onClick={() => void handleCancelAppointment(appointment.id)}
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    ) : null}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                    <aside className="flex flex-col gap-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
+                        {isOwner ? (
+                            <>
+                                {listing.status === "DRAFT" ? <ActionButton variant="primary" onClick={() => setModal("publish")}>上架房源</ActionButton> : null}
+                                {(listing.status === "DRAFT" || listing.status === "ACTIVE") ? <ActionButton onClick={() => setModal("edit")}>編輯房源</ActionButton> : null}
+                                {listing.status === "ACTIVE" ? <ActionButton variant="danger" onClick={() => void handleRemove()}>下架房源</ActionButton> : null}
+                                {(listing.status === "ACTIVE" || listing.status === "NEGOTIATING") ? <ActionButton onClick={() => void handleClose()}>結案</ActionButton> : null}
+                            </>
+                        ) : isAuthenticated ? (
+                            <>
+                                {canBook ? <ActionButton variant="primary" onClick={() => setModal("book")}>預約看房</ActionButton> : null}
+                                {!canBook ? <p className="text-center text-sm text-on-surface-variant">目前不可預約此房源。</p> : null}
+                            </>
+                        ) : (
+                            <ActionButton variant="primary" onClick={() => navigate("/login")}>登入後預約看房</ActionButton>
+                        )}
+
+                        {appointments.length > 0 ? (
+                            <div className="mt-4 border-t border-surface-container pt-4">
+                                <h2 className="text-sm font-bold text-on-surface">預約紀錄</h2>
+                                <p className="mt-2 text-sm text-on-surface-variant">目前共有 {appointments.length} 筆預約。</p>
                             </div>
                         ) : null}
-                    </div>
-
-                    <div className="lg:col-span-4 flex flex-col gap-6">
-                        <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_32px_rgba(28,25,23,0.02)] border border-outline-variant/15 sticky top-[88px] flex flex-col gap-6">
-                            <div className="flex items-center gap-4 border-b border-surface-container-highest pb-4">
-                                <div className="w-12 h-12 rounded-full bg-surface-container-high overflow-hidden flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-on-surface-variant">person</span>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-on-surface-variant">Owner</p>
-                                    <p className="text-base font-bold text-on-surface">{isOwner ? "You" : "Verified member"}</p>
-                                </div>
-                            </div>
-
-                            {listing.status === "NEGOTIATING" ? (
-                                <div className="bg-[#FEF3C7] rounded-lg p-3 border border-[#F59E0B]/20 flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-[#B45309] text-sm">info</span>
-                                    <p className="text-sm text-[#B45309] font-medium">{queueSummary}</p>
-                                </div>
-                            ) : null}
-
-                            <div className="flex flex-col gap-3">
-                                {isOwner ? (
-                                    <>
-                                        {listing.status === "DRAFT" ? (
-                                            <ActionButton variant="primary" onClick={() => setModal("publish")}>
-                                                Publish listing
-                                            </ActionButton>
-                                        ) : null}
-                                        {(listing.status === "DRAFT" || listing.status === "ACTIVE") ? (
-                                            <ActionButton variant="secondary" onClick={() => setModal("edit")}>
-                                                Edit listing
-                                            </ActionButton>
-                                        ) : null}
-                                        {listing.status === "ACTIVE" ? (
-                                            <ActionButton variant="secondary" onClick={() => setConfirmAction("remove")}>
-                                                Remove listing
-                                            </ActionButton>
-                                        ) : null}
-                                        {(listing.status === "ACTIVE" || listing.status === "NEGOTIATING") ? (
-                                            <ActionButton variant="secondary" onClick={() => setConfirmAction("close")}>
-                                                Close listing
-                                            </ActionButton>
-                                        ) : null}
-                                        {listing.status === "NEGOTIATING" ? (
-                                            <ActionButton variant="secondary" onClick={() => setConfirmAction("unlock")}>
-                                                Unlock negotiation
-                                            </ActionButton>
-                                        ) : null}
-                                    </>
-                                ) : isAuthenticated ? (
-                                    <>
-                                        {canBook ? (
-                                            <ActionButton variant="primary" onClick={() => setModal("book")}>
-                                                Book viewing
-                                            </ActionButton>
-                                        ) : null}
-                                        <ActionButton variant="secondary">Contact owner</ActionButton>
-                                        {confirmedAppointment ? (
-                                            <>
-                                                <ActionButton variant="secondary" onClick={() => void handleViewed()}>
-                                                    Mark viewed
-                                                </ActionButton>
-                                                <ActionButton variant="secondary" onClick={() => void handleInterested()}>
-                                                    Mark interested
-                                                </ActionButton>
-                                            </>
-                                        ) : null}
-                                        {!canBook && listing.status !== "ACTIVE" ? (
-                                            <p className="text-xs text-on-surface-variant text-center py-2">
-                                                This listing is not open for new appointments right now.
-                                            </p>
-                                        ) : null}
-                                    </>
-                                ) : (
-                                    <>
-                                        <ActionButton variant="primary" onClick={() => navigate("/login")}>
-                                            Login to book viewing
-                                        </ActionButton>
-                                        <ActionButton variant="secondary">Contact owner</ActionButton>
-                                    </>
-                                )}
-                            </div>
-                        </div>
-
-                        {isAuthenticated && !isOwner && appointments.length > 0 ? (
-                            <div className="bg-surface-container-lowest rounded-xl p-6 shadow-[0_4px_32px_rgba(28,25,23,0.02)] border border-outline-variant/15 flex flex-col gap-4">
-                                <h3 className="text-lg font-bold text-on-surface font-headline border-b border-surface-container-highest pb-3">
-                                    Your queue status
-                                </h3>
-                                <div className="flex flex-col gap-3">
-                                    {appointments.map((appointment: Appointment) => (
-                                        <div key={appointment.id} className="flex items-center justify-between p-3 rounded-lg bg-surface-container-low border border-outline-variant/10">
-                                            <div>
-                                                <p className="text-sm font-bold text-on-surface">Queue #{appointment.queue_position}</p>
-                                                <p className="text-xs text-on-surface-variant">
-                                                    {APPOINTMENT_STATUS_LABEL[appointment.status] ?? appointment.status}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
+                    </aside>
+                </section>
             </main>
 
-            <Modal isOpen={modal === "publish"} title="Publish listing" onClose={() => setModal(null)}>
-                <PublishForm onSubmit={handlePublish} onCancel={() => setModal(null)} />
+            <Modal isOpen={modal === "publish"} title="上架房源" onClose={() => setModal(null)}>
+                <div className="flex flex-col gap-4">
+                    <label className="text-xs font-semibold text-on-surface-variant">
+                        上架天數
+                        <input className="mt-2 w-full rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" type="number" min={7} max={180} value={publishDays} onChange={(e) => setPublishDays(Number(e.target.value))} />
+                    </label>
+                    <ActionButton variant="primary" disabled={isActionLoading} onClick={() => void handlePublish()}>確認上架</ActionButton>
+                </div>
             </Modal>
-            <Modal isOpen={modal === "edit"} title="Edit listing" onClose={() => setModal(null)}>
+            <Modal isOpen={modal === "edit"} title="編輯房源" onClose={() => setModal(null)}>
                 <ListingEditorForm
                     mode="edit"
                     initialValues={listingToEditorValues(listing)}
                     submitting={isActionLoading}
-                    submitLabel="Save changes"
+                    submitLabel="儲存變更"
                     onSubmit={(payload) => handleEdit(payload as UpdateListingPayload)}
                     onCancel={() => setModal(null)}
                 />
             </Modal>
-            <Modal isOpen={modal === "book"} title="Book viewing" onClose={() => setModal(null)}>
-                <BookingForm onSubmit={handleBook} onCancel={() => setModal(null)} />
+            <Modal isOpen={modal === "book"} title="預約看房" onClose={() => setModal(null)}>
+                <div className="flex flex-col gap-4">
+                    <input className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" type="datetime-local" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} />
+                    <input className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" value={bookingNote} onChange={(e) => setBookingNote(e.target.value)} placeholder="補充說明" />
+                    <ActionButton variant="primary" disabled={!preferredTime || isActionLoading} onClick={() => void handleBook()}>送出預約</ActionButton>
+                </div>
             </Modal>
-            <Modal
-                isOpen={modal === "confirm-appt"}
-                title="Confirm viewing time"
-                onClose={() => {
-                    setModal(null);
-                    setConfirmApptId(null);
-                }}
-            >
-                <ConfirmAppointmentForm
-                    onSubmit={(time) => {
-                        if (confirmApptId) void handleConfirmAppointment(confirmApptId, time);
-                    }}
-                    onCancel={() => {
-                        setModal(null);
-                        setConfirmApptId(null);
-                    }}
-                />
-            </Modal>
-            <ConfirmDialog
-                isOpen={confirmAction !== null}
-                title={confirmAction ? confirmTitle[confirmAction] : ""}
-                description={confirmAction ? confirmDescription[confirmAction] : ""}
-                isLoading={isActionLoading}
-                onConfirm={handleConfirmOk}
-                onCancel={() => setConfirmAction(null)}
-            />
         </SiteLayout>
     );
 }

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
-import PageLoading from "./PageLoading";
 import { useIdentity } from "../../hooks/useIdentity";
+import PageLoading from "./PageLoading";
 
 type CredentialType = "OWNER" | "TENANT" | "AGENT";
 
@@ -11,30 +11,22 @@ interface RequireCredentialProps {
     children: ReactNode;
 }
 
-function GateFallback({ title, description, actionLabel, actionPath }: {
-    title: string;
-    description: string;
-    actionLabel: string;
-    actionPath: string;
-}) {
+function GateFallback(props: { title: string; description: string; actionLabel: string; actionPath: string }) {
     const navigate = useNavigate();
     return (
         <div className="flex min-h-[60vh] items-center justify-center px-6">
-            <div className="max-w-md w-full rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-10 text-center shadow-sm">
-                <span
-                    className="material-symbols-outlined text-5xl text-on-surface-variant/40 mb-4 block"
-                    style={{ fontVariationSettings: "'FILL' 0" }}
-                >
+            <div className="w-full max-w-md rounded-2xl border border-outline-variant/20 bg-surface-container-lowest p-10 text-center shadow-sm">
+                <span className="material-symbols-outlined mb-4 block text-5xl text-on-surface-variant/40" style={{ fontVariationSettings: "'FILL' 0" }}>
                     lock
                 </span>
-                <h2 className="text-xl font-bold text-on-surface mb-2">{title}</h2>
-                <p className="text-sm text-on-surface-variant leading-relaxed mb-8">{description}</p>
+                <h2 className="mb-2 text-xl font-bold text-on-surface">{props.title}</h2>
+                <p className="mb-8 text-sm leading-relaxed text-on-surface-variant">{props.description}</p>
                 <button
                     type="button"
-                    onClick={() => navigate(actionPath)}
-                    className="w-full rounded-xl bg-[#E8B800] py-3 px-6 font-bold text-[#1C1917] hover:brightness-105 transition-all"
+                    onClick={() => navigate(props.actionPath)}
+                    className="w-full rounded-xl bg-primary-container px-6 py-3 font-bold text-on-primary-container transition-opacity hover:opacity-90"
                 >
-                    {actionLabel}
+                    {props.actionLabel}
                 </button>
             </div>
         </div>
@@ -50,7 +42,7 @@ export default function RequireCredential({ requiredRole, anyOf, children }: Req
         return (
             <GateFallback
                 title="請先登入"
-                description="你需要登入才能繼續查看此頁面的內容。"
+                description="這個頁面需要會員身份，登入後才能繼續操作。"
                 actionLabel="前往登入"
                 actionPath="/login"
             />
@@ -60,25 +52,21 @@ export default function RequireCredential({ requiredRole, anyOf, children }: Req
     if (kycStatus !== "VERIFIED") {
         return (
             <GateFallback
-                title="請先完成身份驗證"
-                description="查看此頁面需要先通過 KYC 身份驗證。"
+                title="請先完成 KYC"
+                description="平台需要先確認自然人身份，完成後才能啟用屋主、租客或仲介角色。"
                 actionLabel="前往身份驗證"
                 actionPath="/kyc"
             />
         );
     }
 
-    const roleGranted = requiredRole
-        ? hasRole(requiredRole)
-        : anyOf
-          ? hasAnyRole(anyOf)
-          : true;
+    const roleGranted = requiredRole ? hasRole(requiredRole) : anyOf ? hasAnyRole(anyOf) : true;
 
     if (!roleGranted) {
         return (
             <GateFallback
-                title="需要角色認證"
-                description="此功能需要先在身份中心完成對應的角色認證並啟用身份。"
+                title="尚未啟用對應身份"
+                description="此功能需要先在身份中心啟用對應角色。平台只負責揭露狀態，實際合作仍由各方自行確認。"
                 actionLabel="前往身份中心"
                 actionPath="/member"
             />

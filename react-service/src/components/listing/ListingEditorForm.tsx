@@ -44,8 +44,10 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
     const [error, setError] = useState("");
 
     const canSubmit = useMemo(() => {
-        return form.title.trim() !== "" && form.address.trim() !== "" && Number(form.price) > 0;
-    }, [form]);
+        const hasRequiredBasics = form.title.trim() !== "" && form.address.trim() !== "" && Number(form.price) > 0;
+        if (props.mode === "create") return hasRequiredBasics && form.listType !== "UNSET";
+        return hasRequiredBasics;
+    }, [form, props.mode]);
 
     const setField = <K extends keyof ListingEditorValues>(key: K, value: ListingEditorValues[K]) => {
         setForm((current) => ({ ...current, [key]: value }));
@@ -59,6 +61,7 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
                 description: form.description.trim() || undefined,
                 address: form.address.trim(),
                 district: form.district.trim() || undefined,
+                list_type: form.listType,
                 price: Number(form.price),
                 area_ping: toOptionalNumber(form.areaPing),
                 floor: toOptionalNumber(form.floor),
@@ -70,6 +73,9 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
             };
 
             if (props.mode === "create") {
+                if (form.listType === "UNSET") {
+                    throw new Error("請選擇出租或出售。");
+                }
                 await props.onSubmit({
                     ...base,
                     list_type: form.listType,
@@ -80,55 +86,64 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
 
             await props.onSubmit(base satisfies UpdateListingPayload);
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to save listing.");
+            setError(err instanceof Error ? err.message : "儲存房源失敗。");
         }
     };
 
     return (
         <div className="flex flex-col gap-4">
-            <Field label="Listing type">
-                <div className="grid grid-cols-2 gap-3">
+            <Field label="刊登類型">
+                <div className="grid grid-cols-3 gap-3">
                     <button
                         type="button"
-                        disabled={props.mode === "edit"}
+                        onClick={() => setField("listType", "UNSET")}
+                        className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                            form.listType === "UNSET"
+                                ? "bg-primary-container text-on-primary-container"
+                                : "bg-surface-container-low text-on-surface"
+                        }`}
+                    >
+                        尚未決定
+                    </button>
+                    <button
+                        type="button"
                         onClick={() => setField("listType", "RENT")}
                         className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                             form.listType === "RENT"
                                 ? "bg-primary-container text-on-primary-container"
                                 : "bg-surface-container-low text-on-surface"
-                        } ${props.mode === "edit" ? "cursor-not-allowed opacity-70" : ""}`}
+                        }`}
                     >
-                        Rent
+                        出租
                     </button>
                     <button
                         type="button"
-                        disabled={props.mode === "edit"}
                         onClick={() => setField("listType", "SALE")}
                         className={`rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                             form.listType === "SALE"
                                 ? "bg-primary-container text-on-primary-container"
                                 : "bg-surface-container-low text-on-surface"
-                        } ${props.mode === "edit" ? "cursor-not-allowed opacity-70" : ""}`}
+                        }`}
                     >
-                        Sale
+                        出售
                     </button>
                 </div>
             </Field>
 
-            <Field label="Title">
+            <Field label="標題">
                 <input className={inputCls} value={form.title} onChange={(e) => setField("title", e.target.value)} />
             </Field>
 
-            <Field label="Address">
+            <Field label="地址">
                 <input className={inputCls} value={form.address} onChange={(e) => setField("address", e.target.value)} />
             </Field>
 
-            <Field label="District">
+            <Field label="行政區">
                 <input className={inputCls} value={form.district} onChange={(e) => setField("district", e.target.value)} />
             </Field>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Field label="Price (NTD)">
+                <Field label="價格（新台幣）">
                     <input
                         type="number"
                         min={1}
@@ -138,7 +153,7 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
                     />
                 </Field>
                 {props.mode === "create" ? (
-                    <Field label="Publish duration (days)">
+                    <Field label="上架天數">
                         <input
                             type="number"
                             min={7}
@@ -152,19 +167,19 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Field label="Area (ping)">
+                <Field label="坪數">
                     <input className={inputCls} type="number" value={form.areaPing} onChange={(e) => setField("areaPing", e.target.value)} />
                 </Field>
-                <Field label="Floor">
+                <Field label="所在樓層">
                     <input className={inputCls} type="number" value={form.floor} onChange={(e) => setField("floor", e.target.value)} />
                 </Field>
-                <Field label="Total floors">
+                <Field label="總樓層">
                     <input className={inputCls} type="number" value={form.totalFloors} onChange={(e) => setField("totalFloors", e.target.value)} />
                 </Field>
-                <Field label="Rooms">
+                <Field label="房間數">
                     <input className={inputCls} type="number" value={form.roomCount} onChange={(e) => setField("roomCount", e.target.value)} />
                 </Field>
-                <Field label="Bathrooms">
+                <Field label="衛浴數">
                     <input className={inputCls} type="number" value={form.bathroomCount} onChange={(e) => setField("bathroomCount", e.target.value)} />
                 </Field>
             </div>
@@ -176,7 +191,7 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
                         checked={form.isPetAllowed}
                         onChange={(e) => setField("isPetAllowed", e.target.checked)}
                     />
-                    Pet friendly
+                    可養寵物
                 </label>
                 <label className={checkboxLabelCls}>
                     <input
@@ -184,11 +199,11 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
                         checked={form.isParkingIncluded}
                         onChange={(e) => setField("isParkingIncluded", e.target.checked)}
                     />
-                    Parking included
+                    含車位
                 </label>
             </div>
 
-            <Field label="Description">
+            <Field label="房源說明">
                 <textarea
                     className={inputCls}
                     rows={5}
@@ -206,7 +221,7 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
                         onClick={props.onCancel}
                         className="px-5 py-2.5 rounded-lg text-sm font-medium text-on-surface border border-outline-variant/50 bg-transparent hover:bg-surface-container transition-colors"
                     >
-                        Cancel
+                        取消
                     </button>
                 ) : null}
                 <button
@@ -215,7 +230,7 @@ export default function ListingEditorForm(props: ListingEditorFormProps) {
                     onClick={() => void handleSubmit()}
                     className="px-5 py-2.5 rounded-lg text-sm font-bold bg-primary-container text-on-surface hover:bg-inverse-primary transition-colors disabled:opacity-50"
                 >
-                    {props.submitting ? "Saving..." : props.submitLabel}
+                    {props.submitting ? "儲存中..." : props.submitLabel}
                 </button>
             </div>
         </div>

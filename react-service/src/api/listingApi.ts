@@ -11,7 +11,9 @@ export type ListingStatus =
     | "REMOVED"
     | "SUSPENDED";
 
-export type ListingType = "RENT" | "SALE";
+export type ListingType = "UNSET" | "RENT" | "SALE";
+export type ListingSetupStatus = "INCOMPLETE" | "READY";
+export type ListingDraftOrigin = "MANUAL_CREATE" | "OWNER_ACTIVATION";
 
 export type AppointmentStatus =
     | "PENDING"
@@ -49,6 +51,9 @@ export type Listing = {
     is_pet_allowed: boolean;
     is_parking_included: boolean;
     status: ListingStatus;
+    draft_origin: ListingDraftOrigin;
+    setup_status: ListingSetupStatus;
+    source_credential_submission_id?: number;
     negotiating_appointment?: Appointment;
     appointments?: Appointment[];
     daily_fee_ntd: number;
@@ -65,7 +70,7 @@ export type CreateListingPayload = {
     description?: string;
     address: string;
     district?: string;
-    list_type: ListingType;
+    list_type: Exclude<ListingType, "UNSET">;
     price: number;
     area_ping?: number;
     floor?: number;
@@ -77,7 +82,21 @@ export type CreateListingPayload = {
     duration_days: number;
 };
 
-export type UpdateListingPayload = Omit<CreateListingPayload, "list_type" | "duration_days">;
+export type UpdateListingPayload = {
+    title: string;
+    description?: string;
+    address: string;
+    district?: string;
+    list_type?: ListingType;
+    price: number;
+    area_ping?: number;
+    floor?: number;
+    total_floors?: number;
+    room_count?: number;
+    bathroom_count?: number;
+    is_pet_allowed: boolean;
+    is_parking_included: boolean;
+};
 
 async function parseResponse<T>(res: Response): Promise<T> {
     const raw = await res.text();
@@ -90,7 +109,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
 // ── Listing queries ──────────────────────────────────────────────────────────
 
-export async function getListings(params?: { type?: ListingType; district?: string }): Promise<Listing[]> {
+export async function getListings(params?: { type?: Exclude<ListingType, "UNSET">; district?: string }): Promise<Listing[]> {
     const qs = new URLSearchParams();
     if (params?.type) qs.set("type", params.type);
     if (params?.district) qs.set("district", params.district);

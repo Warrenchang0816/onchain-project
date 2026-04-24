@@ -16,6 +16,13 @@ import AgentCredentialPage from "../pages/AgentCredentialPage";
 import RequireCredential from "../components/common/RequireCredential";
 import AgentListPage from "../pages/AgentListPage";
 import AgentDetailPage from "../pages/AgentDetailPage";
+import MyListingsPage from "../pages/MyListingsPage";
+import TenantProfilePage from "../pages/TenantProfilePage";
+import MyRequirementsPage from "../pages/MyRequirementsPage";
+import RequirementsPage from "../pages/RequirementsPage";
+import RequirementDetailPage from "../pages/RequirementDetailPage";
+import MyAgentProfilePage from "../pages/MyAgentProfilePage";
+import FavoritesPage from "../pages/FavoritesPage";
 
 const router = createBrowserRouter([
     {
@@ -55,6 +62,54 @@ const router = createBrowserRouter([
         element: <IdentityCenterPage />,
     },
     {
+        path: "/my/listings",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <MyListingsPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/tenant-profile",
+        element: (
+            <RequireCredential requiredRole="TENANT">
+                <TenantProfilePage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/requirements",
+        element: (
+            <RequireCredential requiredRole="TENANT">
+                <MyRequirementsPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/requirements",
+        element: (
+            <RequireCredential anyOf={["OWNER", "AGENT"]}>
+                <RequirementsPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/requirements/:id",
+        element: (
+            <RequireCredential anyOf={["OWNER", "AGENT"]}>
+                <RequirementDetailPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/agent-profile",
+        element: (
+            <RequireCredential requiredRole="AGENT">
+                <MyAgentProfilePage />
+            </RequireCredential>
+        ),
+    },
+    {
         path: "/settings",
         element: <SettingsPage />,
     },
@@ -65,6 +120,10 @@ const router = createBrowserRouter([
     {
         path: "/profile",
         element: <MemberProfilePage />,
+    },
+    {
+        path: "/favorites",
+        element: <FavoritesPage />,
     },
     {
         path: "/credential/owner",

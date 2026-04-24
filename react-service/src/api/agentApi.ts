@@ -5,6 +5,9 @@ export type AgentListItem = {
     displayName?: string;
     activatedAt: string;
     nftTokenId: number;
+    headline?: string;
+    serviceAreas: string[];
+    isProfileComplete: boolean;
 };
 
 export type AgentDetailResponse = {
@@ -13,6 +16,24 @@ export type AgentDetailResponse = {
     activatedAt: string;
     nftTokenId: number;
     txHash: string;
+    headline?: string;
+    bio?: string;
+    serviceAreas: string[];
+    licenseNote?: string;
+    isProfileComplete: boolean;
+};
+
+export type AgentListFilters = {
+    serviceArea?: string;
+    profile?: "complete" | "incomplete";
+};
+
+export type UpsertMyAgentProfileRequest = {
+    headline: string;
+    bio: string;
+    serviceAreas: string[];
+    licenseNote: string;
+    contactPreferences: string;
 };
 
 type ApiEnvelope<T> = {
@@ -38,12 +59,33 @@ async function unwrap<T>(res: Response): Promise<T> {
     return parsed.data as T;
 }
 
-export async function getAgentList(): Promise<{ items: AgentListItem[] }> {
-    const res = await fetch(`${API_BASE_URL}/agents`);
+export async function getAgentList(filters?: AgentListFilters): Promise<{ items: AgentListItem[] }> {
+    const qs = new URLSearchParams();
+    if (filters?.serviceArea) qs.set("serviceArea", filters.serviceArea);
+    if (filters?.profile) qs.set("profile", filters.profile);
+    const res = await fetch(`${API_BASE_URL}/agents${qs.toString() ? `?${qs}` : ""}`);
     return unwrap<{ items: AgentListItem[] }>(res);
 }
 
 export async function getAgentDetail(wallet: string): Promise<AgentDetailResponse> {
     const res = await fetch(`${API_BASE_URL}/agents/${wallet}`);
+    return unwrap<AgentDetailResponse>(res);
+}
+
+export async function getMyAgentProfile(): Promise<AgentDetailResponse> {
+    const res = await fetch(`${API_BASE_URL}/agents/me/profile`, {
+        method: "GET",
+        credentials: "include",
+    });
+    return unwrap<AgentDetailResponse>(res);
+}
+
+export async function updateMyAgentProfile(payload: UpsertMyAgentProfileRequest): Promise<AgentDetailResponse> {
+    const res = await fetch(`${API_BASE_URL}/agents/me/profile`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+    });
     return unwrap<AgentDetailResponse>(res);
 }
