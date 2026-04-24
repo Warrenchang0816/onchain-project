@@ -1,7 +1,7 @@
 const API_BASE_URL = import.meta.env.VITE_API_GO_SERVICE_URL || "http://localhost:8081/api";
 
 export type CredentialType = "OWNER" | "TENANT" | "AGENT";
-export type CredentialReviewRoute = "SMART" | "MANUAL";
+export type CredentialReviewRoute = "SMART" | "MANUAL" | "PROFILE";
 export type CredentialDisplayStatus =
     | "NOT_STARTED"
     | "SMART_REVIEWING"

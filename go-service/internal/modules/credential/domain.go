@@ -12,8 +12,9 @@ const (
 	CredentialTypeTenant = "TENANT"
 	CredentialTypeAgent  = "AGENT"
 
-	ReviewRouteSmart  = "SMART"
-	ReviewRouteManual = "MANUAL"
+	ReviewRouteSmart   = "SMART"
+	ReviewRouteManual  = "MANUAL"
+	ReviewRouteProfile = "PROFILE"
 
 	CredentialReviewDraft           = "DRAFT"
 	CredentialReviewSmartReviewing  = "SMART_REVIEWING"
@@ -96,6 +97,16 @@ func TypeForTokenID(tokenID int64) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported credential token id %d", tokenID)
 	}
+}
+
+func ValidateTenantProfilePayload(form map[string]string) error {
+	required := []string{"holderName", "occupationType", "orgName", "incomeRange"}
+	for _, key := range required {
+		if strings.TrimSpace(form[key]) == "" {
+			return fmt.Errorf("tenant profile field %q is required", key)
+		}
+	}
+	return nil
 }
 
 func EnsureActivatable(sub *model.CredentialSubmission, hasActiveCredential bool) error {

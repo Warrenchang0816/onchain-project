@@ -156,6 +156,38 @@ func TestDisplayStatusForSubmission(t *testing.T) {
 	}
 }
 
+func TestNormalizeReviewRouteProfile(t *testing.T) {
+	got, err := normalizeReviewRoute("profile")
+	if err != nil {
+		t.Fatalf("normalizeReviewRoute returned error: %v", err)
+	}
+	if got != ReviewRouteProfile {
+		t.Fatalf("normalizeReviewRoute(profile) = %q, want %q", got, ReviewRouteProfile)
+	}
+}
+
+func TestValidateTenantProfilePayload(t *testing.T) {
+	valid := map[string]string{
+		"holderName":     "王小美",
+		"occupationType": "上班族",
+		"orgName":        "測試公司",
+		"incomeRange":    "40k-60k",
+	}
+	if err := ValidateTenantProfilePayload(valid); err != nil {
+		t.Fatalf("ValidateTenantProfilePayload(valid) returned error: %v", err)
+	}
+
+	invalid := map[string]string{
+		"holderName":     "王小美",
+		"occupationType": "",
+		"orgName":        "測試公司",
+		"incomeRange":    "",
+	}
+	if err := ValidateTenantProfilePayload(invalid); err == nil {
+		t.Fatal("expected missing lightweight tenant fields to fail validation")
+	}
+}
+
 func TestEnsureActivatable(t *testing.T) {
 	t.Run("passed ready activates", func(t *testing.T) {
 		sub := &model.CredentialSubmission{

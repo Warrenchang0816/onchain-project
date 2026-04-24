@@ -205,7 +205,10 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	userHandler := usermod.NewHandler(userSvc)
 	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
 
-	// ── 13. Listing module ────────────────────────────────────
+	// ── 13. Listing and credential modules ────────────────────────────────────────
+	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
+	listingHandler := listingmod.NewHandler(listingSvc)
+
 	credentialSvc := credentialmod.NewService(
 		userRepo,
 		credentialSubmissionRepo,
@@ -214,12 +217,10 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		minioClient,
 		visionClient,
 		chainSyncer,
+		listingSvc,
 	)
 	credentialHandler := credentialmod.NewHandler(credentialSvc)
 	credentialAdminHandler := credentialmod.NewAdminHandler(credentialSvc, blockchainConfig.GodModeWalletAddress)
-
-	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
-	listingHandler := listingmod.NewHandler(listingSvc)
 
 	// ── 14. Agent directory module ────────────────────────────
 	agentSvc := agentmod.NewService(credentialRepo)

@@ -20,14 +20,19 @@ type ChainSyncer interface {
 	SyncAll(ctx context.Context) error
 }
 
+type OwnerDraftBootstrapper interface {
+	BootstrapOwnerActivationDraft(ownerUserID, submissionID int64, propertyAddress string) error
+}
+
 type Service struct {
-	userRepo       *repository.UserRepository
-	submissionRepo *repository.CredentialSubmissionRepository
-	credentialRepo *repository.UserCredentialRepository
-	identitySvc    usermod.IdentityContractService
-	storageSvc     *storage.Client
-	visionClient   *ocr.VisionClient
-	chainSyncer    ChainSyncer
+	userRepo            *repository.UserRepository
+	submissionRepo      *repository.CredentialSubmissionRepository
+	credentialRepo      *repository.UserCredentialRepository
+	identitySvc         usermod.IdentityContractService
+	storageSvc          *storage.Client
+	visionClient        *ocr.VisionClient
+	chainSyncer         ChainSyncer
+	ownerDraftBootstrap OwnerDraftBootstrapper
 }
 
 func NewService(
@@ -38,15 +43,17 @@ func NewService(
 	storageSvc *storage.Client,
 	visionClient *ocr.VisionClient,
 	chainSyncer ChainSyncer,
+	ownerDraftBootstrap OwnerDraftBootstrapper,
 ) *Service {
 	return &Service{
-		userRepo:       userRepo,
-		submissionRepo: submissionRepo,
-		credentialRepo: credentialRepo,
-		identitySvc:    identitySvc,
-		storageSvc:     storageSvc,
-		visionClient:   visionClient,
-		chainSyncer:    chainSyncer,
+		userRepo:            userRepo,
+		submissionRepo:      submissionRepo,
+		credentialRepo:      credentialRepo,
+		identitySvc:         identitySvc,
+		storageSvc:          storageSvc,
+		visionClient:        visionClient,
+		chainSyncer:         chainSyncer,
+		ownerDraftBootstrap: ownerDraftBootstrap,
 	}
 }
 
@@ -243,6 +250,23 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 	submissionID, err := s.submissionRepo.Create(user.ID, normalizedType, route, formPayloadJSON, strings.TrimSpace(req.Notes))
 	if err != nil {
 		return nil, err
+	}
+
+	if normalizedType == CredentialTypeTenant && route == ReviewRouteProfile {
+		if err := ValidateTenantProfilePayload(req.FormPayload); err != nil {
+			return nil, err
+		}
+		if err := s.submissionRepo.SaveDecision(
+			submissionID,
+			CredentialReviewPassed,
+			ActivationStatusReady,
+			"",
+			"",
+			"{}",
+			"已建立租客身分資料，可自行決定是否啟用租客 NFT",
+		); err != nil {
+			return nil, err
+		}
 	}
 
 	return &CreateSubmissionResponse{SubmissionID: submissionID}, nil
@@ -442,6 +466,18 @@ func (s *Service) ActivateSubmission(ctx context.Context, wallet, credentialType
 		}
 		return fmt.Errorf("身份憑證已上鏈，但本地同步失敗，請重新整理後確認狀態: %w", err)
 	}
+
+	if sub.CredentialType == CredentialTypeOwner && s.ownerDraftBootstrap != nil {
+		formPayload, decodeErr := decodeFormPayload(sub.FormPayloadJSON)
+		if decodeErr != nil {
+			return decodeErr
+		}
+		propertyAddress := strings.TrimSpace(formPayload["propertyAddress"])
+		if err := s.ownerDraftBootstrap.BootstrapOwnerActivationDraft(user.ID, sub.ID, propertyAddress); err != nil {
+			return fmt.Errorf("bootstrap owner draft: %w", err)
+		}
+	}
+
 	if s.chainSyncer != nil {
 		_ = s.chainSyncer.SyncAll(ctx)
 	}
@@ -660,6 +696,8 @@ func normalizeReviewRoute(route string) (string, error) {
 		return ReviewRouteSmart, nil
 	case ReviewRouteManual:
 		return ReviewRouteManual, nil
+	case ReviewRouteProfile:
+		return ReviewRouteProfile, nil
 	default:
 		return "", fmt.Errorf("invalid review route %q", route)
 	}
