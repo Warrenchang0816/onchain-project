@@ -76,6 +76,8 @@ type ListingResponse struct {
 	IsParkingIncluded bool     `json:"is_parking_included"`
 
 	Status                 string                `json:"status"`
+	DraftOrigin            string                `json:"draft_origin"`
+	SetupStatus            string                `json:"setup_status"`
 	NegotiatingAppointment *AppointmentResponse  `json:"negotiating_appointment,omitempty"`
 	Appointments           []AppointmentResponse `json:"appointments,omitempty"` // only in detail view
 

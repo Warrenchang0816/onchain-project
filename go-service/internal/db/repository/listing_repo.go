@@ -15,12 +15,14 @@ func NewListingRepository(db *sql.DB) *ListingRepository {
 	return &ListingRepository{db: db}
 }
 
+const defaultDailyFeeNTD = 40.0
+
 const listingSelectCols = `
 	SELECT id, owner_user_id,
 	       title, description, address, district,
 	       list_type, price, area_ping, floor, total_floors, room_count, bathroom_count,
 	       is_pet_allowed, is_parking_included,
-	       status, negotiating_appointment_id,
+	       status, draft_origin, setup_status, source_credential_submission_id, negotiating_appointment_id,
 	       daily_fee_ntd,
 	       published_at, expires_at, created_at, updated_at
 	FROM listings`
@@ -32,7 +34,7 @@ func scanListing(row *sql.Row) (*model.Listing, error) {
 		&l.Title, &l.Description, &l.Address, &l.District,
 		&l.ListType, &l.Price, &l.AreaPing, &l.Floor, &l.TotalFloors, &l.RoomCount, &l.BathroomCount,
 		&l.IsPetAllowed, &l.IsParkingIncluded,
-		&l.Status, &l.NegotiatingAppointmentID,
+		&l.Status, &l.DraftOrigin, &l.SetupStatus, &l.SourceCredentialSubmissionID, &l.NegotiatingAppointmentID,
 		&l.DailyFeeNTD,
 		&l.PublishedAt, &l.ExpiresAt, &l.CreatedAt, &l.UpdatedAt,
 	)
@@ -54,7 +56,7 @@ func scanListings(rows *sql.Rows) ([]*model.Listing, error) {
 			&l.Title, &l.Description, &l.Address, &l.District,
 			&l.ListType, &l.Price, &l.AreaPing, &l.Floor, &l.TotalFloors, &l.RoomCount, &l.BathroomCount,
 			&l.IsPetAllowed, &l.IsParkingIncluded,
-			&l.Status, &l.NegotiatingAppointmentID,
+			&l.Status, &l.DraftOrigin, &l.SetupStatus, &l.SourceCredentialSubmissionID, &l.NegotiatingAppointmentID,
 			&l.DailyFeeNTD,
 			&l.PublishedAt, &l.ExpiresAt, &l.CreatedAt, &l.UpdatedAt,
 		)
@@ -136,6 +138,24 @@ func (r *ListingRepository) FindAll(f ListingFilter) ([]*model.Listing, error) {
 	return result, nil
 }
 
+func (r *ListingRepository) CountByOwner(ownerUserID int64) (int, error) {
+	var count int
+	err := r.db.QueryRow(`SELECT COUNT(*) FROM listings WHERE owner_user_id = $1`, ownerUserID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("listing_repo: CountByOwner: %w", err)
+	}
+	return count, nil
+}
+
+func (r *ListingRepository) FindBySourceCredentialSubmission(submissionID int64) (*model.Listing, error) {
+	row := r.db.QueryRow(listingSelectCols+` WHERE source_credential_submission_id = $1 LIMIT 1`, submissionID)
+	l, err := scanListing(row)
+	if err != nil {
+		return nil, fmt.Errorf("listing_repo: FindBySourceCredentialSubmission: %w", err)
+	}
+	return l, nil
+}
+
 // Create inserts a new listing in DRAFT status and returns the new ID.
 func (r *ListingRepository) Create(
 	ownerUserID int64,
@@ -162,6 +182,29 @@ func (r *ListingRepository) Create(
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("listing_repo: Create: %w", err)
+	}
+	return id, nil
+}
+
+func (r *ListingRepository) CreateBootstrapDraft(ownerUserID, submissionID int64, address string) (int64, error) {
+	var id int64
+	err := r.db.QueryRow(`
+		INSERT INTO listings (
+			owner_user_id, title, description, address, district,
+			list_type, price, area_ping, floor, total_floors, room_count, bathroom_count,
+			is_pet_allowed, is_parking_included,
+			status, draft_origin, setup_status, source_credential_submission_id,
+			daily_fee_ntd
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+		RETURNING id`,
+		ownerUserID, "", "", address, nil,
+		model.ListingTypeUnset, 0.0, nil, nil, nil, nil, nil,
+		false, false,
+		model.ListingStatusDraft, model.ListingDraftOriginOwnerActivation, model.ListingSetupStatusIncomplete, submissionID,
+		defaultDailyFeeNTD,
+	).Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("listing_repo: CreateBootstrapDraft: %w", err)
 	}
 	return id, nil
 }

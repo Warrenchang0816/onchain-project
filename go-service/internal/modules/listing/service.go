@@ -3,6 +3,7 @@ package listing
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"go-service/internal/db/model"
 	"go-service/internal/db/repository"
@@ -125,6 +126,33 @@ func (s *Service) Create(walletAddress string, req CreateListingRequest) (int64,
 	return id, nil
 }
 
+func (s *Service) BootstrapOwnerActivationDraft(ownerUserID, submissionID int64, propertyAddress string) error {
+	existingOwnerListings, err := s.listingRepo.CountByOwner(ownerUserID)
+	if err != nil {
+		return fmt.Errorf("listing: BootstrapOwnerActivationDraft count: %w", err)
+	}
+
+	sourceDraft, err := s.listingRepo.FindBySourceCredentialSubmission(submissionID)
+	if err != nil {
+		return fmt.Errorf("listing: BootstrapOwnerActivationDraft source: %w", err)
+	}
+
+	if !ShouldBootstrapOwnerDraft(existingOwnerListings, sourceDraft != nil) {
+		return nil
+	}
+
+	address := strings.TrimSpace(propertyAddress)
+	if address == "" {
+		return nil
+	}
+
+	_, err = s.listingRepo.CreateBootstrapDraft(ownerUserID, submissionID, address)
+	if err != nil {
+		return fmt.Errorf("listing: BootstrapOwnerActivationDraft create: %w", err)
+	}
+	return nil
+}
+
 // Update updates the editable fields of a DRAFT or ACTIVE listing.
 func (s *Service) Update(listingID int64, walletAddress string, req UpdateListingRequest) error {
 	caller, err := s.requireUser(walletAddress)
@@ -173,7 +201,7 @@ func (s *Service) Publish(listingID int64, walletAddress string, durationDays in
 	if l.OwnerUserID != caller.ID {
 		return ErrForbidden
 	}
-	if l.Status != model.ListingStatusDraft {
+	if !IsReadyForPublish(l) {
 		return ErrInvalidStatus
 	}
 	if durationDays < minDurationDays {

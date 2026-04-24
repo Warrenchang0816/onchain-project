@@ -37,6 +37,8 @@ func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, call
 		IsPetAllowed:      l.IsPetAllowed,
 		IsParkingIncluded: l.IsParkingIncluded,
 		Status:            l.Status,
+		DraftOrigin:       l.DraftOrigin,
+		SetupStatus:       l.SetupStatus,
 		DailyFeeNTD:       l.DailyFeeNTD,
 		CreatedAt:         l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:         l.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
