@@ -2,7 +2,7 @@ interface PageLoadingProps {
     message?: string;
 }
 
-const PageLoading = ({ message = "Loading..." }: PageLoadingProps) => {
+const PageLoading = ({ message = "讀取中..." }: PageLoadingProps) => {
     return (
         <div className="page-state">
             <p>{message}</p>

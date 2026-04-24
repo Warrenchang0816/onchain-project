@@ -16,8 +16,8 @@ const ConfirmDialog = ({
     isOpen,
     title,
     description,
-    confirmText = "Confirm",
-    cancelText = "Cancel",
+    confirmText = "確認",
+    cancelText = "取消",
     isLoading = false,
     onConfirm,
     onCancel,
@@ -33,7 +33,7 @@ const ConfirmDialog = ({
                     </AppButton>
 
                     <AppButton type="button" onClick={onConfirm} disabled={isLoading}>
-                        {isLoading ? "Processing..." : confirmText}
+                        {isLoading ? "處理中..." : confirmText}
                     </AppButton>
                 </div>
             </div>

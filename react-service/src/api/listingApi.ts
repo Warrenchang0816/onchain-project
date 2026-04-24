@@ -263,13 +263,13 @@ export async function getBlockchainLogs(): Promise<BlockchainLog[]> {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch blockchain logs: ${response.status}`);
+        throw new Error(`讀取鏈上紀錄失敗：${response.status}`);
     }
 
     const result: { success: boolean; data: BlockchainLog[]; message: string } = await response.json();
 
     if (!result.success) {
-        throw new Error(result.message || "Failed to fetch blockchain logs");
+        throw new Error(result.message || "讀取鏈上紀錄失敗");
     }
 
     return result.data;
