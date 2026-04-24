@@ -10,6 +10,7 @@ import (
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
+	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	platformauth "go-service/internal/platform/auth"
 
@@ -30,6 +31,7 @@ func SetupRouter(
 	credentialAdminHandler *credentialmod.AdminHandler,
 	sessionRepo *repository.SessionRepository,
 	agentHandler *agentmod.Handler,
+	tenantHandler *tenantmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -105,6 +107,17 @@ func SetupRouter(
 			protected.POST("/credentials/:type/submissions/:id/stop", credentialHandler.StopSubmission)
 			protected.GET("/credentials/:type/submissions/:id/files/main", credentialHandler.GetMainFile)
 			protected.GET("/credentials/:type/submissions/:id/files/support", credentialHandler.GetSupportFile)
+
+			// Tenant profile and requirements (tenant-only)
+			protected.GET("/tenant/profile", tenantHandler.GetMyProfile)
+			protected.PUT("/tenant/profile", tenantHandler.UpsertMyProfile)
+			protected.POST("/tenant/profile/documents", tenantHandler.UploadMyDocument)
+			protected.GET("/tenant/requirements/mine", tenantHandler.ListMyRequirements)
+			protected.POST("/tenant/requirements", tenantHandler.CreateRequirement)
+			protected.PUT("/tenant/requirements/:id", tenantHandler.UpdateRequirement)
+			protected.PUT("/tenant/requirements/:id/status", tenantHandler.UpdateRequirementStatus)
+			protected.GET("/requirements", tenantHandler.ListVisibleRequirements)
+			protected.GET("/requirements/:id", tenantHandler.GetVisibleRequirement)
 		}
 
 		// ── Blockchain logs (public) ──────────────────────────────

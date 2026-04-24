@@ -11,6 +11,7 @@ import (
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
+	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/blockchain"
 	"go-service/internal/platform/config"
@@ -59,6 +60,8 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	credentialSubmissionRepo := repository.NewCredentialSubmissionRepository(postgresDB)
 	listingRepo := repository.NewListingRepository(postgresDB)
 	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
+	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
+	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -226,7 +229,17 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	agentSvc := agentmod.NewService(credentialRepo)
 	agentHandler := agentmod.NewHandler(agentSvc)
 
-	// ── 15. Router ────────────────────────────────────────────
+	// ── 15. Tenant module ─────────────────────────────────────
+	tenantSvc := tenantmod.NewService(
+		userRepo,
+		credentialRepo,
+		tenantProfileRepo,
+		tenantRequirementRepo,
+		minioClient,
+	)
+	tenantHandler := tenantmod.NewHandler(tenantSvc)
+
+	// ── 16. Router ────────────────────────────────────────────
 	r := SetupRouter(
 		listingHandler,
 		logHandler,
@@ -240,6 +253,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		credentialAdminHandler,
 		sessionRepo,
 		agentHandler,
+		tenantHandler,
 	)
 
 	return r, cleanupFn, nil
