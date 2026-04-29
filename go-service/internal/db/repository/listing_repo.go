@@ -18,7 +18,7 @@ func NewListingRepository(db *sql.DB) *ListingRepository {
 const defaultDailyFeeNTD = 40.0
 
 const listingSelectCols = `
-	SELECT id, owner_user_id,
+	SELECT id, owner_user_id, property_id,
 	       title, description, address, district,
 	       list_type, price, area_ping, floor, total_floors, room_count, bathroom_count,
 	       is_pet_allowed, is_parking_included,
@@ -30,7 +30,7 @@ const listingSelectCols = `
 func scanListing(row *sql.Row) (*model.Listing, error) {
 	l := &model.Listing{}
 	err := row.Scan(
-		&l.ID, &l.OwnerUserID,
+		&l.ID, &l.OwnerUserID, &l.PropertyID,
 		&l.Title, &l.Description, &l.Address, &l.District,
 		&l.ListType, &l.Price, &l.AreaPing, &l.Floor, &l.TotalFloors, &l.RoomCount, &l.BathroomCount,
 		&l.IsPetAllowed, &l.IsParkingIncluded,
@@ -52,7 +52,7 @@ func scanListings(rows *sql.Rows) ([]*model.Listing, error) {
 	for rows.Next() {
 		l := &model.Listing{}
 		err := rows.Scan(
-			&l.ID, &l.OwnerUserID,
+			&l.ID, &l.OwnerUserID, &l.PropertyID,
 			&l.Title, &l.Description, &l.Address, &l.District,
 			&l.ListType, &l.Price, &l.AreaPing, &l.Floor, &l.TotalFloors, &l.RoomCount, &l.BathroomCount,
 			&l.IsPetAllowed, &l.IsParkingIncluded,
@@ -186,18 +186,18 @@ func (r *ListingRepository) Create(
 	return id, nil
 }
 
-func (r *ListingRepository) CreateBootstrapDraft(ownerUserID, submissionID int64, address string) (int64, error) {
+func (r *ListingRepository) CreateBootstrapDraft(ownerUserID, submissionID, propertyID int64, address string) (int64, error) {
 	var id int64
 	err := r.db.QueryRow(`
 		INSERT INTO listings (
-			owner_user_id, title, description, address, district,
+			owner_user_id, property_id, title, description, address, district,
 			list_type, price, area_ping, floor, total_floors, room_count, bathroom_count,
 			is_pet_allowed, is_parking_included,
 			status, draft_origin, setup_status, source_credential_submission_id,
 			daily_fee_ntd
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
 		RETURNING id`,
-		ownerUserID, "", "", address, nil,
+		ownerUserID, propertyID, "", "", address, nil,
 		model.ListingTypeUnset, 0.0, nil, nil, nil, nil, nil,
 		false, false,
 		model.ListingStatusDraft, model.ListingDraftOriginOwnerActivation, model.ListingSetupStatusIncomplete, submissionID,
@@ -207,6 +207,32 @@ func (r *ListingRepository) CreateBootstrapDraft(ownerUserID, submissionID int64
 		return 0, fmt.Errorf("listing_repo: CreateBootstrapDraft: %w", err)
 	}
 	return id, nil
+}
+
+func (r *ListingRepository) BindProperty(listingID, propertyID int64) error {
+	_, err := r.db.Exec(`
+		UPDATE listings
+		SET property_id=$1, updated_at=NOW()
+		WHERE id=$2`,
+		propertyID, listingID,
+	)
+	if err != nil {
+		return fmt.Errorf("listing_repo: BindProperty: %w", err)
+	}
+	return nil
+}
+
+func (r *ListingRepository) UpdateIntent(id int64, listType string, setupStatus string) error {
+	_, err := r.db.Exec(`
+		UPDATE listings
+		SET list_type=$1, setup_status=$2, updated_at=NOW()
+		WHERE id=$3`,
+		listType, setupStatus, id,
+	)
+	if err != nil {
+		return fmt.Errorf("listing_repo: UpdateIntent: %w", err)
+	}
+	return nil
 }
 
 // UpdateInfo updates the editable fields of a listing (only while DRAFT or ACTIVE).

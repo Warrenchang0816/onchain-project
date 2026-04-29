@@ -26,20 +26,27 @@ var (
 )
 
 type Service struct {
-	listingRepo *repository.ListingRepository
-	apptRepo    *repository.ListingAppointmentRepository
-	userRepo    *repository.UserRepository
+	listingRepo  *repository.ListingRepository
+	apptRepo     *repository.ListingAppointmentRepository
+	userRepo     *repository.UserRepository
+	propertyRepo PropertyReader
+}
+
+type PropertyReader interface {
+	FindByID(id int64) (*model.Property, error)
 }
 
 func NewService(
 	listingRepo *repository.ListingRepository,
 	apptRepo *repository.ListingAppointmentRepository,
 	userRepo *repository.UserRepository,
+	propertyRepo PropertyReader,
 ) *Service {
 	return &Service{
-		listingRepo: listingRepo,
-		apptRepo:    apptRepo,
-		userRepo:    userRepo,
+		listingRepo:  listingRepo,
+		apptRepo:     apptRepo,
+		userRepo:     userRepo,
+		propertyRepo: propertyRepo,
 	}
 }
 
@@ -83,10 +90,19 @@ func (s *Service) ListByOwner(walletAddress string) ([]*model.Listing, error) {
 	if err != nil {
 		return nil, err
 	}
-	return s.listingRepo.FindAll(repository.ListingFilter{
+	listings, err := s.listingRepo.FindAll(repository.ListingFilter{
 		OwnerID: user.ID,
 		Status:  "ALL",
 	})
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range listings {
+		if err := s.attachProperty(l); err != nil {
+			return nil, err
+		}
+	}
+	return listings, nil
 }
 
 // GetDetail returns a listing with its full appointments queue.
@@ -102,7 +118,21 @@ func (s *Service) GetDetail(id int64) (*model.Listing, []*model.ListingAppointme
 	if err != nil {
 		return nil, nil, fmt.Errorf("listing: GetDetail appointments: %w", err)
 	}
+	if err := s.attachProperty(l); err != nil {
+		return nil, nil, fmt.Errorf("listing: GetDetail property: %w", err)
+	}
 	return l, appts, nil
+}
+
+func (s *Service) IsListingOwner(ownerUserID int64, callerWallet string) (bool, error) {
+	if strings.TrimSpace(callerWallet) == "" {
+		return false, nil
+	}
+	caller, err := s.requireUser(callerWallet)
+	if err != nil {
+		return false, err
+	}
+	return IsListingOwner(caller, ownerUserID), nil
 }
 
 // Create creates a new listing in DRAFT status.
@@ -129,7 +159,7 @@ func (s *Service) Create(walletAddress string, req CreateListingRequest) (int64,
 	return id, nil
 }
 
-func (s *Service) BootstrapOwnerActivationDraft(ownerUserID, submissionID int64, propertyAddress string) error {
+func (s *Service) BootstrapOwnerActivationDraft(ownerUserID, submissionID, propertyID int64, propertyAddress string) error {
 	existingOwnerListings, err := s.listingRepo.CountByOwner(ownerUserID)
 	if err != nil {
 		return fmt.Errorf("listing: BootstrapOwnerActivationDraft count: %w", err)
@@ -141,6 +171,9 @@ func (s *Service) BootstrapOwnerActivationDraft(ownerUserID, submissionID int64,
 	}
 
 	if !ShouldBootstrapOwnerDraft(existingOwnerListings, sourceDraft != nil) {
+		if sourceDraft != nil && propertyID > 0 && !sourceDraft.PropertyID.Valid {
+			return s.listingRepo.BindProperty(sourceDraft.ID, propertyID)
+		}
 		return nil
 	}
 
@@ -148,8 +181,11 @@ func (s *Service) BootstrapOwnerActivationDraft(ownerUserID, submissionID int64,
 	if address == "" {
 		return nil
 	}
+	if propertyID <= 0 {
+		return nil
+	}
 
-	_, err = s.listingRepo.CreateBootstrapDraft(ownerUserID, submissionID, address)
+	_, err = s.listingRepo.CreateBootstrapDraft(ownerUserID, submissionID, propertyID, address)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Code == "23505" {
@@ -223,6 +259,39 @@ func (s *Service) Update(listingID int64, walletAddress string, req UpdateListin
 	)
 }
 
+func (s *Service) SetIntent(listingID int64, walletAddress string, req SetListingIntentRequest) error {
+	caller, err := s.requireUser(walletAddress)
+	if err != nil {
+		return err
+	}
+
+	l, err := s.listingRepo.FindByID(listingID)
+	if err != nil {
+		return fmt.Errorf("listing: SetIntent: %w", err)
+	}
+	if l == nil {
+		return ErrNotFound
+	}
+	if l.OwnerUserID != caller.ID {
+		return ErrForbidden
+	}
+	if l.Status != model.ListingStatusDraft {
+		return ErrInvalidStatus
+	}
+
+	property, err := s.propertyForListing(l)
+	if err != nil {
+		return fmt.Errorf("listing: SetIntent property: %w", err)
+	}
+	if !CanSelectListingIntent(l, property) {
+		return ErrInvalidStatus
+	}
+
+	l.ListType = req.ListType
+	setupStatus := ComputeSetupStatus(l)
+	return s.listingRepo.UpdateIntent(listingID, req.ListType, setupStatus)
+}
+
 // Publish transitions a DRAFT listing to ACTIVE.
 func (s *Service) Publish(listingID int64, walletAddress string, durationDays int) error {
 	caller, err := s.requireUser(walletAddress)
@@ -240,13 +309,33 @@ func (s *Service) Publish(listingID int64, walletAddress string, durationDays in
 	if l.OwnerUserID != caller.ID {
 		return ErrForbidden
 	}
-	if !IsReadyForPublish(l) {
+	property, err := s.propertyForListing(l)
+	if err != nil {
+		return fmt.Errorf("listing: Publish property: %w", err)
+	}
+	if !IsReadyForPublishWithProperty(l, property) {
 		return ErrInvalidStatus
 	}
 	if durationDays < minDurationDays {
 		return ErrDurationTooShort
 	}
 	return s.listingRepo.Publish(listingID, durationDays)
+}
+
+func (s *Service) propertyForListing(l *model.Listing) (*model.Property, error) {
+	if l == nil || !l.PropertyID.Valid || s.propertyRepo == nil {
+		return nil, nil
+	}
+	return s.propertyRepo.FindByID(l.PropertyID.Int64)
+}
+
+func (s *Service) attachProperty(l *model.Listing) error {
+	p, err := s.propertyForListing(l)
+	if err != nil {
+		return err
+	}
+	l.Property = p
+	return nil
 }
 
 // Remove transitions a listing to REMOVED (owner takes it down).

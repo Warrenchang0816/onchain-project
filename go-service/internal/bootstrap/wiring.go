@@ -11,6 +11,7 @@ import (
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
+	propertymod "go-service/internal/modules/property"
 	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/blockchain"
@@ -59,6 +60,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	credentialRepo := repository.NewUserCredentialRepository(postgresDB)
 	credentialSubmissionRepo := repository.NewCredentialSubmissionRepository(postgresDB)
 	listingRepo := repository.NewListingRepository(postgresDB)
+	propertyRepo := repository.NewPropertyRepository(postgresDB)
 	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
 	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
@@ -210,7 +212,8 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
 
 	// ── 13. Listing and credential modules ────────────────────────────────────────
-	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
+	propertySvc := propertymod.NewService(propertyRepo)
+	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
 	credentialSvc := credentialmod.NewService(
@@ -221,6 +224,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		minioClient,
 		visionClient,
 		chainSyncer,
+		propertySvc,
 		listingSvc,
 	)
 	credentialHandler := credentialmod.NewHandler(credentialSvc)

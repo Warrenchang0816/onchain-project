@@ -181,8 +181,8 @@ button {
     border: none;
     border-radius: 8px;
     padding: 10px 16px;
-    background: #111827;
-    color: white;
+    background: transparent;
+    color: inherit;
     cursor: pointer;
     font-size: 14px;
 }
@@ -192,8 +192,8 @@ button:hover {
 }
 
 header {
-    background: #111827;
-    color: white;
+    background: transparent;
+    color: inherit;
     padding: 16px 24px;
 }
 
@@ -1075,8 +1075,8 @@ main {
 }
 
 .app-button-primary {
-    background: #111827;
-    color: white;
+    background: #e8b800;
+    color: #1c1917;
 }
 
 .app-button-secondary {
@@ -1141,9 +1141,9 @@ main {
 }
 
 .filter-button.active {
-    background: #111827;
-    color: white;
-    border-color: #111827;
+    background: #e8b800;
+    color: #1c1917;
+    border-color: #e8b800;
 }
 
 .page-heading-row {
@@ -2469,8 +2469,8 @@ main {
     justify-content: center;
     padding: 10px 16px;
     border-radius: 10px;
-    background: #111827;
-    color: white;
+    background: #e8b800;
+    color: #1c1917;
 }
 
 .inline-link-button--secondary {
@@ -2504,8 +2504,8 @@ main {
 .leju-hero {
     margin: -32px -48px 24px;
     padding: 28px 48px 120px;
-    background: linear-gradient(180deg, #14536f 0%, #165871 100%);
-    color: white;
+    background: #fffaf0;
+    color: #1c1917;
 }
 
 .leju-hero--compact {
@@ -2521,13 +2521,13 @@ main {
 .leju-hero h1 {
     margin: 0 0 14px;
     font-size: 34px;
-    color: white;
+    color: #1c1917;
 }
 
 .leju-hero p {
     margin: 0;
     max-width: 760px;
-    color: rgba(255, 255, 255, 0.86);
+    color: #57534e;
     line-height: 1.7;
 }
 
@@ -3048,8 +3048,8 @@ main {
     justify-content: center;
     padding: 10px 20px;
     border-radius: 10px;
-    background: #0f172a;
-    color: #ffffff;
+    background: #e8b800;
+    color: #1c1917;
     font-size: 14px;
     font-weight: 600;
     border: none;

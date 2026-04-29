@@ -13,7 +13,7 @@ export default function ListingCreatePage() {
         setSubmitting(true);
         try {
             const created = await createListing(payload as CreateListingPayload);
-            navigate(`/listings/${created.id}`);
+            navigate(`/my/listings/${created.id}`);
         } finally {
             setSubmitting(false);
         }
@@ -21,16 +21,16 @@ export default function ListingCreatePage() {
 
     return (
         <SiteLayout>
-            <main className="flex-grow w-full max-w-[960px] mx-auto px-6 md:px-12 py-12 flex flex-col gap-8">
+            <main className="mx-auto flex w-full max-w-[960px] flex-grow flex-col gap-8 px-6 py-12 md:px-12">
                 <div className="flex flex-col gap-2">
-                    <Link to="/listings" className="text-sm text-on-surface-variant hover:text-primary-container transition-colors">
-                        返回房源列表
+                    <Link to="/my/listings" className="text-sm text-on-surface-variant transition-colors hover:text-primary-container">
+                        返回我的房源
                     </Link>
-                    <h1 className="text-4xl font-extrabold text-on-background tracking-tight font-headline">
+                    <h1 className="font-headline text-4xl font-extrabold tracking-tight text-on-background">
                         建立房源草稿
                     </h1>
-                    <p className="text-on-surface-variant leading-[1.75]">
-                        已啟用屋主身份後，可以先建立草稿並逐步補齊資料；完成必要欄位後再從明細頁上架。
+                    <p className="leading-[1.75] text-on-surface-variant">
+                        房源草稿應由屋主身分智能審核通過後建立。這個頁面只用於補齊草稿欄位，完整度達 100% 後才可上架。
                     </p>
                 </div>
 

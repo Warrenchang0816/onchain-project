@@ -41,6 +41,10 @@ type PublishListingRequest struct {
 	DurationDays int `json:"duration_days" binding:"required,min=7"`
 }
 
+type SetListingIntentRequest struct {
+	ListType string `json:"list_type" binding:"required,oneof=RENT SALE"`
+}
+
 type LockNegotiationRequest struct {
 	AppointmentID int64 `json:"appointment_id" binding:"required"`
 }
@@ -58,8 +62,9 @@ type AppointmentResponse struct {
 }
 
 type ListingResponse struct {
-	ID          int64 `json:"id"`
-	OwnerUserID int64 `json:"owner_user_id"`
+	ID          int64  `json:"id"`
+	OwnerUserID int64  `json:"owner_user_id"`
+	PropertyID  *int64 `json:"property_id,omitempty"`
 
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
@@ -89,7 +94,16 @@ type ListingResponse struct {
 	CreatedAt   string  `json:"created_at"`
 	UpdatedAt   string  `json:"updated_at"`
 
-	IsOwner bool `json:"is_owner"`
+	IsOwner  bool                            `json:"is_owner"`
+	Property *ListingPropertySummaryResponse `json:"property,omitempty"`
+}
+
+type ListingPropertySummaryResponse struct {
+	ID                 int64  `json:"id"`
+	VerificationStatus string `json:"verification_status"`
+	CompletenessStatus string `json:"completeness_status"`
+	DeedHash           string `json:"deed_hash"`
+	DisclosureHash     string `json:"disclosure_hash"`
 }
 
 // ── Appointment Request / Response ────────────────────────────────────────────

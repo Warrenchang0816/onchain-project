@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { getAuthMe } from "../api/authApi";
 import { getAgentDetail, type AgentDetailResponse } from "../api/agentApi";
 import SiteLayout from "../layouts/SiteLayout";
 
@@ -17,13 +18,17 @@ export default function AgentDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [agent, setAgent] = useState<AgentDetailResponse | null>(null);
+    const [isSelf, setIsSelf] = useState(false);
 
     useEffect(() => {
         if (!wallet) return;
         getAgentDetail(wallet)
             .then(setAgent)
-            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取仲介詳情失敗。"))
+            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取仲介詳細頁失敗"))
             .finally(() => setLoading(false));
+        void getAuthMe()
+            .then((auth) => setIsSelf(Boolean(auth.address && auth.address.toLowerCase() === wallet.toLowerCase())))
+            .catch(() => setIsSelf(false));
     }, [wallet]);
 
     return (
@@ -39,7 +44,7 @@ export default function AgentDetailPage() {
                     </div>
                 ) : error || !agent ? (
                     <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-center">
-                        <p className="mb-4 text-sm text-on-surface-variant">找不到此仲介。</p>
+                        <p className="mb-4 text-sm text-on-surface-variant">找不到此仲介</p>
                         <p className="text-xs text-error">{error}</p>
                     </div>
                 ) : (
@@ -50,10 +55,10 @@ export default function AgentDetailPage() {
                                     <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>
                                         verified_user
                                     </span>
-                                    鏈上認證仲介
+                                    已認證仲介
                                 </span>
                                 <span className={`rounded-full px-3 py-1 text-xs font-bold ${agent.isProfileComplete ? "bg-primary-container/15 text-primary-container" : "bg-surface-container-low text-on-surface-variant"}`}>
-                                    {agent.isProfileComplete ? "專頁完整" : "專頁待補"}
+                                    {agent.isProfileComplete ? "專頁完整" : "專頁未完成"}
                                 </span>
                             </div>
 
@@ -62,6 +67,15 @@ export default function AgentDetailPage() {
                             </h1>
                             {agent.headline ? <p className="mt-3 text-lg font-bold text-on-surface">{agent.headline}</p> : null}
                             <p className="mt-3 break-all font-mono text-sm text-on-surface-variant">{agent.walletAddress}</p>
+                            {isSelf ? (
+                                <button
+                                    type="button"
+                                    onClick={() => navigate("/my/agent-profile")}
+                                    className="mt-5 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90"
+                                >
+                                    編輯我的仲介專頁
+                                </button>
+                            ) : null}
 
                             <dl className="mt-8 grid gap-4 text-sm md:grid-cols-3">
                                 <div className="rounded-xl bg-surface-container-low p-4">
@@ -74,7 +88,7 @@ export default function AgentDetailPage() {
                                 </div>
                                 <div className="rounded-xl bg-surface-container-low p-4">
                                     <dt className="text-on-surface-variant">交易 Hash</dt>
-                                    <dd className="mt-2 truncate font-mono text-xs text-on-surface">{agent.txHash ? `${agent.txHash.slice(0, 10)}...${agent.txHash.slice(-6)}` : "未提供"}</dd>
+                                    <dd className="mt-2 truncate font-mono text-xs text-on-surface">{agent.txHash ? `${agent.txHash.slice(0, 10)}...${agent.txHash.slice(-6)}` : "尚未記錄"}</dd>
                                 </div>
                             </dl>
                         </section>
@@ -99,7 +113,7 @@ export default function AgentDetailPage() {
 
                         {agent.licenseNote ? (
                             <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
-                                <h2 className="text-xl font-bold text-on-surface">證照與經歷備註</h2>
+                                <h2 className="text-xl font-bold text-on-surface">證照或經歷備註</h2>
                                 <p className="mt-3 text-sm leading-[1.8] text-on-surface-variant">{agent.licenseNote}</p>
                             </section>
                         ) : null}

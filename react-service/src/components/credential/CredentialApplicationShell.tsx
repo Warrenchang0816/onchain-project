@@ -28,6 +28,7 @@ type Props = {
     title: string;
     description: string;
     primaryFields: FieldConfig[];
+    kycDisplayName?: string;
     currentItem?: CredentialCenterItem;
     currentDetail?: CredentialSubmissionDetail;
     onRefresh: () => Promise<void>;
@@ -428,6 +429,11 @@ export default function CredentialApplicationShell(props: Props) {
             {formMode ? (
                 <section className="rounded-[28px] border border-outline-variant/15 bg-surface-container-lowest p-8">
                     <form onSubmit={handleSmartSubmit} className="space-y-6">
+                        <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-4">
+                            <div className="text-xs font-semibold uppercase tracking-[0.16em] text-on-surface-variant">KYC 姓名</div>
+                            <div className="mt-2 text-sm font-bold text-on-surface">{props.kycDisplayName?.trim() || "尚未取得 KYC 姓名"}</div>
+                        </div>
+
                         <div className="grid gap-4 md:grid-cols-2">
                             {props.primaryFields.map((field) => (
                                 <label key={field.key} className="space-y-2">
@@ -464,14 +470,14 @@ export default function CredentialApplicationShell(props: Props) {
                         />
 
                         <label className="space-y-2">
-                            <span className="text-sm font-semibold text-on-surface">補充說明</span>
+                            <span className="text-sm font-semibold text-on-surface">審核備註（選填）</span>
                             <textarea
                                 value={notes}
                                 onChange={(event) => {
                                     setNotes(event.target.value);
                                     setError("");
                                 }}
-                                placeholder="如有需要，可補充說明文件來源、身份情境或人工審核重點。"
+                                placeholder="主要補充資料請用上方補充文件上傳；這裡只填人工審核需要看的備註。"
                                 rows={5}
                                 className="w-full rounded-2xl border border-outline-variant/15 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none transition-colors focus:border-primary-container"
                             />

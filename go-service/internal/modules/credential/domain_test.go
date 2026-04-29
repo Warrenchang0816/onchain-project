@@ -168,7 +168,6 @@ func TestNormalizeReviewRouteProfile(t *testing.T) {
 
 func TestValidateTenantProfilePayload(t *testing.T) {
 	valid := map[string]string{
-		"holderName":     "王小美",
 		"occupationType": "上班族",
 		"orgName":        "測試公司",
 		"incomeRange":    "40k-60k",
@@ -178,7 +177,6 @@ func TestValidateTenantProfilePayload(t *testing.T) {
 	}
 
 	invalid := map[string]string{
-		"holderName":     "王小美",
 		"occupationType": "",
 		"orgName":        "測試公司",
 		"incomeRange":    "",

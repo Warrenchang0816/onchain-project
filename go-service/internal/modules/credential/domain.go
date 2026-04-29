@@ -100,7 +100,7 @@ func TypeForTokenID(tokenID int64) (string, error) {
 }
 
 func ValidateTenantProfilePayload(form map[string]string) error {
-	required := []string{"holderName", "occupationType", "orgName", "incomeRange"}
+	required := []string{"occupationType", "orgName", "incomeRange"}
 	for _, key := range required {
 		if strings.TrimSpace(form[key]) == "" {
 			return fmt.Errorf("tenant profile field %q is required", key)

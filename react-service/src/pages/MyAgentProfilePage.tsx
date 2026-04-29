@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getMyAgentProfile, updateMyAgentProfile, type UpsertMyAgentProfileRequest } from "@/api/agentApi";
 import SiteLayout from "@/layouts/SiteLayout";
 
@@ -12,7 +13,17 @@ const emptyProfile: UpsertMyAgentProfileRequest = {
 
 const inputCls = "rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary-container";
 
+function validateProfile(form: UpsertMyAgentProfileRequest): string | null {
+    if (!form.headline.trim()) return "請填寫專頁標語";
+    if (!form.bio.trim()) return "請填寫服務介紹";
+    if (!form.licenseNote.trim()) return "請填寫證照或經歷備註";
+    if (!form.contactPreferences.trim()) return "請填寫聯絡偏好";
+    if (form.serviceAreas.length === 0) return "請至少加入一個服務區域";
+    return null;
+}
+
 export default function MyAgentProfilePage() {
+    const navigate = useNavigate();
     const [form, setForm] = useState(emptyProfile);
     const [areaInput, setAreaInput] = useState("");
     const [complete, setComplete] = useState(false);
@@ -33,12 +44,13 @@ export default function MyAgentProfilePage() {
                 });
                 setComplete(profile.isProfileComplete);
             })
-            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取仲介專頁失敗。"))
+            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取仲介專頁失敗"))
             .finally(() => setLoading(false));
     }, []);
 
     const setField = <K extends keyof UpsertMyAgentProfileRequest>(key: K, value: UpsertMyAgentProfileRequest[K]) => {
         setForm((current) => ({ ...current, [key]: value }));
+        setError("");
     };
 
     const addArea = () => {
@@ -53,15 +65,22 @@ export default function MyAgentProfilePage() {
     };
 
     const handleSave = async () => {
+        const validationError = validateProfile(form);
+        if (validationError) {
+            setError(validationError);
+            setMessage("");
+            return;
+        }
+
         setSaving(true);
         setError("");
         setMessage("");
         try {
             const saved = await updateMyAgentProfile(form);
             setComplete(saved.isProfileComplete);
-            setMessage("仲介專頁已更新。");
+            setMessage("仲介專頁已儲存");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "更新仲介專頁失敗。");
+            setError(err instanceof Error ? err.message : "儲存仲介專頁失敗");
         } finally {
             setSaving(false);
         }
@@ -73,10 +92,10 @@ export default function MyAgentProfilePage() {
                 <header className="space-y-3">
                     <h1 className="text-4xl font-extrabold text-on-surface">我的仲介專頁</h1>
                     <p className="max-w-3xl text-sm leading-[1.8] text-on-surface-variant">
-                        這裡的專頁資訊會顯示在公開仲介列表。平台呈現鏈上身份與你填寫的服務資訊，但不替服務品質做官方背書。
+                        這些資料會顯示在公開仲介詳細頁，只有本人可以編輯。請完整填寫服務內容、區域、證照備註與聯絡偏好。
                     </p>
                     <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${complete ? "bg-tertiary/10 text-tertiary" : "bg-surface-container-low text-on-surface-variant"}`}>
-                        {complete ? "專頁資料完整" : "專頁尚未完整"}
+                        {complete ? "專頁資料完整" : "專頁尚未完成"}
                     </span>
                 </header>
 
@@ -120,14 +139,24 @@ export default function MyAgentProfilePage() {
 
                         {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
                         {message ? <p className="mt-4 text-sm text-tertiary">{message}</p> : null}
-                        <button
-                            type="button"
-                            disabled={saving}
-                            onClick={() => void handleSave()}
-                            className="mt-6 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:opacity-60"
-                        >
-                            {saving ? "儲存中..." : "儲存仲介專頁"}
-                        </button>
+
+                        <div className="mt-6 flex flex-wrap gap-3">
+                            <button
+                                type="button"
+                                disabled={saving}
+                                onClick={() => void handleSave()}
+                                className="rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90 disabled:opacity-60"
+                            >
+                                {saving ? "儲存中..." : "儲存仲介專頁"}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => navigate("/member")}
+                                className="rounded-xl border border-outline-variant/25 bg-surface-container-low px-5 py-3 text-sm font-bold text-on-surface transition-colors hover:bg-surface-container"
+                            >
+                                返回身分中心
+                            </button>
+                        </div>
                     </section>
                 )}
             </main>

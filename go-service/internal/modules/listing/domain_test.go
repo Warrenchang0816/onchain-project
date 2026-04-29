@@ -29,6 +29,19 @@ func TestShouldBootstrapOwnerDraft(t *testing.T) {
 	}
 }
 
+func TestIsListingOwner(t *testing.T) {
+	owner := &model.User{ID: 7}
+	if !IsListingOwner(owner, 7) {
+		t.Fatal("expected matching caller id to be treated as listing owner")
+	}
+	if IsListingOwner(owner, 8) {
+		t.Fatal("expected different caller id to be treated as non-owner")
+	}
+	if IsListingOwner(nil, 7) {
+		t.Fatal("expected missing caller to be treated as non-owner")
+	}
+}
+
 func TestIsReadyForPublish(t *testing.T) {
 	ready := &model.Listing{
 		Title:         "民生社區兩房",
@@ -55,6 +68,75 @@ func TestIsReadyForPublish(t *testing.T) {
 	}
 	if IsReadyForPublish(incomplete) {
 		t.Fatal("expected incomplete bootstrap draft to be blocked from publish")
+	}
+}
+
+func TestIsReadyForPublishRequiresReadyProperty(t *testing.T) {
+	ready := &model.Listing{
+		Title:         "大安電梯兩房",
+		Address:       "台北市大安區復興南路一段100號5樓",
+		ListType:      model.ListingTypeRent,
+		Price:         36000,
+		Status:        model.ListingStatusDraft,
+		SetupStatus:   model.ListingSetupStatusReady,
+		AreaPing:      nullFloat(21.5),
+		RoomCount:     nullInt(2),
+		BathroomCount: nullInt(1),
+	}
+
+	if IsReadyForPublishWithProperty(ready, nil) {
+		t.Fatal("expected missing property to block publish")
+	}
+	if IsReadyForPublishWithProperty(ready, &model.Property{
+		VerificationStatus: model.PropertyVerificationVerified,
+		CompletenessStatus: model.PropertyCompletenessDisclosureRequired,
+		DisclosureHash:     "abc",
+	}) {
+		t.Fatal("expected incomplete property disclosure to block publish")
+	}
+	if IsReadyForPublishWithProperty(ready, &model.Property{
+		VerificationStatus: model.PropertyVerificationDraft,
+		CompletenessStatus: model.PropertyCompletenessReadyForListing,
+		DisclosureHash:     "abc",
+	}) {
+		t.Fatal("expected unverified property to block publish")
+	}
+	if IsReadyForPublishWithProperty(ready, &model.Property{
+		VerificationStatus: model.PropertyVerificationVerified,
+		CompletenessStatus: model.PropertyCompletenessReadyForListing,
+		DisclosureHash:     "",
+	}) {
+		t.Fatal("expected missing disclosure hash to block publish")
+	}
+	if !IsReadyForPublishWithProperty(ready, &model.Property{
+		VerificationStatus: model.PropertyVerificationVerified,
+		CompletenessStatus: model.PropertyCompletenessReadyForListing,
+		DisclosureHash:     "abc",
+	}) {
+		t.Fatal("expected complete listing with ready property to be publishable")
+	}
+}
+
+func TestCanSelectListingIntentRequiresReadyProperty(t *testing.T) {
+	l := &model.Listing{
+		Status:   model.ListingStatusDraft,
+		Title:    "大安區住宅",
+		Address:  "台北市大安區復興南路一段100號5樓",
+		ListType: model.ListingTypeUnset,
+		Price:    30000,
+	}
+	p := &model.Property{
+		VerificationStatus: model.PropertyVerificationDraft,
+		CompletenessStatus: model.PropertyCompletenessDisclosureRequired,
+	}
+	if CanSelectListingIntent(l, p) {
+		t.Fatal("expected incomplete property to block listing intent selection")
+	}
+	p.VerificationStatus = model.PropertyVerificationVerified
+	p.CompletenessStatus = model.PropertyCompletenessReadyForListing
+	p.DisclosureHash = "abc123"
+	if !CanSelectListingIntent(l, p) {
+		t.Fatal("expected draft listing with ready property to allow intent selection")
 	}
 }
 

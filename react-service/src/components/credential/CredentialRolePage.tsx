@@ -4,6 +4,7 @@ import SiteLayout from "@/layouts/SiteLayout";
 import CredentialApplicationShell from "./CredentialApplicationShell";
 import { getAuthMe } from "@/api/authApi";
 import { getCredentialCenter, getLatestCredentialSubmission } from "@/api/credentialApi";
+import { getUserProfile, type UserProfile } from "@/api/userApi";
 import type { CredentialType, CredentialCenterResponse, CredentialSubmissionDetail } from "@/api/credentialApi";
 
 type Props = {
@@ -18,6 +19,7 @@ type PageState = {
     authenticated: boolean;
     center?: CredentialCenterResponse;
     detail?: CredentialSubmissionDetail | null;
+    profile?: UserProfile;
     error?: string;
 };
 
@@ -25,11 +27,12 @@ export default function CredentialRolePage(props: Props) {
     const [state, setState] = useState<PageState>({ loading: true, authenticated: false });
 
     const refresh = async () => {
-        const [center, detail] = await Promise.all([
+        const [center, detail, profile] = await Promise.all([
             getCredentialCenter(),
             getLatestCredentialSubmission(props.credentialType),
+            getUserProfile(),
         ]);
-        setState((prev) => ({ ...prev, loading: false, authenticated: true, center, detail, error: undefined }));
+        setState((prev) => ({ ...prev, loading: false, authenticated: true, center, detail, profile, error: undefined }));
     };
 
     useEffect(() => {
@@ -84,6 +87,7 @@ export default function CredentialRolePage(props: Props) {
                     title={props.title}
                     description={props.description}
                     primaryFields={props.primaryFields}
+                    kycDisplayName={state.profile?.displayName}
                     currentItem={currentItem}
                     currentDetail={state.detail ?? undefined}
                     onRefresh={refresh}

@@ -11,6 +11,7 @@ import (
 
 	"go-service/internal/db/model"
 	"go-service/internal/db/repository"
+	propertymod "go-service/internal/modules/property"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/ocr"
 	"go-service/internal/platform/storage"
@@ -21,18 +22,23 @@ type ChainSyncer interface {
 }
 
 type OwnerDraftBootstrapper interface {
-	BootstrapOwnerActivationDraft(ownerUserID, submissionID int64, propertyAddress string) error
+	BootstrapOwnerActivationDraft(ownerUserID, submissionID, propertyID int64, propertyAddress string) error
+}
+
+type OwnerPropertyBootstrapper interface {
+	BootstrapOwnerCredentialProperty(in propertymod.DisclosureInput) (int64, error)
 }
 
 type Service struct {
-	userRepo            *repository.UserRepository
-	submissionRepo      *repository.CredentialSubmissionRepository
-	credentialRepo      *repository.UserCredentialRepository
-	identitySvc         usermod.IdentityContractService
-	storageSvc          *storage.Client
-	visionClient        *ocr.VisionClient
-	chainSyncer         ChainSyncer
-	ownerDraftBootstrap OwnerDraftBootstrapper
+	userRepo               *repository.UserRepository
+	submissionRepo         *repository.CredentialSubmissionRepository
+	credentialRepo         *repository.UserCredentialRepository
+	identitySvc            usermod.IdentityContractService
+	storageSvc             *storage.Client
+	visionClient           *ocr.VisionClient
+	chainSyncer            ChainSyncer
+	ownerPropertyBootstrap OwnerPropertyBootstrapper
+	ownerDraftBootstrap    OwnerDraftBootstrapper
 }
 
 func NewService(
@@ -43,17 +49,19 @@ func NewService(
 	storageSvc *storage.Client,
 	visionClient *ocr.VisionClient,
 	chainSyncer ChainSyncer,
+	ownerPropertyBootstrap OwnerPropertyBootstrapper,
 	ownerDraftBootstrap OwnerDraftBootstrapper,
 ) *Service {
 	return &Service{
-		userRepo:            userRepo,
-		submissionRepo:      submissionRepo,
-		credentialRepo:      credentialRepo,
-		identitySvc:         identitySvc,
-		storageSvc:          storageSvc,
-		visionClient:        visionClient,
-		chainSyncer:         chainSyncer,
-		ownerDraftBootstrap: ownerDraftBootstrap,
+		userRepo:               userRepo,
+		submissionRepo:         submissionRepo,
+		credentialRepo:         credentialRepo,
+		identitySvc:            identitySvc,
+		storageSvc:             storageSvc,
+		visionClient:           visionClient,
+		chainSyncer:            chainSyncer,
+		ownerPropertyBootstrap: ownerPropertyBootstrap,
+		ownerDraftBootstrap:    ownerDraftBootstrap,
 	}
 }
 
@@ -227,6 +235,11 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 	if activeCredential != nil {
 		return nil, errors.New("此身份憑證已啟用，無法重複申請")
 	}
+	if normalizedType == CredentialTypeTenant && route == ReviewRouteProfile {
+		if err := ValidateTenantProfilePayload(req.FormPayload); err != nil {
+			return nil, err
+		}
+	}
 	latestSubmission, err := s.submissionRepo.FindLatestByUserAndType(user.ID, normalizedType)
 	if err != nil {
 		return nil, err
@@ -253,9 +266,6 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 	}
 
 	if normalizedType == CredentialTypeTenant && route == ReviewRouteProfile {
-		if err := ValidateTenantProfilePayload(req.FormPayload); err != nil {
-			return nil, err
-		}
 		if err := s.submissionRepo.SaveDecision(
 			submissionID,
 			CredentialReviewPassed,
@@ -467,14 +477,29 @@ func (s *Service) ActivateSubmission(ctx context.Context, wallet, credentialType
 		return fmt.Errorf("身份憑證已上鏈，但本地同步失敗，請重新整理後確認狀態: %w", err)
 	}
 
-	if sub.CredentialType == CredentialTypeOwner && s.ownerDraftBootstrap != nil {
+	if sub.CredentialType == CredentialTypeOwner {
 		formPayload, decodeErr := decodeFormPayload(sub.FormPayloadJSON)
 		if decodeErr != nil {
 			return decodeErr
 		}
 		propertyAddress := strings.TrimSpace(formPayload["propertyAddress"])
-		if err := s.ownerDraftBootstrap.BootstrapOwnerActivationDraft(user.ID, sub.ID, propertyAddress); err != nil {
-			return fmt.Errorf("bootstrap owner draft: %w", err)
+		ownershipDocNo := strings.TrimSpace(formPayload["ownershipDocNo"])
+		propertyID := int64(0)
+		if s.ownerPropertyBootstrap != nil {
+			propertyID, err = s.ownerPropertyBootstrap.BootstrapOwnerCredentialProperty(propertymod.DisclosureInput{
+				OwnerUserID:                  user.ID,
+				SourceCredentialSubmissionID: sub.ID,
+				PropertyAddress:              propertyAddress,
+				OwnershipDocNo:               ownershipDocNo,
+			})
+			if err != nil {
+				return fmt.Errorf("bootstrap owner property: %w", err)
+			}
+		}
+		if s.ownerDraftBootstrap != nil {
+			if err := s.ownerDraftBootstrap.BootstrapOwnerActivationDraft(user.ID, sub.ID, propertyID, propertyAddress); err != nil {
+				return fmt.Errorf("bootstrap owner draft: %w", err)
+			}
 		}
 	}
 

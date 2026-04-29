@@ -71,10 +71,10 @@ function actionLabel(item: CredentialCenterItem | undefined): string {
     return "查看申請狀態";
 }
 
-function RoleCard(props: { type: CredentialType; item?: CredentialCenterItem; onNavigate: (path: string) => void }) {
+function RoleCard(props: { type: CredentialType; item?: CredentialCenterItem; workbenchPath?: string; onNavigate: (path: string) => void }) {
     const meta = roleMeta[props.type];
     const isActivated = props.item?.displayStatus === "ACTIVATED";
-    const path = isActivated ? meta.workbenchPath : meta.credentialPath;
+    const path = isActivated ? (props.workbenchPath ?? meta.workbenchPath) : meta.credentialPath;
 
     return (
         <section className="flex flex-col gap-5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
@@ -243,7 +243,7 @@ export default function IdentityCenterPage() {
                         <section className="grid gap-6 md:grid-cols-3">
                             <RoleCard type="OWNER" item={ownerItem} onNavigate={navigate} />
                             <RoleCard type="TENANT" item={tenantItem} onNavigate={navigate} />
-                            <RoleCard type="AGENT" item={agentItem} onNavigate={navigate} />
+                            <RoleCard type="AGENT" item={agentItem} workbenchPath={state.address ? `/agents/${state.address}` : "/my/agent-profile"} onNavigate={navigate} />
                         </section>
 
                         {activatedItems.length > 0 ? (
@@ -271,7 +271,7 @@ export default function IdentityCenterPage() {
                                     <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
                                         <h2 className="text-xl font-bold text-on-surface">仲介專頁</h2>
                                         <p className="mt-2 text-sm text-on-surface-variant">{state.agentProfileComplete ? "公開專頁資料已完整。" : "公開專頁尚未完整，建議補上服務區域與介紹。"}</p>
-                                        <button type="button" onClick={() => navigate("/my/agent-profile")} className="mt-5 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">編輯專頁</button>
+                                        <button type="button" onClick={() => navigate(state.address ? `/agents/${state.address}` : "/my/agent-profile")} className="mt-5 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">查看仲介詳細頁</button>
                                     </div>
                                 ) : null}
                             </section>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo } from "react";
+import WatermarkedDocumentPreview from "../common/WatermarkedDocumentPreview";
 
 type Props = {
     label: string;
@@ -54,9 +55,11 @@ export default function CredentialDocumentUploader(props: Props) {
             </div>
 
             {previewUrl ? (
-                <div className="flex min-h-[280px] items-center justify-center overflow-hidden rounded-[20px] border border-outline-variant/15 bg-white px-4 py-4">
-                    <img src={previewUrl} alt={`${props.label}預覽`} className="block max-h-[360px] w-full object-contain" />
-                </div>
+                <WatermarkedDocumentPreview
+                    src={previewUrl}
+                    alt={`${props.label} 預覽`}
+                    className="flex min-h-[280px] items-center justify-center"
+                />
             ) : null}
         </div>
     );

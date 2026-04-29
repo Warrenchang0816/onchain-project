@@ -14,6 +14,21 @@ export type ListingStatus =
 export type ListingType = "UNSET" | "RENT" | "SALE";
 export type ListingSetupStatus = "INCOMPLETE" | "READY";
 export type ListingDraftOrigin = "MANUAL_CREATE" | "OWNER_ACTIVATION";
+export type PropertyVerificationStatus = "DRAFT" | "VERIFIED" | "REJECTED";
+export type PropertyCompletenessStatus =
+    | "BASIC_CREATED"
+    | "DISCLOSURE_REQUIRED"
+    | "WARRANTY_REQUIRED"
+    | "SNAPSHOT_READY"
+    | "READY_FOR_LISTING";
+
+export type ListingPropertySummary = {
+    id: number;
+    verification_status: PropertyVerificationStatus;
+    completeness_status: PropertyCompletenessStatus;
+    deed_hash: string;
+    disclosure_hash: string;
+};
 
 export type AppointmentStatus =
     | "PENDING"
@@ -37,6 +52,8 @@ export type Appointment = {
 export type Listing = {
     id: number;
     owner_user_id: number;
+    property_id?: number;
+    property?: ListingPropertySummary;
     title: string;
     description?: string;
     address: string;
@@ -150,6 +167,16 @@ export async function updateListing(id: number, payload: UpdateListingPayload): 
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
+    });
+    await parseResponse<unknown>(res);
+}
+
+export async function setListingIntent(id: number, listType: Exclude<ListingType, "UNSET">): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/listings/${id}/intent`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ list_type: listType }),
     });
     await parseResponse<unknown>(res);
 }

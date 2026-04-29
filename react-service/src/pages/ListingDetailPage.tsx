@@ -1,14 +1,16 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
 import { useIdentity } from "../hooks/useIdentity";
 import {
     bookAppointment,
     closeListing,
     getListing,
+    setListingIntent,
     publishListing,
     removeListing,
     type Listing,
+    type ListingType,
     type UpdateListingPayload,
     updateListing,
 } from "../api/listingApi";
@@ -71,6 +73,7 @@ function formatPrice(listing: Listing): string {
 
 export default function ListingDetailPage() {
     const { id } = useParams<{ id: string }>();
+    const location = useLocation();
     const navigate = useNavigate();
     const { hasRole } = useIdentity();
     const [listing, setListing] = useState<Listing | null>(null);
@@ -152,12 +155,21 @@ export default function ListingDetailPage() {
         );
     }
 
-    const isOwner = listing.is_owner;
+    const isOwner = listing.is_owner || location.pathname.startsWith("/my/listings/");
+    const backPath = isOwner ? "/my/listings" : "/listings";
+    const backLabel = isOwner ? "返回我的房源" : "返回房源列表";
     const canBook = hasRole("TENANT") && !isOwner && listing.status === "ACTIVE";
     const appointments = listing.appointments ?? [];
+    const propertyReady =
+        listing.property?.verification_status === "VERIFIED" &&
+        listing.property?.completeness_status === "READY_FOR_LISTING" &&
+        Boolean(listing.property?.disclosure_hash);
+    const needsIntent = listing.status === "DRAFT" && listing.list_type === "UNSET";
+    const canPublish = listing.status === "DRAFT" && listing.setup_status === "READY" && propertyReady && listing.list_type !== "UNSET";
 
     const handlePublish = () => runAction(() => publishListing(listingId, publishDays), `房源已上架 ${publishDays} 天。`);
     const handleEdit = (payload: UpdateListingPayload) => runAction(() => updateListing(listingId, payload), "房源已更新。");
+    const handleSetIntent = (listType: Exclude<ListingType, "UNSET">) => runAction(() => setListingIntent(listingId, listType), listType === "RENT" ? "已切換為出租刊登。" : "已切換為賣屋刊登。");
     const handleRemove = () => runAction(() => removeListing(listingId), "房源已下架。");
     const handleClose = () => runAction(() => closeListing(listingId), "房源已結案。");
     const handleBook = () => {
@@ -168,8 +180,8 @@ export default function ListingDetailPage() {
     return (
         <SiteLayout>
             <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-6 py-8 md:px-12">
-                <button type="button" onClick={() => navigate("/listings")} className="self-start bg-transparent text-sm text-on-surface-variant hover:text-primary-container">
-                    返回房源列表
+                <button type="button" onClick={() => navigate(backPath)} className="self-start bg-transparent text-sm text-on-surface-variant hover:text-primary-container">
+                    {backLabel}
                 </button>
 
                 {successMsg ? <div className="rounded-xl border border-tertiary/20 bg-tertiary/10 p-4 text-sm font-medium text-tertiary">{successMsg}</div> : null}
@@ -177,7 +189,7 @@ export default function ListingDetailPage() {
 
                 {listing.status === "DRAFT" && listing.setup_status === "INCOMPLETE" ? (
                     <div className="rounded-xl border border-amber-700/20 bg-amber-700/10 p-4 text-sm text-amber-700">
-                        這筆房源仍是未完善草稿，不會出現在公開列表。請補齊出租/出售類型、價格、坪數、房間數與衛浴數後再上架。
+                        這筆房源仍是未完善草稿，不會出現在公開列表。物件揭露完成後，請先選擇上架出租或上架賣屋，再補齊價格、坪數、房間數與衛浴數後公開。
                     </div>
                 ) : null}
 
@@ -192,7 +204,8 @@ export default function ListingDetailPage() {
                                 <span className="rounded-full bg-tertiary/10 px-3 py-1 text-xs font-bold text-tertiary">屋主認證草稿</span>
                             ) : null}
                         </div>
-                        <h1 className="text-4xl font-extrabold text-on-surface">{listing.title || "未命名房源"}</h1>
+                        <div className="text-sm font-semibold text-on-surface-variant">房源序號 #{listing.id}</div>
+                        <h1 className="mt-2 text-4xl font-extrabold text-on-surface">{listing.title || "未命名房源"}</h1>
                         <p className="mt-3 text-sm leading-[1.8] text-on-surface-variant">{listing.address || "尚未填寫地址"}</p>
                         <p className="mt-6 text-3xl font-extrabold text-primary-container">{formatPrice(listing)}</p>
 
@@ -222,7 +235,19 @@ export default function ListingDetailPage() {
                     <aside className="flex flex-col gap-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
                         {isOwner ? (
                             <>
-                                {listing.status === "DRAFT" ? <ActionButton variant="primary" onClick={() => setModal("publish")}>上架房源</ActionButton> : null}
+                                {propertyReady && needsIntent ? (
+                                    <>
+                                        <ActionButton variant="primary" disabled={isActionLoading} onClick={() => void handleSetIntent("RENT")}>上架出租</ActionButton>
+                                        <ActionButton disabled={isActionLoading} onClick={() => void handleSetIntent("SALE")}>上架賣屋</ActionButton>
+                                    </>
+                                ) : null}
+                                {listing.status === "DRAFT" && !propertyReady ? (
+                                    <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">物件揭露尚未完成，完成財產/現況說明與重大事項確認後，才能選擇出租或賣屋。</p>
+                                ) : null}
+                                {canPublish ? <ActionButton variant="primary" onClick={() => setModal("publish")}>公開刊登</ActionButton> : null}
+                                {listing.status === "DRAFT" && !needsIntent && !canPublish ? (
+                                    <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">已選擇{listing.list_type === "RENT" ? "出租" : "賣屋"}，請補齊刊登資料後再公開。</p>
+                                ) : null}
                                 {(listing.status === "DRAFT" || listing.status === "ACTIVE") ? <ActionButton onClick={() => setModal("edit")}>編輯房源</ActionButton> : null}
                                 {listing.status === "ACTIVE" ? <ActionButton variant="danger" onClick={() => void handleRemove()}>下架房源</ActionButton> : null}
                                 {(listing.status === "ACTIVE" || listing.status === "NEGOTIATING") ? <ActionButton onClick={() => void handleClose()}>結案</ActionButton> : null}

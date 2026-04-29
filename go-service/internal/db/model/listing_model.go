@@ -30,6 +30,7 @@ const (
 type Listing struct {
 	ID          int64
 	OwnerUserID int64
+	PropertyID  sql.NullInt64
 
 	Title       string
 	Description sql.NullString
@@ -58,4 +59,6 @@ type Listing struct {
 	ExpiresAt   sql.NullTime
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+
+	Property *Property
 }

@@ -34,7 +34,7 @@ const router = createBrowserRouter([
         element: <ListingListPage />,
     },
     {
-        path: "/listings/new",
+        path: "/my/listings/new",
         element: (
             <RequireCredential requiredRole="OWNER">
                 <ListingCreatePage />
@@ -45,6 +45,14 @@ const router = createBrowserRouter([
         path: "/listings/:id",
         element: (
             <RequireCredential anyOf={["OWNER", "TENANT", "AGENT"]}>
+                <ListingDetailPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/listings/:id",
+        element: (
+            <RequireCredential requiredRole="OWNER">
                 <ListingDetailPage />
             </RequireCredential>
         ),
