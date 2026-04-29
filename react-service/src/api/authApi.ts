@@ -44,7 +44,7 @@ export async function fetchSIWEMessage(
     });
 
     if (!response.ok) {
-        throw new Error("Failed to fetch SIWE message.");
+        throw new Error("取得錢包簽章訊息失敗。");
     }
 
     return response.json();
@@ -63,7 +63,7 @@ export async function verifySIWE(
     });
 
     if (!response.ok) {
-        throw new Error("Failed to verify SIWE signature.");
+        throw new Error("驗證錢包簽章失敗。");
     }
 
     return response.json();
@@ -76,7 +76,7 @@ export async function getAuthMe(): Promise<AuthMeResponse> {
     });
 
     if (!response.ok) {
-        throw new Error("Failed to fetch auth status.");
+        throw new Error("讀取登入狀態失敗。");
     }
 
     return response.json();
@@ -89,7 +89,7 @@ export async function logout(): Promise<AuthLogoutResponse> {
     });
 
     if (!response.ok) {
-        throw new Error("Failed to logout.");
+        throw new Error("登出失敗。");
     }
 
     return response.json();

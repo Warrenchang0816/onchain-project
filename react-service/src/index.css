@@ -181,8 +181,8 @@ button {
     border: none;
     border-radius: 8px;
     padding: 10px 16px;
-    background: #111827;
-    color: white;
+    background: transparent;
+    color: inherit;
     cursor: pointer;
     font-size: 14px;
 }
@@ -192,8 +192,8 @@ button:hover {
 }
 
 header {
-    background: #111827;
-    color: white;
+    background: transparent;
+    color: inherit;
     padding: 16px 24px;
 }
 
@@ -1075,8 +1075,8 @@ main {
 }
 
 .app-button-primary {
-    background: #111827;
-    color: white;
+    background: #e8b800;
+    color: #1c1917;
 }
 
 .app-button-secondary {
@@ -1141,9 +1141,9 @@ main {
 }
 
 .filter-button.active {
-    background: #111827;
-    color: white;
-    border-color: #111827;
+    background: #e8b800;
+    color: #1c1917;
+    border-color: #e8b800;
 }
 
 .page-heading-row {
@@ -2469,8 +2469,8 @@ main {
     justify-content: center;
     padding: 10px 16px;
     border-radius: 10px;
-    background: #111827;
-    color: white;
+    background: #e8b800;
+    color: #1c1917;
 }
 
 .inline-link-button--secondary {
@@ -2504,8 +2504,8 @@ main {
 .leju-hero {
     margin: -32px -48px 24px;
     padding: 28px 48px 120px;
-    background: linear-gradient(180deg, #14536f 0%, #165871 100%);
-    color: white;
+    background: #fffaf0;
+    color: #1c1917;
 }
 
 .leju-hero--compact {
@@ -2521,13 +2521,13 @@ main {
 .leju-hero h1 {
     margin: 0 0 14px;
     font-size: 34px;
-    color: white;
+    color: #1c1917;
 }
 
 .leju-hero p {
     margin: 0;
     max-width: 760px;
-    color: rgba(255, 255, 255, 0.86);
+    color: #57534e;
     line-height: 1.7;
 }
 
@@ -3039,4 +3039,140 @@ main {
 .text-danger {
     color: #dc2626;
     font-size: 14px;
+}
+
+/* ── Shared button primitives ────────────────────────────────────────────────── */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: #e8b800;
+    color: #1c1917;
+    font-size: 14px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-primary:hover:not(:disabled) {
+    opacity: 0.88;
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #f3f4f6;
+    opacity: 1;
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── CredentialConfirmDialog ─────────────────────────────────────────────────── */
+.credential-dialog-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+}
+
+.credential-dialog {
+    width: 100%;
+    max-width: 480px;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 28px 32px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.credential-dialog__title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.credential-dialog__desc {
+    margin: 0;
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.7;
+}
+
+.credential-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+/* ── CredentialSubmissionSnapshot ────────────────────────────────────────────── */
+.credential-snapshot {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.credential-snapshot__fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.credential-snapshot__field {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 8px 16px;
+    align-items: start;
+}
+
+.credential-snapshot__field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+}
+
+.credential-snapshot__field-value {
+    font-size: 14px;
+    color: #111827;
+    word-break: break-word;
+}
+
+.credential-snapshot__image {
+    width: 100%;
+    max-width: 480px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    object-fit: cover;
+    display: block;
 }

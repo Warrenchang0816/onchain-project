@@ -11,7 +11,24 @@ export type ListingStatus =
     | "REMOVED"
     | "SUSPENDED";
 
-export type ListingType = "RENT" | "SALE";
+export type ListingType = "UNSET" | "RENT" | "SALE";
+export type ListingSetupStatus = "INCOMPLETE" | "READY";
+export type ListingDraftOrigin = "MANUAL_CREATE" | "OWNER_ACTIVATION";
+export type PropertyVerificationStatus = "DRAFT" | "VERIFIED" | "REJECTED";
+export type PropertyCompletenessStatus =
+    | "BASIC_CREATED"
+    | "DISCLOSURE_REQUIRED"
+    | "WARRANTY_REQUIRED"
+    | "SNAPSHOT_READY"
+    | "READY_FOR_LISTING";
+
+export type ListingPropertySummary = {
+    id: number;
+    verification_status: PropertyVerificationStatus;
+    completeness_status: PropertyCompletenessStatus;
+    deed_hash: string;
+    disclosure_hash: string;
+};
 
 export type AppointmentStatus =
     | "PENDING"
@@ -35,6 +52,8 @@ export type Appointment = {
 export type Listing = {
     id: number;
     owner_user_id: number;
+    property_id?: number;
+    property?: ListingPropertySummary;
     title: string;
     description?: string;
     address: string;
@@ -49,6 +68,9 @@ export type Listing = {
     is_pet_allowed: boolean;
     is_parking_included: boolean;
     status: ListingStatus;
+    draft_origin: ListingDraftOrigin;
+    setup_status: ListingSetupStatus;
+    source_credential_submission_id?: number;
     negotiating_appointment?: Appointment;
     appointments?: Appointment[];
     daily_fee_ntd: number;
@@ -57,7 +79,7 @@ export type Listing = {
     created_at: string;
     updated_at: string;
     is_owner: boolean;
-    image_url?: string; // optional cover photo (populated by placeholder; will come from API eventually)
+    image_url?: string; // optional cover photo when the backend provides one; UI must not synthesize fake inventory
 };
 
 export type CreateListingPayload = {
@@ -65,7 +87,7 @@ export type CreateListingPayload = {
     description?: string;
     address: string;
     district?: string;
-    list_type: ListingType;
+    list_type: Exclude<ListingType, "UNSET">;
     price: number;
     area_ping?: number;
     floor?: number;
@@ -77,7 +99,21 @@ export type CreateListingPayload = {
     duration_days: number;
 };
 
-export type UpdateListingPayload = Omit<CreateListingPayload, "list_type" | "duration_days">;
+export type UpdateListingPayload = {
+    title: string;
+    description?: string;
+    address: string;
+    district?: string;
+    list_type?: ListingType;
+    price: number;
+    area_ping?: number;
+    floor?: number;
+    total_floors?: number;
+    room_count?: number;
+    bathroom_count?: number;
+    is_pet_allowed: boolean;
+    is_parking_included: boolean;
+};
 
 async function parseResponse<T>(res: Response): Promise<T> {
     const raw = await res.text();
@@ -90,7 +126,7 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
 // ── Listing queries ──────────────────────────────────────────────────────────
 
-export async function getListings(params?: { type?: ListingType; district?: string }): Promise<Listing[]> {
+export async function getListings(params?: { type?: Exclude<ListingType, "UNSET">; district?: string }): Promise<Listing[]> {
     const qs = new URLSearchParams();
     if (params?.type) qs.set("type", params.type);
     if (params?.district) qs.set("district", params.district);
@@ -131,6 +167,16 @@ export async function updateListing(id: number, payload: UpdateListingPayload): 
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(payload),
+    });
+    await parseResponse<unknown>(res);
+}
+
+export async function setListingIntent(id: number, listType: Exclude<ListingType, "UNSET">): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/listings/${id}/intent`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ list_type: listType }),
     });
     await parseResponse<unknown>(res);
 }
@@ -227,7 +273,7 @@ export async function cancelAppointment(listingId: number, apptId: number): Prom
 /** 鏈上足跡會用到先暫留，後續再修改調整 **/
 export type BlockchainLog = {
     id: number;
-    taskId: string;
+    taskId: string; // legacy reference id from the pre-housing task flow; field name stays until backend schema changes
     walletAddress: string;
     action: string;
     txHash: string;
@@ -244,13 +290,13 @@ export async function getBlockchainLogs(): Promise<BlockchainLog[]> {
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch blockchain logs: ${response.status}`);
+        throw new Error(`讀取鏈上紀錄失敗：${response.status}`);
     }
 
     const result: { success: boolean; data: BlockchainLog[]; message: string } = await response.json();
 
     if (!result.success) {
-        throw new Error(result.message || "Failed to fetch blockchain logs");
+        throw new Error(result.message || "讀取鏈上紀錄失敗");
     }
 
     return result.data;

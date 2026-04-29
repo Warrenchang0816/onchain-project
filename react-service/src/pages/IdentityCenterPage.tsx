@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getAuthMe } from "@/api/authApi";
+import { getCredentialCenter, type CredentialCenterItem, type CredentialCenterResponse, type CredentialType } from "@/api/credentialApi";
+import { getMyListings, type Listing } from "@/api/listingApi";
 import { getKYCStatus, type KYCStatus, type KYCStatusResponse } from "@/api/kycApi";
+import { getMyAgentProfile } from "@/api/agentApi";
+import { getMyRequirements, type TenantRequirement } from "@/api/tenantApi";
+import { CREDENTIAL_STATUS_LABEL } from "@/components/credential/credentialStatusLabels";
 import SiteLayout from "../layouts/SiteLayout";
 
 type IdentityCenterState = {
@@ -9,332 +14,271 @@ type IdentityCenterState = {
     authenticated: boolean;
     address?: string;
     kyc?: KYCStatusResponse;
+    center?: CredentialCenterResponse;
+    ownerListings: Listing[];
+    tenantRequirements: TenantRequirement[];
+    agentProfileComplete: boolean;
     error?: string;
 };
 
 const KYC_STATUS_LABEL: Record<KYCStatus, string> = {
-    UNVERIFIED: "未驗證",
-    PENDING:    "審核中",
-    VERIFIED:   "已驗證",
-    REJECTED:   "未通過",
+    UNVERIFIED: "尚未驗證",
+    PENDING: "審核中",
+    VERIFIED: "已驗證",
+    REJECTED: "未通過",
 };
 
-const IdentityCenterPage = () => {
+const roleMeta: Record<CredentialType, { title: string; icon: string; credentialPath: string; workbenchPath: string; description: string }> = {
+    OWNER: {
+        title: "屋主身份",
+        icon: "home",
+        credentialPath: "/credential/owner",
+        workbenchPath: "/my/listings",
+        description: "屋主身份通過後，第一筆名下房源會成為私有草稿；補齊資料後才可上架。",
+    },
+    TENANT: {
+        title: "租客身份",
+        icon: "key",
+        credentialPath: "/credential/tenant",
+        workbenchPath: "/my/requirements",
+        description: "租客身份是人的基本資料；租屋需求需由你另外建立與管理。",
+    },
+    AGENT: {
+        title: "仲介身份",
+        icon: "work",
+        credentialPath: "/credential/agent",
+        workbenchPath: "/my/agent-profile",
+        description: "仲介身份可建立公開專頁，讓屋主與租客自行判斷服務範圍與可信資訊。",
+    },
+};
+
+function shortenAddress(address?: string): string {
+    if (!address) return "尚未綁定";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function statusBadgeClass(status: KYCStatus): string {
+    if (status === "VERIFIED") return "border-tertiary/20 bg-tertiary/10 text-tertiary";
+    if (status === "PENDING") return "border-amber-700/20 bg-amber-700/10 text-amber-700";
+    if (status === "REJECTED") return "border-error/20 bg-error/10 text-error";
+    return "border-outline-variant/20 bg-surface-container text-on-surface-variant";
+}
+
+function actionLabel(item: CredentialCenterItem | undefined): string {
+    if (!item) return "開始申請";
+    if (item.displayStatus === "ACTIVATED") return "進入工作區";
+    if (item.displayStatus === "PASSED_READY") return "前往啟用";
+    return "查看申請狀態";
+}
+
+function RoleCard(props: { type: CredentialType; item?: CredentialCenterItem; workbenchPath?: string; onNavigate: (path: string) => void }) {
+    const meta = roleMeta[props.type];
+    const isActivated = props.item?.displayStatus === "ACTIVATED";
+    const path = isActivated ? (props.workbenchPath ?? meta.workbenchPath) : meta.credentialPath;
+
+    return (
+        <section className="flex flex-col gap-5 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container/10">
+                    <span className="material-symbols-outlined text-2xl text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {meta.icon}
+                    </span>
+                </div>
+                <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-on-surface-variant">
+                    {props.item ? CREDENTIAL_STATUS_LABEL[props.item.displayStatus] : "尚未申請"}
+                </span>
+            </div>
+            <div>
+                <h3 className="text-xl font-bold text-on-surface">{meta.title}</h3>
+                <p className="mt-2 text-sm leading-[1.75] text-on-surface-variant">{meta.description}</p>
+            </div>
+            <button
+                type="button"
+                onClick={() => props.onNavigate(path)}
+                className="mt-auto rounded-xl bg-primary-container px-4 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90"
+            >
+                {actionLabel(props.item)}
+            </button>
+        </section>
+    );
+}
+
+export default function IdentityCenterPage() {
     const navigate = useNavigate();
-    const [state, setState] = useState<IdentityCenterState>({ loading: true, authenticated: false });
+    const [state, setState] = useState<IdentityCenterState>({
+        loading: true,
+        authenticated: false,
+        ownerListings: [],
+        tenantRequirements: [],
+        agentProfileComplete: false,
+    });
 
     useEffect(() => {
         const load = async () => {
             try {
                 const auth = await getAuthMe();
                 if (!auth.authenticated) {
-                    setState({ loading: false, authenticated: false });
+                    setState((current) => ({ ...current, loading: false, authenticated: false }));
                     return;
                 }
-                const kyc = await getKYCStatus();
-                setState({ loading: false, authenticated: true, address: auth.address, kyc });
+
+                const [kycResult, centerResult] = await Promise.allSettled([getKYCStatus(), getCredentialCenter()]);
+                const kyc = kycResult.status === "fulfilled" ? kycResult.value : undefined;
+                const center = centerResult.status === "fulfilled" ? centerResult.value : undefined;
+                const credentials = kyc?.credentials ?? [];
+
+                const [ownerListings, tenantRequirements, agentProfile] = await Promise.all([
+                    credentials.includes("OWNER") ? getMyListings().catch(() => [] as Listing[]) : Promise.resolve([] as Listing[]),
+                    credentials.includes("TENANT") ? getMyRequirements().catch(() => [] as TenantRequirement[]) : Promise.resolve([] as TenantRequirement[]),
+                    credentials.includes("AGENT") ? getMyAgentProfile().catch(() => null) : Promise.resolve(null),
+                ]);
+
+                setState({
+                    loading: false,
+                    authenticated: true,
+                    address: auth.address,
+                    kyc,
+                    center,
+                    ownerListings,
+                    tenantRequirements,
+                    agentProfileComplete: agentProfile?.isProfileComplete ?? false,
+                    error: kycResult.status === "rejected" || centerResult.status === "rejected" ? "部分身份資料讀取失敗，請稍後再試。" : undefined,
+                });
             } catch (error) {
                 setState({
                     loading: false,
                     authenticated: false,
-                    error: error instanceof Error ? error.message : "讀取身份中心失敗",
+                    ownerListings: [],
+                    tenantRequirements: [],
+                    agentProfileComplete: false,
+                    error: error instanceof Error ? error.message : "讀取身份中心失敗。",
                 });
             }
         };
+
         void load();
     }, []);
 
-    const isVerified  = state.kyc?.kycStatus === "VERIFIED";
-    const credentials = state.kyc?.credentials ?? [];
-    const kycStatus   = state.kyc?.kycStatus ?? "UNVERIFIED";
-    const hasOwner    = credentials.includes("OWNER");
-    const hasTenant   = credentials.includes("TENANT");
-    const hasAgent    = credentials.includes("AGENT");
-
-    // Not authenticated
     if (!state.loading && !state.authenticated) {
         return (
             <SiteLayout>
-                <div className="max-w-7xl mx-auto px-6 md:px-12 py-20 flex flex-col items-center gap-4">
-                    <span className="material-symbols-outlined text-5xl text-outline">manage_accounts</span>
-                    <p className="text-on-surface-variant text-sm">{state.error ?? "尚未登入，請先完成 KYC 流程。"}</p>
-                    <Link to="/kyc" className="px-5 py-2.5 bg-primary-container text-on-primary-fixed font-bold rounded-lg text-sm hover:bg-inverse-primary transition-colors">
-                        前往 KYC 流程
-                    </Link>
-                </div>
+                <main className="mx-auto flex w-full max-w-[960px] flex-col gap-6 px-6 py-20 md:px-12">
+                    <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-10">
+                        <h1 className="text-4xl font-extrabold text-on-surface">身份中心</h1>
+                        <p className="mt-4 text-sm leading-[1.8] text-on-surface-variant">請先登入，才能查看 KYC 與角色啟用狀態。</p>
+                        {state.error ? <p className="mt-4 text-sm text-error">{state.error}</p> : null}
+                        <Link to="/login" className="mt-8 inline-flex rounded-xl bg-primary-container px-6 py-3 text-sm font-bold text-on-primary-container">
+                            前往登入
+                        </Link>
+                    </section>
+                </main>
             </SiteLayout>
         );
     }
 
+    const kycStatus = state.kyc?.kycStatus ?? "UNVERIFIED";
+    const isVerified = kycStatus === "VERIFIED";
+    const centerItems = state.center?.items ?? [];
+    const ownerItem = centerItems.find((item) => item.credentialType === "OWNER");
+    const tenantItem = centerItems.find((item) => item.credentialType === "TENANT");
+    const agentItem = centerItems.find((item) => item.credentialType === "AGENT");
+    const activatedItems = centerItems.filter((item) => item.displayStatus === "ACTIVATED");
+
     return (
         <SiteLayout>
-            <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-20 flex flex-col gap-16">
-                {/* Header */}
-                <div className="flex flex-col gap-4 max-w-3xl">
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-on-background tracking-tight font-headline">身份中心</h1>
-                    <p className="text-lg text-on-surface-variant leading-[1.75] font-body">
-                        管理您的去中心化身份認證，並解鎖不同角色的平台權限。所有資料均加密存儲於區塊鏈上。
-                    </p>
-                </div>
+            <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-10 px-6 py-12 md:px-12 md:py-16">
+                <section className="grid gap-8 lg:grid-cols-[1.35fr_0.65fr]">
+                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8 md:p-10">
+                        <span className="inline-flex rounded-full border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-xs font-semibold text-on-surface-variant">
+                            身份與角色工作區
+                        </span>
+                        <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">身份中心</h1>
+                        <p className="mt-4 max-w-3xl text-base leading-[1.8] text-on-surface-variant">
+                            平台會揭露 KYC 與角色 NFT 狀態，但不替媒合對象背書。屋主、租客、仲介各自管理自己的資料，最後由合作各方自行確認。
+                        </p>
+                        {state.error ? <p className="mt-4 text-sm text-error">{state.error}</p> : null}
+
+                        <div className="mt-8 grid gap-4 md:grid-cols-3">
+                            <div className="rounded-2xl bg-surface-container-low p-5">
+                                <p className="text-xs font-semibold text-on-surface-variant">錢包地址</p>
+                                <p className="mt-2 font-mono text-lg font-bold text-on-surface">{shortenAddress(state.address)}</p>
+                            </div>
+                            <div className="rounded-2xl bg-surface-container-low p-5">
+                                <p className="text-xs font-semibold text-on-surface-variant">KYC 狀態</p>
+                                <span className={`mt-3 inline-flex rounded-full border px-3 py-1 text-sm font-bold ${statusBadgeClass(kycStatus)}`}>
+                                    {KYC_STATUS_LABEL[kycStatus]}
+                                </span>
+                            </div>
+                            <div className="rounded-2xl bg-surface-container-low p-5">
+                                <p className="text-xs font-semibold text-on-surface-variant">自然人 NFT</p>
+                                <p className="mt-2 text-lg font-bold text-on-surface">
+                                    {state.kyc?.identityNftTokenId !== undefined ? `#${state.kyc.identityNftTokenId}` : "尚未鑄造"}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <aside className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
+                        <h2 className="text-2xl font-bold text-on-surface">快速操作</h2>
+                        <div className="mt-6 space-y-3">
+                            {isVerified ? (
+                                <>
+                                    <button type="button" onClick={() => navigate("/credential/owner")} className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">申請屋主身份</button>
+                                    <button type="button" onClick={() => navigate("/credential/tenant")} className="w-full rounded-xl border border-outline-variant/25 bg-surface-container-low px-5 py-3 text-sm font-medium text-on-surface">申請租客身份</button>
+                                    <button type="button" onClick={() => navigate("/credential/agent")} className="w-full rounded-xl border border-outline-variant/25 bg-surface-container-low px-5 py-3 text-sm font-medium text-on-surface">申請仲介身份</button>
+                                </>
+                            ) : (
+                                <button type="button" onClick={() => navigate("/kyc")} className="w-full rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">前往 KYC</button>
+                            )}
+                        </div>
+                    </aside>
+                </section>
 
                 {state.loading ? (
-                    <div className="flex items-center justify-center py-24">
-                        <div className="text-sm text-on-surface-variant animate-pulse">正在讀取身份資訊…</div>
-                    </div>
+                    <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-sm text-on-surface-variant">
+                        讀取身份中心中...
+                    </section>
                 ) : (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-                        {/* Left Column: KYC & Roles */}
-                        <div className="lg:col-span-8 flex flex-col gap-12">
+                    <>
+                        <section className="grid gap-6 md:grid-cols-3">
+                            <RoleCard type="OWNER" item={ownerItem} onNavigate={navigate} />
+                            <RoleCard type="TENANT" item={tenantItem} onNavigate={navigate} />
+                            <RoleCard type="AGENT" item={agentItem} workbenchPath={state.address ? `/agents/${state.address}` : "/my/agent-profile"} onNavigate={navigate} />
+                        </section>
 
-                            {/* KYC Status Card (Bento/Glassmorphism) */}
-                            <div className="bg-surface-container-lowest rounded-xl p-8 md:p-10 relative overflow-hidden transition-all duration-500 hover:bg-surface-bright group">
-                                {/* Glassmorphism decorative element */}
-                                <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary-container/10 rounded-full blur-3xl pointer-events-none group-hover:bg-primary-container/20 transition-all duration-700" />
-                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-20 h-20 rounded-full bg-primary-container/10 flex items-center justify-center shrink-0 border border-primary-container/20">
-                                            <span
-                                                className="material-symbols-outlined text-4xl text-primary-container"
-                                                style={{ fontVariationSettings: "'FILL' 1" }}
-                                            >
-                                                verified_user
-                                            </span>
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <h2 className="text-2xl font-bold text-on-background font-headline">KYC 身份認證</h2>
-                                            <div className="flex items-center gap-3 flex-wrap">
-                                                {isVerified ? (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-tertiary/10 text-tertiary text-sm font-bold tracking-wide">
-                                                        <span className="w-2 h-2 rounded-full bg-tertiary mr-2 animate-pulse" />
-                                                        已驗證
-                                                    </span>
-                                                ) : (
-                                                    <span className="inline-flex items-center px-3 py-1 rounded-full bg-surface-container text-on-surface-variant text-sm font-bold tracking-wide">
-                                                        {KYC_STATUS_LABEL[kycStatus]}
-                                                    </span>
-                                                )}
-                                                {state.kyc?.identityNftTokenId && (
-                                                    <span className="text-sm text-on-surface-variant font-medium bg-surface-container px-3 py-1 rounded-lg border border-outline-variant/20 flex items-center gap-1">
-                                                        <span className="material-symbols-outlined text-[16px]">token</span>
-                                                        IdentityNFT
-                                                    </span>
-                                                )}
-                                            </div>
+                        {activatedItems.length > 0 ? (
+                            <section className="grid gap-6 lg:grid-cols-3">
+                                {ownerItem?.displayStatus === "ACTIVATED" ? (
+                                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
+                                        <h2 className="text-xl font-bold text-on-surface">屋主物件系統</h2>
+                                        <p className="mt-2 text-sm text-on-surface-variant">
+                                            草稿 {state.ownerListings.filter((item) => item.status === "DRAFT").length} 筆，上架 {state.ownerListings.filter((item) => item.status === "ACTIVE").length} 筆。
+                                        </p>
+                                        <button type="button" onClick={() => navigate("/my/listings")} className="mt-5 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">查看我的房源</button>
+                                    </div>
+                                ) : null}
+                                {tenantItem?.displayStatus === "ACTIVATED" ? (
+                                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
+                                        <h2 className="text-xl font-bold text-on-surface">租屋需求</h2>
+                                        <p className="mt-2 text-sm text-on-surface-variant">目前共有 {state.tenantRequirements.length} 筆需求，可自行開放、暫停或關閉。</p>
+                                        <div className="mt-5 flex flex-wrap gap-3">
+                                            <button type="button" onClick={() => navigate("/my/requirements")} className="rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">管理需求</button>
+                                            <button type="button" onClick={() => navigate("/my/tenant-profile")} className="rounded-xl border border-outline-variant/25 bg-surface-container-low px-5 py-3 text-sm font-medium text-on-surface">租客資料</button>
                                         </div>
                                     </div>
-                                    <div className="w-full md:w-auto">
-                                        <button
-                                            type="button"
-                                            className="w-full md:w-auto bg-surface-container-lowest border border-outline-variant/15 text-on-background px-6 py-3 rounded-lg font-bold hover:bg-surface-container-low transition-colors duration-200"
-                                            onClick={() => navigate("/profile")}
-                                        >
-                                            檢視憑證
-                                        </button>
+                                ) : null}
+                                {agentItem?.displayStatus === "ACTIVATED" ? (
+                                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
+                                        <h2 className="text-xl font-bold text-on-surface">仲介專頁</h2>
+                                        <p className="mt-2 text-sm text-on-surface-variant">{state.agentProfileComplete ? "公開專頁資料已完整。" : "公開專頁尚未完整，建議補上服務區域與介紹。"}</p>
+                                        <button type="button" onClick={() => navigate(state.address ? `/agents/${state.address}` : "/my/agent-profile")} className="mt-5 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container">查看仲介詳細頁</button>
                                     </div>
-                                </div>
-                            </div>
-
-                            {/* Notice for unverified */}
-                            {!isVerified && (
-                                <div className="flex items-start gap-3 px-4 py-3 bg-primary-fixed/20 border border-primary-fixed rounded-xl text-sm text-on-primary-fixed-variant -mt-6">
-                                    <span className="material-symbols-outlined text-base mt-0.5">info</span>
-                                    <span>
-                                        {kycStatus === "PENDING"
-                                            ? "自然人 KYC 審核中，通過後即可申請角色憑證。"
-                                            : "需先完成自然人 KYC，才能申請下方角色憑證。"}
-                                        {(kycStatus === "UNVERIFIED" || kycStatus === "REJECTED") && (
-                                            <>{" "}<Link to="/kyc" className="font-semibold underline decoration-primary hover:text-primary transition-colors">前往 KYC 流程</Link></>
-                                        )}
-                                    </span>
-                                </div>
-                            )}
-
-                            {/* Roles Grid (3-col) */}
-                            <div className="flex flex-col gap-6">
-                                <h3 className="text-2xl font-bold text-on-background font-headline">平台角色</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                                    {/* Role: Landlord */}
-                                    <div className={`bg-surface-container-lowest rounded-xl p-6 border relative overflow-hidden flex flex-col gap-6 ${hasOwner ? "border-primary-container/20" : "border-outline-variant/15"}`}>
-                                        <div className="absolute top-0 right-0 w-16 h-16 bg-primary-container/5 rounded-bl-full pointer-events-none" />
-                                        <div className="flex justify-between items-start">
-                                            <div className="w-12 h-12 rounded-full bg-primary-container/10 flex items-center justify-center border border-primary-container/20">
-                                                <span className="material-symbols-outlined text-2xl text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
-                                            </div>
-                                            {hasOwner && (
-                                                <span className="text-xs font-bold text-tertiary bg-tertiary/10 px-2 py-1 rounded-full">已取得</span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <h4 className="text-xl font-bold text-on-background font-headline">屋主</h4>
-                                            <p className="text-sm text-on-surface-variant leading-[1.75]">發布房源、管理租約並接收加密貨幣租金。</p>
-                                        </div>
-                                        {hasOwner ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate("/listings")}
-                                                className="mt-auto w-full bg-surface-container text-on-background px-4 py-2 rounded-lg font-medium text-sm hover:bg-surface-container-high transition-colors duration-200"
-                                            >
-                                                管理房源
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                disabled={!isVerified}
-                                                onClick={() => navigate("/credential/owner")}
-                                                className={`mt-auto w-full px-4 py-2 rounded-lg font-bold text-sm transition-colors duration-200 ${
-                                                    isVerified
-                                                        ? "bg-primary-container text-on-primary-fixed hover:bg-primary-fixed-dim shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                                                        : "bg-transparent border border-outline-variant text-on-surface-variant cursor-not-allowed"
-                                                }`}
-                                            >
-                                                {isVerified ? "申請屋主身份" : "KYC 驗證後開放"}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Role: Tenant */}
-                                    <div className="bg-surface-container-lowest rounded-xl p-6 border border-outline-variant/15 relative overflow-hidden flex flex-col gap-6">
-                                        <div className="flex justify-between items-start">
-                                            <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center border border-secondary/20">
-                                                <span className="material-symbols-outlined text-2xl text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>key</span>
-                                            </div>
-                                            {hasTenant && (
-                                                <span className="text-xs font-bold text-tertiary bg-tertiary/10 px-2 py-1 rounded-full">已取得</span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <h4 className="text-xl font-bold text-on-background font-headline">租客</h4>
-                                            <p className="text-sm text-on-surface-variant leading-[1.75]">瀏覽房源、簽署智能合約並支付押金。</p>
-                                        </div>
-                                        {hasTenant ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate("/credential/tenant")}
-                                                className="mt-auto w-full bg-surface-container text-on-background px-4 py-2 rounded-lg font-medium text-sm hover:bg-surface-container-high transition-colors duration-200"
-                                            >
-                                                管理租客身份
-                                            </button>
-                                        ) : (
-                                            <button
-                                                type="button"
-                                                disabled={!isVerified}
-                                                onClick={() => navigate("/credential/tenant")}
-                                                className={`mt-auto w-full px-4 py-2 rounded-lg font-bold text-sm transition-colors duration-200 ${
-                                                    isVerified
-                                                        ? "bg-primary-container text-on-primary-fixed hover:bg-primary-fixed-dim shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
-                                                        : "bg-transparent border border-outline-variant text-on-surface-variant cursor-not-allowed"
-                                                }`}
-                                            >
-                                                {isVerified ? "申請租客身份" : "KYC 驗證後開放"}
-                                            </button>
-                                        )}
-                                    </div>
-
-                                    {/* Role: Agent */}
-                                    <div className="bg-surface-container rounded-xl p-6 border border-outline-variant/10 relative overflow-hidden flex flex-col gap-6 opacity-75 grayscale-[20%]">
-                                        <div className="flex justify-between items-start">
-                                            <div className="w-12 h-12 rounded-full bg-surface-variant flex items-center justify-center border border-outline-variant/20">
-                                                <span className="material-symbols-outlined text-2xl text-on-surface-variant" style={{ fontVariationSettings: "'FILL' 1" }}>work</span>
-                                            </div>
-                                            {hasAgent && (
-                                                <span className="text-xs font-bold text-tertiary bg-tertiary/10 px-2 py-1 rounded-full">已取得</span>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col gap-1">
-                                            <h4 className="text-xl font-bold text-on-surface-variant font-headline">仲介</h4>
-                                            <p className="text-sm text-on-surface-variant leading-[1.75]">協助媒合、處理糾紛並獲取服務費。</p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => navigate("/credential/agent")}
-                                            className="mt-auto w-full bg-transparent border border-outline-variant text-on-surface-variant px-4 py-2 rounded-lg font-medium text-sm hover:bg-surface-container-high transition-colors duration-200"
-                                        >
-                                            了解資格
-                                        </button>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Column: Blockchain Activity */}
-                        <div className="lg:col-span-4 bg-surface-container-lowest rounded-xl p-8 border border-outline-variant/10">
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-xl font-bold text-on-background font-headline">鏈上活動</h3>
-                                <span className="material-symbols-outlined text-on-surface-variant text-xl">history</span>
-                            </div>
-
-                            {state.kyc?.txHistory && state.kyc.txHistory.length > 0 ? (
-                                <div className="relative pl-6 border-l border-outline-variant/30 space-y-8">
-                                    {state.kyc.txHistory.map((tx, i) => (
-                                        <div key={tx.txHash ?? i} className="relative">
-                                            <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full ring-4 ring-surface-container-lowest ${
-                                                i === 0 ? "bg-tertiary" : "bg-surface-variant border-2 border-tertiary"
-                                            }`} />
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-medium text-on-surface-variant">
-                                                    {new Date(tx.timestamp).toLocaleString("zh-TW")}
-                                                </span>
-                                                <h5 className="text-base font-bold text-on-background">{tx.event}</h5>
-                                                {tx.txHash && (
-                                                    <a
-                                                        href={`https://sepolia.etherscan.io/tx/${tx.txHash}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-xs text-secondary hover:underline truncate mt-1 flex items-center gap-1"
-                                                    >
-                                                        {tx.txHash.slice(0, 6)}…{tx.txHash.slice(-4)}
-                                                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="relative pl-6 border-l border-outline-variant/30 space-y-8">
-                                    {isVerified && (
-                                        <div className="relative">
-                                            <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-tertiary ring-4 ring-surface-container-lowest" />
-                                            <div className="flex flex-col gap-1">
-                                                <span className="text-xs font-medium text-on-surface-variant">KYC 驗證完成</span>
-                                                <h5 className="text-base font-bold text-on-background">取得屋主身份</h5>
-                                                {state.kyc?.identityNftTokenId && (
-                                                    <a href="#" className="text-xs text-secondary hover:underline truncate mt-1 flex items-center gap-1">
-                                                        NFT #{state.kyc.identityNftTokenId}
-                                                        <span className="material-symbols-outlined text-[14px]">open_in_new</span>
-                                                    </a>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-                                    <div className="relative">
-                                        <div className={`absolute -left-[31px] top-1 w-4 h-4 rounded-full ring-4 ring-surface-container-lowest ${isVerified ? "bg-surface-variant border-2 border-tertiary" : "bg-surface-variant border-2 border-tertiary"}`} />
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-xs font-medium text-on-surface-variant">KYC 完成</span>
-                                            <h5 className="text-base font-bold text-on-background">完成 KYC 驗證</h5>
-                                        </div>
-                                    </div>
-                                    <div className="relative">
-                                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-surface-variant border-2 border-outline-variant ring-4 ring-surface-container-lowest" />
-                                        <div className="flex flex-col gap-1 opacity-60">
-                                            <span className="text-xs font-medium text-on-surface-variant">錢包連接</span>
-                                            <h5 className="text-base font-bold text-on-background">
-                                                {state.address
-                                                    ? `${state.address.slice(0, 6)}…${state.address.slice(-4)}`
-                                                    : "已連接"}
-                                            </h5>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                                ) : null}
+                            </section>
+                        ) : null}
+                    </>
                 )}
             </main>
         </SiteLayout>
     );
-};
-
-export default IdentityCenterPage;
+}

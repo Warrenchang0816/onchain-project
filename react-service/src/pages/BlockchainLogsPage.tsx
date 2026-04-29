@@ -1,27 +1,40 @@
-import { useEffect, useState } from "react";
-import SiteLayout from "@/layouts/SiteLayout";
-import { getBlockchainLogs, type BlockchainLog } from "../api/listingApi";
+import { useEffect, useMemo, useState } from "react";
 import { getAuthMe } from "@/api/authApi";
+import { getBlockchainLogs, type BlockchainLog } from "../api/listingApi";
+import SiteLayout from "@/layouts/SiteLayout";
 
 const ACTION_LABELS: Record<string, string> = {
-    FUND:          "注資",
-    ASSIGN_WORKER: "指派",
-    APPROVE_TASK:  "核准",
-    CLAIM_REWARD:  "請款",
+    FUND: "資金入帳",
+    ASSIGN_WORKER: "指派處理",
+    APPROVE_TASK: "核准任務",
+    CLAIM_REWARD: "領取獎勵",
 };
 
-const ACTION_SUBTITLE: Record<string, string> = {
-    FUND:          "Fund Injection",
-    ASSIGN_WORKER: "Worker Assigned",
-    APPROVE_TASK:  "Task Approved",
-    CLAIM_REWARD:  "Reward Claimed",
+const STATUS_LABELS: Record<string, string> = {
+    SUCCESS: "成功",
+    PENDING: "處理中",
+    FAILED: "失敗",
 };
-
-const SEPOLIA_BASE_SCAN = "https://sepolia.basescan.org/tx/";
 
 const PAGE_SIZE = 10;
+const BASESCAN_URL = "https://sepolia.basescan.org/tx/";
 
-const BlockchainLogsPage = () => {
+function formatAction(action: string): string {
+    return ACTION_LABELS[action] ?? action;
+}
+
+function formatWallet(address?: string): string {
+    if (!address) return "未知錢包";
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+function statusBadgeClass(status: string): string {
+    if (status === "SUCCESS") return "bg-tertiary/10 text-tertiary";
+    if (status === "PENDING") return "bg-amber-700/10 text-amber-700";
+    return "bg-error/10 text-error";
+}
+
+export default function BlockchainLogsPage() {
     const [logs, setLogs] = useState<BlockchainLog[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -33,13 +46,22 @@ const BlockchainLogsPage = () => {
 
     const load = async () => {
         setLoading(true);
+        setError("");
         try {
-            const [logsData, authData] = await Promise.all([getBlockchainLogs(), getAuthMe()]);
+            const [logsData, authData] = await Promise.all([
+                getBlockchainLogs(),
+                getAuthMe().catch(() => ({
+                    authenticated: false,
+                    address: undefined,
+                    chainId: undefined,
+                    isPlatformWallet: false,
+                })),
+            ]);
             setLogs(logsData);
             setIsPlatformWallet(authData.isPlatformWallet);
             setWalletAddress(authData.address);
         } catch (e) {
-            setError(e instanceof Error ? e.message : "載入鏈上紀錄失敗");
+            setError(e instanceof Error ? e.message : "讀取鏈上紀錄失敗。");
         } finally {
             setLoading(false);
         }
@@ -49,176 +71,136 @@ const BlockchainLogsPage = () => {
         void load();
     }, []);
 
-    const filtered = (() => {
-        let result = isPlatformWallet
-            ? logs
-            : logs.filter((log) => walletAddress && log.walletAddress.toLowerCase() === walletAddress.toLowerCase());
-
+    const visibleLogs = useMemo(() => {
+        let result = logs;
+        if (walletAddress && !isPlatformWallet) {
+            result = result.filter((log) => log.walletAddress.toLowerCase() === walletAddress.toLowerCase());
+        }
         if (actionFilter !== "all") {
             result = result.filter((log) => log.action === actionFilter);
         }
         if (dateFilter) {
-            result = result.filter((log) => {
-                const d = new Date(log.createdAt).toISOString().slice(0, 10);
-                return d === dateFilter;
-            });
+            result = result.filter((log) => new Date(log.createdAt).toISOString().slice(0, 10) === dateFilter);
         }
         return result;
-    })();
+    }, [actionFilter, dateFilter, isPlatformWallet, logs, walletAddress]);
 
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-    const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const totalPages = Math.max(1, Math.ceil(visibleLogs.length / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages - 1);
+    const paged = visibleLogs.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+    const availableActions = Array.from(new Set(logs.map((log) => log.action))).sort();
+
+    const updateActionFilter = (value: string) => {
+        setActionFilter(value);
+        setPage(0);
+    };
+
+    const updateDateFilter = (value: string) => {
+        setDateFilter(value);
+        setPage(0);
+    };
 
     return (
         <SiteLayout>
-            <main className="flex-grow w-full max-w-[1440px] mx-auto px-6 md:px-12 py-12 md:py-20">
-                {/* Page Header */}
-                <div className="mb-12">
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-on-surface mb-4 tracking-tight leading-tight">鏈上足跡</h1>
-                    <p className="text-lg text-on-surface-variant max-w-2xl leading-[1.75]">
-                        透明、不可篡改的交易與互動紀錄。每一筆活動都在區塊鏈上留下永恆的印記。
-                    </p>
-                </div>
-
-                {/* Filter Bar */}
-                <section className="mb-8 flex flex-col md:flex-row gap-4 bg-surface-container-lowest p-4 rounded-xl shadow-[0_8px_32px_rgba(28,25,23,0.04)] sticky top-[80px] z-40 backdrop-blur-md bg-opacity-80">
-                    {/* Action Type Dropdown */}
-                    <div className="relative w-full md:w-64">
-                        <select
-                            value={actionFilter}
-                            onChange={(e) => { setActionFilter(e.target.value); setPage(0); }}
-                            className="w-full appearance-none bg-surface-container-low border-none text-on-surface text-sm font-medium rounded-lg px-4 py-3 pr-10 focus:ring-2 focus:ring-primary-container outline-none transition-shadow cursor-pointer"
-                        >
-                            <option value="all">所有活動 (All Activities)</option>
-                            <option value="FUND">注資 (Fund)</option>
-                            <option value="ASSIGN_WORKER">指派 (Assign)</option>
-                            <option value="APPROVE_TASK">核准 (Approve)</option>
-                            <option value="CLAIM_REWARD">請款 (Claim)</option>
-                        </select>
-                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-on-surface-variant">
-                            <span className="material-symbols-outlined text-xl">expand_more</span>
-                        </div>
+            <main className="mx-auto flex w-full max-w-[1440px] flex-col gap-8 px-6 py-12 md:px-12 md:py-20">
+                <section className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div>
+                        <span className="inline-flex rounded-full border border-outline-variant/20 bg-surface-container-low px-4 py-2 text-xs font-semibold text-on-surface-variant">
+                            舊版除錯紀錄
+                        </span>
+                        <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-on-surface md:text-5xl">鏈上紀錄</h1>
+                        <p className="mt-4 max-w-3xl text-base leading-[1.8] text-on-surface-variant">
+                            此頁目前保留給營運與遷移檢查使用，尚不是後續 Property、Agency、Case、Stake 的正式使用者證明頁。
+                        </p>
                     </div>
 
-                    {/* Date Filter */}
-                    <div className="relative w-full md:w-64">
-                        <input
-                            type="date"
-                            value={dateFilter}
-                            onChange={(e) => { setDateFilter(e.target.value); setPage(0); }}
-                            className="w-full appearance-none bg-surface-container-low border-none text-on-surface text-sm font-medium rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-container outline-none transition-shadow cursor-pointer"
-                        />
+                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
+                        <p className="text-xs font-semibold text-on-surface-variant">可見範圍</p>
+                        <h2 className="mt-3 text-lg font-bold text-on-surface">
+                            {walletAddress ? (isPlatformWallet ? "平台錢包視角" : "目前錢包視角") : "公開舊版紀錄"}
+                        </h2>
+                        <p className="mt-3 text-sm leading-[1.75] text-on-surface-variant">
+                            非平台錢包只會看到與自己錢包相符的紀錄。
+                        </p>
                     </div>
+                </section>
 
-                    <div className="flex-grow" />
-
-                    {/* Actions */}
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            onClick={() => void load()}
-                            className="p-3 bg-surface-container-low rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant transition-colors flex items-center justify-center"
-                            title="Refresh"
-                        >
-                            <span className="material-symbols-outlined">refresh</span>
-                        </button>
-                        <button
-                            type="button"
-                            className="px-4 py-3 bg-surface-container-lowest border border-outline-variant/30 rounded-lg text-on-surface text-sm font-medium hover:bg-surface-container-low transition-colors flex items-center gap-2"
-                        >
-                            <span className="material-symbols-outlined text-[18px]">download</span>
-                            匯出紀錄
+                <section className="grid gap-4 md:grid-cols-3">
+                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5">
+                        <p className="text-xs font-semibold text-on-surface-variant">可見紀錄</p>
+                        <p className="mt-2 text-2xl font-bold text-on-surface">{visibleLogs.length}</p>
+                    </div>
+                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5">
+                        <p className="text-xs font-semibold text-on-surface-variant">資料備註</p>
+                        <p className="mt-2 text-sm leading-[1.75] text-on-surface-variant">後端仍保留舊欄位 <code>taskId</code>，此頁只把它當作參考編號。</p>
+                    </div>
+                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5">
+                        <p className="text-xs font-semibold text-on-surface-variant">重新整理</p>
+                        <button type="button" onClick={() => void load()} className="mt-2 rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90">
+                            重新讀取
                         </button>
                     </div>
                 </section>
 
-                {/* Table */}
-                <section className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[0_8px_32px_rgba(28,25,23,0.03)]">
+                <section className="sticky top-[80px] z-40 flex flex-col gap-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest/90 p-4 shadow-[0_8px_32px_rgba(28,25,23,0.04)] backdrop-blur-md md:flex-row md:items-center">
+                    <label className="w-full text-xs font-semibold text-on-surface-variant md:w-72">
+                        動作篩選
+                        <select value={actionFilter} onChange={(event) => updateActionFilter(event.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary-container">
+                            <option value="all">全部動作</option>
+                            {availableActions.map((action) => (
+                                <option key={action} value={action}>{formatAction(action)}</option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="w-full text-xs font-semibold text-on-surface-variant md:w-64">
+                        日期篩選
+                        <input type="date" value={dateFilter} onChange={(event) => updateDateFilter(event.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 py-3 text-sm text-on-surface outline-none focus:ring-2 focus:ring-primary-container" />
+                    </label>
+                </section>
+
+                <section className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest">
                     {loading ? (
-                        <div className="px-6 py-20 text-center text-on-surface-variant text-sm animate-pulse">載入中...</div>
+                        <div className="p-12 text-sm text-on-surface-variant">讀取鏈上紀錄中...</div>
                     ) : error ? (
-                        <div className="px-6 py-20 text-center text-error text-sm">{error}</div>
+                        <div className="p-12 text-sm text-error">{error}</div>
+                    ) : paged.length === 0 ? (
+                        <div className="p-12">
+                            <h2 className="text-2xl font-bold text-on-surface">目前沒有紀錄</h2>
+                            <p className="mt-3 max-w-2xl text-sm leading-[1.8] text-on-surface-variant">目前篩選條件沒有符合的舊版鏈上事件。</p>
+                        </div>
                     ) : (
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full border-collapse text-left">
                                 <thead>
-                                    <tr className="bg-surface-container-low text-on-surface-variant text-xs uppercase tracking-wider font-semibold border-b border-surface-variant/50">
-                                        <th className="px-6 py-5 w-[60px]">狀態</th>
-                                        <th className="px-6 py-5 min-w-[180px]">活動類型</th>
-                                        <th className="px-6 py-5 min-w-[200px]">標的 / 關聯</th>
-                                        <th className="px-6 py-5 min-w-[140px]">時間戳記</th>
-                                        <th className="px-6 py-5 min-w-[180px]">交易哈希 (Tx Hash)</th>
+                                    <tr className="border-b border-surface-container bg-surface-container-low text-xs font-semibold text-on-surface-variant">
+                                        <th className="px-6 py-5">狀態</th>
+                                        <th className="px-6 py-5">動作</th>
+                                        <th className="px-6 py-5">錢包</th>
+                                        <th className="px-6 py-5">參考編號</th>
+                                        <th className="px-6 py-5">時間</th>
+                                        <th className="px-6 py-5">交易 Hash</th>
                                     </tr>
                                 </thead>
-                                <tbody className="text-sm font-medium text-on-surface">
-                                    {paged.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={5} className="px-6 py-20 text-center">
-                                                <div className="flex flex-col items-center justify-center text-on-surface-variant">
-                                                    <span className="material-symbols-outlined text-4xl mb-4 opacity-50">receipt_long</span>
-                                                    <p className="text-lg font-bold mb-1">尚無鏈上足跡</p>
-                                                    <p className="text-sm">當您開始進行交易或簽署合約時，紀錄將顯示於此。</p>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ) : paged.map((log) => (
-                                        <tr key={log.id} className="border-b border-surface-variant/30 hover:bg-[#FFFBEB] transition-colors duration-200 group">
-                                            {/* Status */}
+                                <tbody>
+                                    {paged.map((log) => (
+                                        <tr key={log.id} className="border-b border-surface-container/70 transition-colors hover:bg-surface-container-low">
                                             <td className="px-6 py-5">
-                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${log.status === "SUCCESS" ? "bg-tertiary/10 text-tertiary" : "bg-error/10 text-error"}`}>
-                                                    <span className="material-symbols-outlined text-[18px]">
-                                                        {log.status === "SUCCESS" ? "check_circle" : "error"}
-                                                    </span>
-                                                </div>
+                                                <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusBadgeClass(log.status)}`}>
+                                                    {STATUS_LABELS[log.status] ?? log.status}
+                                                </span>
                                             </td>
-
-                                            {/* Action type */}
                                             <td className="px-6 py-5">
-                                                <div className="font-bold text-base text-on-surface">
-                                                    {ACTION_LABELS[log.action] ?? log.action}
-                                                </div>
-                                                <div className="text-xs text-on-surface-variant mt-0.5">
-                                                    {ACTION_SUBTITLE[log.action] ?? log.action}
-                                                </div>
+                                                <p className="font-bold text-on-surface">{formatAction(log.action)}</p>
+                                                <p className="mt-1 text-xs text-on-surface-variant">{log.action}</p>
                                             </td>
-
-                                            {/* Target */}
+                                            <td className="px-6 py-5 text-sm text-on-surface">{formatWallet(log.walletAddress)}</td>
+                                            <td className="px-6 py-5 font-mono text-sm text-on-surface">{log.taskId || "無"}</td>
+                                            <td className="px-6 py-5 text-sm text-on-surface-variant">{new Date(log.createdAt).toLocaleString("zh-TW")}</td>
                                             <td className="px-6 py-5">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
-                                                        <span className="material-symbols-outlined">person</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold block">
-                                                            {log.walletAddress
-                                                                ? `${log.walletAddress.slice(0, 6)}...${log.walletAddress.slice(-4)}`
-                                                                : "—"}
-                                                        </span>
-                                                        <span className="text-xs text-on-surface-variant">任務 {log.taskId}</span>
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Timestamp */}
-                                            <td className="px-6 py-5 text-on-surface-variant whitespace-nowrap">
-                                                {new Date(log.createdAt).toLocaleString("zh-TW")}
-                                            </td>
-
-                                            {/* Tx Hash */}
-                                            <td className="px-6 py-5">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-[#E8B800] bg-primary-container/10 px-2 py-1 rounded">
-                                                        {`${log.txHash.slice(0, 6)}...${log.txHash.slice(-4)}`}
-                                                    </span>
-                                                    <a
-                                                        href={`${SEPOLIA_BASE_SCAN}${log.txHash}`}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-on-surface-variant hover:text-secondary transition-colors opacity-0 group-hover:opacity-100"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                                                    </a>
-                                                </div>
+                                                <a href={`${BASESCAN_URL}${log.txHash}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-surface-container-low px-3 py-2 font-mono text-sm text-secondary hover:underline">
+                                                    {log.txHash.slice(0, 6)}...{log.txHash.slice(-4)}
+                                                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                                                </a>
                                             </td>
                                         </tr>
                                     ))}
@@ -227,36 +209,23 @@ const BlockchainLogsPage = () => {
                         </div>
                     )}
 
-                    {/* Pagination */}
-                    {!loading && !error && filtered.length > 0 && (
-                        <div className="bg-surface-container-low px-6 py-4 flex items-center justify-between border-t border-surface-variant/50">
+                    {!loading && !error && visibleLogs.length > 0 ? (
+                        <div className="flex items-center justify-between border-t border-surface-container bg-surface-container-low px-6 py-4">
                             <span className="text-sm text-on-surface-variant">
-                                顯示 {page * PAGE_SIZE + 1} - {Math.min((page + 1) * PAGE_SIZE, filtered.length)} 筆，共 {filtered.length} 筆紀錄
+                                顯示 {safePage * PAGE_SIZE + 1}-{Math.min((safePage + 1) * PAGE_SIZE, visibleLogs.length)}，共 {visibleLogs.length} 筆
                             </span>
                             <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                                    disabled={page === 0}
-                                    className="p-2 bg-transparent rounded hover:bg-surface-variant text-on-surface-variant disabled:opacity-50 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined">chevron_left</span>
+                                <button type="button" onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={safePage === 0} className="rounded-lg border border-outline-variant/20 px-4 py-2 text-sm text-on-surface disabled:opacity-50">
+                                    上一頁
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                                    disabled={page >= totalPages - 1}
-                                    className="p-2 bg-transparent rounded hover:bg-surface-variant text-on-surface-variant disabled:opacity-50 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined">chevron_right</span>
+                                <button type="button" onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))} disabled={safePage >= totalPages - 1} className="rounded-lg border border-outline-variant/20 px-4 py-2 text-sm text-on-surface disabled:opacity-50">
+                                    下一頁
                                 </button>
                             </div>
                         </div>
-                    )}
+                    ) : null}
                 </section>
             </main>
         </SiteLayout>
     );
-};
-
-export default BlockchainLogsPage;
+}

@@ -1,5 +1,18 @@
 # 可信房屋媒合平台：MVP 階段開發規格與規劃書
 
+> 更新日期：2026-04-22  
+> 文件定位：本文件保留 MVP 階段的產品願景、核心定位與早期規劃，不直接取代目前 repo 的 live flow 文件。  
+> 現況準據：目前專案實作與 gate 驗收順序，請以 `docs/開發規劃書.md`、`docs/架構設計書.md`、`docs/superpowers/specs/2026-04-22-platform-mainline-gate-roadmap-design.md` 為準。
+
+---
+
+## 0. 截至 2026-04-22 的現況對照
+
+- 已落地主線：自建 eKYC、`person_hash + wallet SIWE + password` 登入、身份中心、會員資料頁、房源列表 / 詳情、預約看房。
+- 正在收斂的主線：OWNER / TENANT / AGENT 角色申請閉環，對應目前主幹 `Gate 1`。
+- 尚未正式閉環：`Property / Agency / Case / Stake` 的正式鏈上治理能力，將依 `Gate 2 -> Gate 5` 分段落地。
+- 本文件第 3 節到第 6 節描述的是 MVP 目標能力，不代表目前 repo 已全部實作完成。
+
 ---
 
 ## 1. 專案願景與核心定位
@@ -119,14 +132,16 @@
 - 物件刊登流程
 - 媒合看板 UI
 
-**合約（Task-Reward-Vault）**
-- Stake 押金機制
-- Operator 權限控管
-- 狀態確認機制
+**合約（task-reward-vault / 房屋平台合約組）**
+- `IdentityNFT` 自然人與角色憑證
+- `PropertyRegistry / AgencyRegistry / CaseTracker / ListingStakeVault`
+- Operator 權限控管與事件同步基礎
 
 ---
 
-### 5.2 開發時程（MVP 六週計劃）
+### 5.2 開發時程（MVP 六週計劃 / 歷史規劃基準）
+
+以下六週時程是早期 MVP 規劃的時間切片，現行專案治理已改為 gate-based roadmap，不再直接以週次作為正式開工順序：
 
 | 週次 | 開發項目 | 驗收標準 |
 |------|----------|----------|

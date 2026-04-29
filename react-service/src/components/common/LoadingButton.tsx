@@ -8,7 +8,7 @@ interface LoadingButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const LoadingButton = ({
     isLoading,
-    loadingText = "Loading...",
+    loadingText = "讀取中...",
     children,
     disabled,
     ...props

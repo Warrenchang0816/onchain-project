@@ -54,3 +54,4 @@ __pycache__/
 # Project-local ignored data
 /data/
 /docs/refs/
+.worktrees/

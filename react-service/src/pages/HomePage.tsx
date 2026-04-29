@@ -1,307 +1,258 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getListings, type Listing } from "../api/listingApi";
+import { getListings, type Listing, type ListingType } from "../api/listingApi";
 import SiteLayout from "../layouts/SiteLayout";
 
-const DISTRICTS = [
-    { name: "信義區", count: "1,204 件物件" },
-    { name: "大安區", count: "982 件物件" },
-    { name: "中山區", count: "1,543 件物件" },
-    { name: "松山區", count: "756 件物件" },
+const DISTRICT_SUGGESTIONS = [
+    { name: "信義區", description: "商辦、捷運與高樓住宅密集，適合快速掌握都會型房源。" },
+    { name: "大安區", description: "生活機能成熟，常見家庭住宅與穩定租賃需求。" },
+    { name: "中山區", description: "小宅、套房與混合用途物件多，適合彈性租住。" },
+    { name: "內湖區", description: "科技園區通勤導向，適合工作生活圈條件篩選。" },
 ];
 
 const VALUE_CARDS = [
     {
-        iconBg:   "w-16 h-16 bg-primary-container/20 rounded-full flex items-center justify-center mb-6 text-primary",
-        icon:     "verified_user",
-        title:    "身份可信",
-        desc:     "透過嚴格的 KYC 驗證與鏈上身份綁定，杜絕假房東與虛假屋主，保障雙方權益。",
+        icon: "verified_user",
+        title: "先確認人，再談媒合",
+        description: "目前主線已支援 KYC、角色啟用、房源草稿、上架與看房預約，平台會清楚揭露狀態，不替交易結果背書。",
     },
     {
-        iconBg:   "w-16 h-16 bg-secondary-container/20 rounded-full flex items-center justify-center mb-6 text-secondary",
-        icon:     "visibility",
-        title:    "交易透明",
-        desc:     "所有產權變更、租賃紀錄與歷史價格皆上鏈保存，告別資訊不對稱的黑箱作業。",
+        icon: "home_work",
+        title: "屋主從草稿開始",
+        description: "屋主認證通過後可管理自己的物件系統，草稿不公開，補齊資料後再上架。",
     },
     {
-        iconBg:   "w-16 h-16 bg-tertiary-container/20 rounded-full flex items-center justify-center mb-6 text-tertiary",
-        icon:     "key",
-        title:    "主權在屋主",
-        desc:     "直接與潛在買家或租客對接，智能合約自動執行條件，降低高昂的中介抽成。",
+        icon: "timeline",
+        title: "鏈上能力分階段接上",
+        description: "Property、Agency、Case、Stake 等證明會在後續 Gate 逐步上鏈，現階段先把媒合主流程打穩。",
     },
 ];
 
-function formatPrice(price: number, listType: string) {
-    if (listType === "RENT") return `${(price / 10000).toFixed(0)} 萬 / 月`;
-    return price >= 10000 ? `${(price / 10000).toFixed(0)} 萬` : `${price.toLocaleString()}`;
+function formatPrice(listing: Listing): string {
+    if (listing.price <= 0) return "價格未設定";
+    if (listing.list_type === "RENT") return `NT$ ${listing.price.toLocaleString()} / 月`;
+    return `NT$ ${listing.price.toLocaleString()}`;
 }
 
-const PLACEHOLDER_CARDS = [
-    { title: "光影織境・信義景觀宅", price: "4,280 萬", addr: "信義區・松智路", rooms: 3, baths: 2, ping: 45, badge: "bg-tertiary-container/90 text-on-tertiary-container", label: "驗證上鏈", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA3lWAdXDiqx56oRlRygVeb81z4Gob3hOFoPjbSKYF9F3cjYF8Qftak5zHG00mRn5u1MXaiZnBQ-mzTfHHeCFWVfI-86XIPMlYfs_C2hxTOTwP1QyeoahAWOjilvbKxj7oBaETQzrJAWYLHFQFJVrTGRB2EIo8PGE-0_O5vgQvR3ggmaqU2bHG2CEteN40G3KNCdev9l3mauWGcdsw2kgtbpDcEnEnvxHN0ab83d6tSB3tKq3Jqd55-wf4CcB7vAxyD8epwW9GPQAj0" },
-    { title: "綠意盎然・大安森林寓", price: "3,150 萬", addr: "大安區・新生南路", rooms: 2, baths: 1, ping: 28, badge: "bg-surface-container-high/90 text-on-surface", label: "洽談中",   img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAmQ7WQvimokWYnKxgHLtnRRFKc4OgyJZqQbnl61hXKqncuZKk9cWmzF0xJl-3HjJn_MDqOK4gVZqcmn0FevHlajLB3o24XcPf6249vUDSBFTneXVvXynUvdFps57ELgfXADiUA590T7807AoMTqt7wkMfTuv9cb7rViPvxy25Nag4JaTIf5DjEQ0qmho12xWbfsMVdRlJ1g9bFTsjWVyWSQ-tzgCUXxQHFRbSmoS00FHLe7-067bEdAgLM245j2UNKGuynFgyX9UvP" },
-    { title: "文青雅居・中山挑高樓", price: "5 萬 / 月", addr: "中山區・中山北路",  rooms: 1, baths: 1, ping: 18, badge: "bg-tertiary-container/90 text-on-tertiary-container", label: "驗證上鏈", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuB9ki_USArM-KSD2K_H1wGd7AeRB_ZjH46M_XBU9AGMw-r1TkRnkjsSDmhjbRvuc7tuKc1cNhWW4ylGdQELLpzs8CigcHLZbYculInOOG0NzgyFrEVmDa1zL3Xl4eJTtFdrB1O-3W-z90LcQhpEstrxtVJkgmkKn3c03YIvENk1zAp40kEFaET5E83Sm4h2zDLGRTwAyonfO52vg7B1kgwiOvWtavZHq7QvxwNeAdIiQ2jkUjfMxrZjQJqVawpROTJX9S142-wd87-c" },
-];
+function formatMeta(listing: Listing): string[] {
+    const items: string[] = [];
+    if (listing.room_count !== undefined) items.push(`${listing.room_count} 房`);
+    if (listing.bathroom_count !== undefined) items.push(`${listing.bathroom_count} 衛`);
+    if (listing.area_ping !== undefined) items.push(`${listing.area_ping} 坪`);
+    return items;
+}
 
-const HomePage = () => {
+export default function HomePage() {
     const navigate = useNavigate();
     const [listings, setListings] = useState<Listing[]>([]);
-    const [searchType, setSearchType] = useState<"BUY" | "RENT">("BUY");
+    const [searchType, setSearchType] = useState<Exclude<ListingType, "UNSET">>("SALE");
     const [searchText, setSearchText] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
     useEffect(() => {
         const load = async () => {
-            const data = await getListings().catch(() => [] as Listing[]);
-            setListings(data);
+            try {
+                setLoading(true);
+                setLoadError("");
+                setListings(await getListings());
+            } catch (err) {
+                setLoadError(err instanceof Error ? err.message : "讀取房源失敗。");
+            } finally {
+                setLoading(false);
+            }
         };
         void load();
     }, []);
 
-    const recentListings = listings.filter((l) => l.status === "ACTIVE").slice(0, 3);
+    const recentListings = listings.filter((listing) => listing.status === "ACTIVE").slice(0, 3);
 
     const handleSearch = () => {
-        navigate(searchText ? `/listings?district=${encodeURIComponent(searchText)}` : "/listings");
+        const params = new URLSearchParams();
+        params.set("type", searchType);
+        if (searchText.trim()) params.set("district", searchText.trim());
+        navigate(`/listings?${params.toString()}`);
     };
 
     return (
         <SiteLayout>
-            {/* Hero Section */}
-            <section className="relative pt-24 pb-32 px-6 md:px-12 bg-gradient-to-b from-background to-surface-container-low overflow-hidden">
-                <div className="max-w-[1440px] mx-auto grid md:grid-cols-2 gap-16 items-center">
-                    <div className="space-y-8 z-10">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-on-surface leading-tight font-headline">
-                            買房・租屋，<br />可信任的媒合市場
-                        </h1>
-                        <p className="text-lg text-on-surface-variant max-w-lg leading-[1.75]">
-                            運用區塊鏈技術，為台灣打造真實、透明、去中心化的不動產交易新標竿。
-                        </p>
+            <section className="bg-gradient-to-b from-background to-surface-container-low px-6 pb-24 pt-20 md:px-12">
+                <div className="mx-auto grid max-w-[1440px] gap-14 md:grid-cols-2 md:items-center">
+                    <div className="flex flex-col gap-8">
+                        <span className="w-fit rounded-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-2 text-xs font-semibold text-on-surface-variant">
+                            Gate 1 主線媒合平台
+                        </span>
+                        <div className="space-y-5">
+                            <h1 className="text-4xl font-extrabold leading-tight text-on-surface md:text-6xl">
+                                房源、需求、仲介身份都看得清楚。
+                            </h1>
+                            <p className="max-w-xl text-lg leading-[1.8] text-on-surface-variant">
+                                從 KYC、角色啟用、屋主草稿到租屋需求，平台協助揭露可驗證資訊；實際合作仍由屋主、租客與仲介自行確認。
+                            </p>
+                        </div>
 
-                        {/* Search Card (Glassmorphism) */}
-                        <div className="bg-surface-container-lowest/80 backdrop-blur-2xl p-6 rounded-xl border border-outline-variant/15 shadow-[0_8px_32px_rgba(28,25,23,0.06)]">
-                            <div className="flex gap-4 mb-6">
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchType("BUY")}
-                                    className={`px-6 py-2 rounded-full font-bold text-sm transition-colors ${
-                                        searchType === "BUY"
-                                            ? "bg-primary-container text-on-primary-container"
-                                            : "bg-surface-container-low text-on-surface font-medium hover:bg-surface-container"
-                                    }`}
-                                >
-                                    買房
+                        <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest/90 p-6 shadow-[0_16px_48px_rgba(28,25,23,0.08)]">
+                            <div className="mb-5 flex gap-3">
+                                <button type="button" onClick={() => setSearchType("SALE")} className={`rounded-full px-5 py-2 text-sm font-bold ${searchType === "SALE" ? "bg-primary-container text-on-primary-container" : "bg-surface-container-low text-on-surface"}`}>
+                                    出售
                                 </button>
-                                <button
-                                    type="button"
-                                    onClick={() => setSearchType("RENT")}
-                                    className={`px-6 py-2 rounded-full text-sm transition-colors ${
-                                        searchType === "RENT"
-                                            ? "bg-primary-container text-on-primary-container font-bold"
-                                            : "bg-surface-container-low text-on-surface font-medium hover:bg-surface-container"
-                                    }`}
-                                >
-                                    租屋
+                                <button type="button" onClick={() => setSearchType("RENT")} className={`rounded-full px-5 py-2 text-sm font-bold ${searchType === "RENT" ? "bg-primary-container text-on-primary-container" : "bg-surface-container-low text-on-surface"}`}>
+                                    出租
                                 </button>
                             </div>
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <div className="flex-grow bg-surface-container-low rounded-lg px-4 py-3 flex items-center gap-3">
+                            <div className="flex flex-col gap-4 sm:flex-row">
+                                <div className="flex flex-1 items-center gap-3 rounded-xl bg-surface-container-low px-4 py-3">
                                     <span className="material-symbols-outlined text-outline">search</span>
                                     <input
-                                        className="bg-transparent border-none focus:ring-0 w-full text-on-surface placeholder-on-surface-variant outline-none"
-                                        placeholder="搜尋區域、捷運站、社區..."
                                         type="text"
                                         value={searchText}
-                                        onChange={(e) => setSearchText(e.target.value)}
-                                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                                        onChange={(event) => setSearchText(event.target.value)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === "Enter") handleSearch();
+                                        }}
+                                        placeholder="輸入行政區或關鍵字"
+                                        className="w-full bg-transparent text-on-surface outline-none placeholder:text-on-surface-variant"
                                     />
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={handleSearch}
-                                    className="bg-primary-container text-on-primary-container px-8 py-3 rounded-lg font-bold hover:opacity-90 transition-opacity"
-                                >
-                                    搜尋
+                                <button type="button" onClick={handleSearch} className="rounded-xl bg-primary-container px-8 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90">
+                                    搜尋房源
                                 </button>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="relative z-0">
-                        <div className="aspect-[4/3] rounded-xl overflow-hidden shadow-[0_16px_48px_rgba(28,25,23,0.08)] bg-surface-variant">
-                            <img
-                                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdKRXNvwbCAm5KzsPO2yQdkGazvc0BbuCa4TuXHvhY95ACl4h35P-uK7XhljMKWiV1U9fjGiD43cfix_8NkU15ZQKl1jp6oK3-YMe68qigAqT0z50X8131Ohq5mhOcPmu_JydYPGOqAB5MRbHwPPp0a1KTqUgFYLbGniXU3BMpNw7BkucQaeEDzTyVrqAAS6ddfMiA6_TEqfKgQmXUvVQbA8CBYdrq6JjXLtN2KYbpBj1bQ5mRM1GD16mPhFyf63bS9WBlMQAS6nuQ"
-                                alt="Beautiful modern home exterior"
-                                className="w-full h-full object-cover"
-                            />
-                        </div>
-                        {/* Floating Badge */}
-                        <div className="absolute -bottom-6 -left-6 bg-surface-container-lowest/90 backdrop-blur-md p-4 rounded-xl border border-outline-variant/15 shadow-[0_8px_24px_rgba(28,25,23,0.05)] flex items-center gap-3">
-                            <div className="w-3 h-3 rounded-full bg-tertiary-container animate-pulse" />
-                            <span className="text-sm font-bold text-on-surface">智能合約擔保交易</span>
+                        <div className="flex flex-wrap gap-3">
+                            <button type="button" onClick={() => navigate("/listings")} className="rounded-xl bg-primary-container px-6 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90">
+                                瀏覽房源列表
+                            </button>
+                            <button type="button" onClick={() => navigate("/member")} className="rounded-xl border border-outline-variant/30 bg-surface-container-lowest px-6 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low">
+                                前往身份中心
+                            </button>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            {/* Platform Value */}
-            <section className="py-24 px-6 md:px-12 bg-surface-container-low">
-                <div className="max-w-[1440px] mx-auto">
-                    <h2 className="text-3xl font-extrabold text-on-surface mb-16 text-center font-headline">重新定義信任</h2>
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {VALUE_CARDS.map((v) => (
-                            <div key={v.title} className="bg-surface-container-lowest p-10 rounded-xl flex flex-col items-center text-center">
-                                <div className={v.iconBg}>
-                                    <span
-                                        className="material-symbols-outlined text-3xl"
-                                        style={{ fontVariationSettings: "'FILL' 1" }}
-                                    >
-                                        {v.icon}
+                    <div className="overflow-hidden rounded-2xl border border-outline-variant/15 bg-surface-container-lowest shadow-[0_24px_80px_rgba(28,25,23,0.08)]">
+                        <div className="grid gap-0 border-b border-outline-variant/10 bg-surface-container-low p-6 md:grid-cols-[1.1fr_0.9fr]">
+                            <div className="space-y-3">
+                                <p className="text-xs font-semibold text-on-surface-variant">目前已上線</p>
+                                <h2 className="text-2xl font-bold text-on-surface">草稿到預約</h2>
+                                <p className="text-sm leading-[1.8] text-on-surface-variant">屋主可以整理房源，租客可預約看房，仲介可建立公開專頁。</p>
+                            </div>
+                            <div className="mt-6 rounded-2xl bg-primary-container/15 p-5 md:mt-0">
+                                <p className="text-xs font-semibold text-on-surface-variant">後續 Gate</p>
+                                <h2 className="mt-2 text-lg font-bold text-on-surface">Property、Agency、Case、Stake</h2>
+                                <p className="mt-2 text-sm leading-[1.7] text-on-surface-variant">鏈上資產與案件證明會在基礎流程穩定後逐步接入。</p>
+                            </div>
+                        </div>
+                        <div className="grid gap-4 p-6 md:grid-cols-2">
+                            {VALUE_CARDS.map((card) => (
+                                <div key={card.title} className="rounded-2xl bg-surface-container-low p-5 md:last:col-span-2">
+                                    <span className="material-symbols-outlined mb-4 text-3xl text-primary-container" style={{ fontVariationSettings: "'FILL' 1" }}>
+                                        {card.icon}
                                     </span>
+                                    <h2 className="mb-2 text-lg font-bold text-on-surface">{card.title}</h2>
+                                    <p className="text-sm leading-[1.75] text-on-surface-variant">{card.description}</p>
                                 </div>
-                                <h3 className="text-xl font-bold text-on-surface mb-4">{v.title}</h3>
-                                <p className="text-on-surface-variant leading-[1.75]">{v.desc}</p>
-                            </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="bg-surface-container-low px-6 py-20 md:px-12">
+                <div className="mx-auto max-w-[1440px]">
+                    <div className="mb-10">
+                        <h2 className="text-3xl font-extrabold text-on-surface">從區域開始找</h2>
+                        <p className="mt-3 max-w-2xl text-sm leading-[1.8] text-on-surface-variant">快速入口會帶入公開房源列表的即時查詢條件。</p>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+                        {DISTRICT_SUGGESTIONS.map((district) => (
+                            <button key={district.name} type="button" onClick={() => navigate(`/listings?district=${encodeURIComponent(district.name)}`)} className="group rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6 text-left transition-colors hover:bg-surface-container">
+                                <div className="mb-3 flex items-center justify-between">
+                                    <h3 className="text-xl font-bold text-on-surface">{district.name}</h3>
+                                    <span className="material-symbols-outlined text-on-surface-variant transition-transform group-hover:translate-x-1">arrow_forward</span>
+                                </div>
+                                <p className="text-sm leading-[1.75] text-on-surface-variant">{district.description}</p>
+                            </button>
                         ))}
                     </div>
                 </div>
             </section>
 
-            {/* District Links */}
-            <section className="py-24 px-6 md:px-12 bg-background">
-                <div className="max-w-[1440px] mx-auto">
-                    <h2 className="text-3xl font-extrabold text-on-surface mb-12 font-headline">探索熱門區域</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                        {DISTRICTS.map((d) => (
-                            <a
-                                key={d.name}
-                                href="#"
-                                onClick={(e) => { e.preventDefault(); navigate("/listings"); }}
-                                className="group bg-surface-container-low p-6 rounded-r-xl border-l-4 border-primary-container hover:bg-surface-container transition-colors flex justify-between items-center"
-                            >
-                                <div>
-                                    <div className="text-lg font-bold text-on-surface group-hover:text-primary transition-colors">{d.name}</div>
-                                    <div className="text-sm text-on-surface-variant mt-1">{d.count}</div>
-                                </div>
-                                <span className="material-symbols-outlined text-outline-variant group-hover:text-primary transition-colors">
-                                    arrow_forward
-                                </span>
-                            </a>
-                        ))}
+            <section className="bg-surface-container-lowest px-6 py-20 md:px-12">
+                <div className="mx-auto max-w-[1440px]">
+                    <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <h2 className="text-3xl font-extrabold text-on-surface">近期上架房源</h2>
+                            <p className="mt-3 max-w-2xl text-sm leading-[1.8] text-on-surface-variant">這裡只呈現後端狀態為上架中的真實房源。</p>
+                        </div>
+                        <button type="button" onClick={() => navigate("/listings")} className="w-fit rounded-xl border border-outline-variant/20 px-5 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low">
+                            開啟房源列表
+                        </button>
                     </div>
+
+                    {loading ? (
+                        <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-10 text-sm text-on-surface-variant">讀取近期房源中...</div>
+                    ) : loadError ? (
+                        <div className="rounded-2xl border border-error/20 bg-error-container p-10 text-sm text-on-error-container">{loadError}</div>
+                    ) : recentListings.length === 0 ? (
+                        <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-10">
+                            <h3 className="text-2xl font-bold text-on-surface">目前沒有上架房源</h3>
+                            <p className="mt-3 max-w-2xl text-sm leading-[1.8] text-on-surface-variant">等屋主完成草稿並公開上架後，房源會出現在這裡。</p>
+                        </div>
+                    ) : (
+                        <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+                            {recentListings.map((listing) => (
+                                <article key={listing.id} onClick={() => navigate(`/listings/${listing.id}`)} className="cursor-pointer overflow-hidden rounded-2xl border border-outline-variant/10 bg-surface transition-transform duration-300 hover:-translate-y-1">
+                                    <div className="relative h-64 bg-surface-variant">
+                                        {listing.image_url ? (
+                                            <img src={listing.image_url} alt={listing.title} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="flex h-full w-full items-center justify-center">
+                                                <span className="material-symbols-outlined text-7xl text-on-surface-variant/20" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
+                                            </div>
+                                        )}
+                                        <div className="absolute left-4 top-4 rounded-full border border-outline-variant/10 bg-surface-container-lowest/90 px-3 py-1 text-xs font-bold text-on-surface">
+                                            {listing.list_type === "RENT" ? "出租" : "出售"}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-4 p-6">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <h3 className="text-xl font-bold text-on-surface">{listing.title}</h3>
+                                            <div className="text-lg font-bold text-primary-container">{formatPrice(listing)}</div>
+                                        </div>
+                                        <p className="text-sm leading-[1.75] text-on-surface-variant">
+                                            {listing.district ? `${listing.district}，` : ""}
+                                            {listing.address}
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {formatMeta(listing).map((item) => (
+                                                <span key={item} className="rounded-full bg-surface-container-low px-3 py-1 text-xs text-on-surface-variant">{item}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </section>
 
-            {/* Recent Listings */}
-            <section className="py-24 px-6 md:px-12 bg-surface-container-lowest">
-                <div className="max-w-[1440px] mx-auto">
-                    <div className="flex justify-between items-end mb-12">
-                        <h2 className="text-3xl font-extrabold text-on-surface font-headline">最新上架</h2>
-                        <a
-                            href="#"
-                            onClick={(e) => { e.preventDefault(); navigate("/listings"); }}
-                            className="text-tertiary font-medium hover:text-on-surface transition-colors flex items-center gap-1 border-b border-tertiary pb-0.5"
-                        >
-                            查看全部 <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                        </a>
-                    </div>
-                    <div className="grid md:grid-cols-3 gap-8">
-                        {recentListings.length > 0 ? recentListings.map((listing, idx) => (
-                            <div
-                                key={listing.id}
-                                className="group cursor-pointer"
-                                onClick={() => navigate(`/listings/${listing.id}`)}
-                            >
-                                <div className="aspect-[4/3] rounded-xl overflow-hidden mb-6 relative bg-surface-variant">
-                                    <img src={listing.image_url} alt={listing.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                    <div className={`absolute top-4 left-4 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm ${idx === 1 ? "bg-surface-container-high/90 text-on-surface" : "bg-tertiary-container/90 text-on-tertiary-container"}`}>
-                                        {idx === 1 ? "洽談中" : "驗證上鏈"}
-                                    </div>
-                                </div>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <h3 className="text-xl font-bold text-on-surface">{listing.title}</h3>
-                                        <div className="text-xl font-bold text-primary-container">{formatPrice(listing.price, listing.list_type)}</div>
-                                    </div>
-                                    <p className="text-on-surface-variant text-sm">
-                                        {listing.district ? `${listing.district}・` : ""}{listing.address}
-                                    </p>
-                                    <div className="flex gap-4 text-sm text-on-surface-variant">
-                                        {listing.room_count && (
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[18px]">bed</span>
-                                                {listing.room_count} 房
-                                            </span>
-                                        )}
-                                        {listing.bathroom_count && (
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[18px]">shower</span>
-                                                {listing.bathroom_count} 衛
-                                            </span>
-                                        )}
-                                        {listing.area_ping && (
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[18px]">square_foot</span>
-                                                {listing.area_ping} 坪
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        )) : (
-                            PLACEHOLDER_CARDS.map((p) => (
-                                <div key={p.title} className="group cursor-pointer" onClick={() => navigate("/listings")}>
-                                    <div className="aspect-[4/3] rounded-xl overflow-hidden mb-6 relative bg-surface-variant">
-                                        <img src={p.img} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        <div className={`absolute top-4 left-4 text-xs font-bold px-3 py-1.5 rounded-full backdrop-blur-sm ${p.badge}`}>
-                                            {p.label}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-start">
-                                            <h3 className="text-xl font-bold text-on-surface">{p.title}</h3>
-                                            <div className="text-xl font-bold text-primary-container">{p.price}</div>
-                                        </div>
-                                        <p className="text-on-surface-variant text-sm">{p.addr}</p>
-                                        <div className="flex gap-4 text-sm text-on-surface-variant">
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[18px]">bed</span>
-                                                {p.rooms} 房
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[18px]">shower</span>
-                                                {p.baths} 衛
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <span className="material-symbols-outlined text-[18px]">square_foot</span>
-                                                {p.ping} 坪
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="py-24 px-6 md:px-12 bg-background">
-                <div className="max-w-[1000px] mx-auto bg-gradient-to-br from-primary-container/20 to-surface-container-low rounded-[2rem] p-12 md:p-20 text-center flex flex-col items-center">
-                    <h2 className="text-3xl md:text-4xl font-extrabold text-on-surface mb-6 font-headline">
-                        準備好體驗全新交易模式？
-                    </h2>
-                    <p className="text-lg text-on-surface-variant mb-10 max-w-2xl leading-[1.75]">
-                        完成 Web3 身份驗證，解鎖發布物件、智能合約簽署與專屬客服等進階功能。
+            <section className="bg-background px-6 py-20 md:px-12">
+                <div className="mx-auto flex max-w-[1080px] flex-col items-center rounded-2xl bg-gradient-to-br from-primary-container/20 to-surface-container-low p-12 text-center md:p-16">
+                    <h2 className="text-3xl font-extrabold text-on-surface md:text-4xl">準備進入身份中心了嗎？</h2>
+                    <p className="mt-5 max-w-2xl text-base leading-[1.8] text-on-surface-variant">
+                        完成 KYC 後即可申請屋主、租客或仲介身份，依照角色管理房源、租屋需求與公開專頁。
                     </p>
-                    <button
-                        type="button"
-                        onClick={() => navigate("/kyc")}
-                        className="bg-primary-container text-on-primary-container px-10 py-4 rounded-xl font-bold text-lg hover:opacity-90 transition-opacity shadow-[0_4px_16px_rgba(232,184,0,0.3)] flex items-center gap-2"
-                    >
-                        立即 KYC 驗證 <span className="material-symbols-outlined">arrow_forward</span>
-                    </button>
+                    <div className="mt-8 flex flex-wrap justify-center gap-3">
+                        <button type="button" onClick={() => navigate("/kyc")} className="rounded-xl bg-primary-container px-6 py-3 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90">
+                            開始 KYC
+                        </button>
+                        <button type="button" onClick={() => navigate("/member")} className="rounded-xl border border-outline-variant/25 bg-surface-container-lowest px-6 py-3 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-low">
+                            開啟身份中心
+                        </button>
+                    </div>
                 </div>
             </section>
         </SiteLayout>
     );
-};
-
-export default HomePage;
+}

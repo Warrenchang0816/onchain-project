@@ -1,608 +1,217 @@
-# Onchain Task Tracker：Docker 標準化部署指南
+# 可信房屋媒合平台：Docker 標準化部署指南
 
-## 目錄
-
-1. [導論](#1-導論)
-2. [系統前置環境準備](#2-系統前置環境準備)
-3. [專案架構概覽](#3-專案架構概覽)
-4. [基礎設施：PostgreSQL 容器部署](#4-基礎設施postgresql-容器部署)
-5. [環境變數配置](#5-環境變數配置)
-6. [Go 服務建置與啟動](#6-go-服務建置與啟動)
-7. [React 前端開發環境啟動](#7-react-前端開發環境啟動)
-8. [服務驗證與維運指令集](#8-服務驗證與維運指令集)
-9. [本機資料庫 GUI / CLI 工具](#9-本機資料庫-gui--cli-工具)
-10. [進階建議](#10-進階建議)
+> 更新日期：2026-04-22  
+> 文件定位：本文件是目前 repo 的本機啟動與接手指南，以現行房屋平台主線為準。  
+> 開工前請先讀：`docs/開發規劃書.md`、`docs/架構設計書.md`、`docs/superpowers/specs/2026-04-22-platform-mainline-gate-roadmap-design.md`
 
 ---
 
-## 1. 導論
+## 1. 目前適用範圍
 
-本指南以「基礎設施即程式碼 (Infrastructure as Code)」思維，說明如何在本地端透過 Docker 完整啟動 **Onchain Task Tracker** 全棧專案。
+本指南適用於目前 repo 的本機開發環境：
 
-**專案技術棧：**
+- `infra/`：PostgreSQL、Redis、MinIO
+- `go-service/`：Go API、登入、eKYC、身份中心、房源與預約看房
+- `react-service/`：React SPA
+- `task-reward-vault/`：房屋平台合約與部署腳本
 
-| 層級 | 技術 | Port | 狀態 |
-| :--- | :--- | :--- | :--- |
-| 前端 | React 19 + TypeScript + Vite | `5173` | 現行 |
-| 後端 | Go 1.25 (Gin 框架) | `8081`（宿主機） → `8080`（容器內） | 現行 |
-| 資料庫 | PostgreSQL 15 | `5432` | 現行 |
-| 快取 / 佇列 | Redis 7 | `6379` | 預留擴充 |
+補充邊界：
 
-> **架構重點：** 本專案採用「分層容器化」策略。資料庫（PostgreSQL）與快取（Redis）作為基礎設施獨立運行，Go 後端以 Docker 容器部署並透過 `host.docker.internal` 與基礎設施通訊，React 前端在本地以 Vite dev server 啟動。
-
----
-
-## 2. 系統前置環境準備
-
-確保工具鏈版本一致，是防止不可預測行為的第一步。
-
-**環境檢查清單：**
-
-- [ ] 安裝 [Docker Desktop](https://www.docker.com/products/docker-desktop/)（Windows 使用者請確認已啟用 WSL2 後端）
-- [ ] 驗證 Docker 引擎：`docker --version`
-- [ ] 驗證 Docker Compose（現代 V2 插件）：`docker compose version`
-- [ ] 安裝 Node.js 20+（供前端使用）：`node --version`
-- [ ] 安裝 Go 1.25+（本地開發選用）：`go version`
-
-> **提醒：** 建議全面使用 `docker compose`（V2，無連字號），而非舊版的 `docker-compose`。
+- 目前正式主線不是舊 `Task Tracker` 任務系統；`/api/tasks`、`TaskRewardVault` 相關舊範例不應再作為接手入口。
+- 目前可直接驗證的後端主線以 `/api/listings`、`/api/onboard/*`、`/api/auth/*`、`/api/user/profile` 為主。
+- `Property / Agency / Case / Stake` 屬後續 Gate 的主幹路線，尚未全部閉環。
 
 ---
 
-## 3. 專案架構概覽
+## 2. 服務總覽
 
-```
-onchain-task-tracker/
-├── go-service/                 # Go 後端服務
-│   ├── cmd/server/main.go      # 應用程式進入點
-│   ├── internal/
-│   │   ├── config/config.go    # 環境變數載入
-│   │   ├── db/postgres.go      # PostgreSQL 連線初始化
-│   │   ├── handler/            # HTTP 請求處理層
-│   │   ├── service/            # 業務邏輯層
-│   │   ├── repository/         # 資料存取層
-│   │   └── model/              # 領域模型
-│   ├── Dockerfile              # Go 服務的多階段建置定義
-│   ├── docker-compose.yml      # Go 服務容器編排
-│   └── .env                    # 環境變數（勿提交至 Git）
-│
-├── react-service/              # React 前端
-│   ├── src/
-│   │   ├── api/                # API 呼叫封裝
-│   │   ├── components/         # 共用 UI 元件
-│   │   └── pages/              # 頁面元件
-│   └── .env                    # 前端環境變數
-│
-└── docs/                       # 專案文件
-    └── docker-deployment-guide.md
-```
-
-**API 端點一覽：**
-
-| Method | 路徑 | 說明 |
-| :--- | :--- | :--- |
-| `GET` | `/api/tasks` | 取得所有任務 |
-| `POST` | `/api/tasks` | 建立任務 |
-| `PUT` | `/api/tasks/:id` | 更新任務 |
-| `PUT` | `/api/tasks/:id/status` | 更新任務狀態 |
+| 層級 | 目錄 | 啟動方式 | 說明 |
+|------|------|----------|------|
+| 基礎設施 | `infra/` | `docker compose up -d` | 啟動 PostgreSQL / Redis / MinIO，並建立 `onchain` network |
+| 後端 | `go-service/` | `docker compose up --build -d` | 啟動 Go API 容器，讀取 `.env` |
+| 前端 | `react-service/` | `npm run dev` | 啟動 Vite 開發伺服器 |
+| 合約 | `task-reward-vault/` | `npm run compile` / `npm run deploy:house-platform:sepolia` | 只有做鏈上開發時才需要 |
 
 ---
 
-## 4. 基礎設施：PostgreSQL 容器部署
+## 3. 前置需求
 
-本專案的資料庫基礎設施以獨立的 Docker Compose 啟動，與 Go 服務解耦，方便維護。
+- Docker Desktop
+- Node.js 20+
+- Go 1.25+（若要在容器外直接跑 Go）
+- MetaMask（若要測試 wallet / SIWE）
+- Sepolia 測試網 RPC 與測試 ETH（若要測試鏈上流程）
 
-### 4.1 建立基礎設施目錄
+---
 
-在 **專案根目錄**（`onchain-task-tracker/`）建立以下結構：
+## 4. 啟動順序
 
-```
-onchain-task-tracker/
-└── infra/
-    ├── docker-compose.yml      # 資料庫容器編排
-    ├── .env                    # 資料庫機敏設定（勿提交 Git）
-    ├── .env.example            # 設定範本（應提交 Git）
-    ├── init/
-    │   └── 01-init.sql         # 首次啟動自動執行的初始化 SQL
-    └── data/
-        ├── postgres/           # PostgreSQL 資料持久化掛載點（自動建立）
-        └── redis/              # Redis 資料持久化掛載點（自動建立）
-```
+### 4.1 啟動基礎設施
 
-> **重要：** 請在 `.gitignore` 中加入 `infra/data/`，資料庫二進制資料不應進入版本控制。
-
-### 4.2 infra/docker-compose.yml
-
-```yaml
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: onchain-postgres
-    restart: always
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASS}
-      POSTGRES_DB: ${DB_NAME}
-    ports:
-      - "${PG_PORT:-5432}:5432"
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-      - ./init:/docker-entrypoint-initdb.d
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Redis：預留擴充用，未來可供快取、Session、訊息佇列等功能接入
-  redis:
-    image: redis:7-alpine
-    container_name: onchain-redis
-    restart: always
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - ./data/redis:/data
-```
-
-> 選用 `*-alpine` 系列映像，體積輕巧、攻擊面小，適合開發與 CI/CD 環境。Redis 目前為預留容器，尚未與 Go 服務整合，可安全啟動不影響現有功能。
-
-### 4.3 infra/.env.example（提交至 Git）
-
-```env
-# PostgreSQL Configuration
-DB_USER=postgres
-DB_PASS=your_secure_password
-DB_NAME=TASK
-
-# Port 設定（可選，預設值已內建於 docker-compose.yml）
-# PG_PORT=5432
-REDIS_PORT=6379
-```
-
-複製範本並填入實際密碼：
-
-```bash
-cp infra/.env.example infra/.env
-```
-
-### 4.4 infra/init/01-init.sql
-
-資料庫初始化腳本，對應專案的 `tasks` 資料表結構：
-
-```sql
-CREATE TABLE IF NOT EXISTS tasks (
-    id          BIGSERIAL PRIMARY KEY,
-    title       VARCHAR(255) NOT NULL,
-    description TEXT,
-    status      VARCHAR(50)  NOT NULL DEFAULT 'pending',
-    priority    VARCHAR(50)  NOT NULL DEFAULT 'medium',
-    due_date    TIMESTAMP,
-    created_at  TIMESTAMP    NOT NULL DEFAULT NOW(),
-    updated_at  TIMESTAMP    NOT NULL DEFAULT NOW()
-);
-```
-
-> **架構師提醒：** init SQL 僅在 Volume **第一次建立時**執行。若需後續修改資料表結構，請直接連入資料庫手動執行 `ALTER TABLE`，或考慮引入 `golang-migrate` 等 Migration 工具進行版本化管理。
-
-### 4.5 啟動資料庫
-
-```bash
-cd onchain-task-tracker/infra
+```powershell
+cd D:\Git\onchain-project\infra
+Copy-Item .env.example .env
 docker compose up -d
-```
-
-確認啟動成功：
-
-```bash
 docker compose ps
-# 應顯示 onchain-postgres 狀態為 healthy
 ```
 
----
+預期結果：
 
-## 5. 環境變數配置
+- `onchain-postgres`、`onchain-redis`、`onchain-minio` 皆為 running
+- Docker network `onchain` 會被建立
+- PostgreSQL 會依序執行 `infra/init/01-init.sql` 到 `infra/init/07-listings.sql`
 
-> **重要：** 所有 `.env` 檔案均已列入 `.gitignore`，**不會隨 Git clone 下來**。每個服務目錄都附有 `.env.example` 範本，clone 後複製一份再填入真實值即可。
+`infra/.env.example` 目前主要欄位：
 
----
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `PG_PORT`（選填）
+- `REDIS_PORT`（選填）
 
-### 5.1 .gitignore 說明
+### 4.2 啟動 Go 後端
 
-| 服務 | 已排除的檔案 | 已提交的範本 |
-| :--- | :--- | :--- |
-| `go-service/` | `.env` | `.env.example` ✅ |
-| `react-service/` | `.env` | `.env.example` ✅ |
-| `infra/` | `.env`、`data/` | `.env.example` ✅ |
-
-> **原則：** `.env.example` 含欄位說明但不含真實值，應提交至 Git；`.env` 含真實密碼與私鑰，絕對不可提交。
-
----
-
-### 5.2 go-service/.env
-
-Clone 後從範本複製並填入真實值：
-
-```bash
-cd go-service
-cp .env.example .env
-# 用編輯器開啟 .env，填入 DB_PASS、APP_RPC_URL、APP_PLATFORM_OPERATOR_PRIVATE_KEY 等真實值
-```
-
-> 完整欄位說明請直接查看 `go-service/.env.example`，每個變數都有注釋說明用途與格式。
-
-**DB_HOST 設定說明：**
-
-| 執行方式 | DB_HOST 值 |
-| :--- | :--- |
-| 本地 `go run`（非容器） | `localhost` |
-| Docker 容器內（docker compose up） | `host.docker.internal` |
-
-> `host.docker.internal` 是 Docker Desktop 提供的特殊 DNS，讓容器內的程式能連回宿主機上跑的 PostgreSQL 容器。
-
----
-
-## 6. Go 服務建置與啟動
-
-`go-service/docker-compose.yml` 負責建置 Go 應用程式映像檔並啟動容器。
-
-### go-service/docker-compose.yml（現有）
-
-```yaml
-version: "3.9"
-
-services:
-  go-service:
-    build: .
-    image: go-service:1.0.0
-    container_name: go-service
-    restart: unless-stopped
-    ports:
-      - "8081:8080"
-    environment:
-      APP_PORT: ${APP_PORT}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
-      DB_NAME: ${DB_NAME}
-      DB_SSLMODE: "disable"   # 必須小寫
-```
-
-### Dockerfile 多階段建置說明
-
-```
-階段一 (builder)：golang:1.25.4
-  └── 下載依賴 (go mod download)
-  └── 編譯二進制 (go build → /app/server)
-
-階段二 (runtime)：debian:stable-slim
-  └── 僅複製編譯好的 /app/server
-  └── 最終映像體積極小，適合生產部署
-```
-
-### 啟動 Go 服務
-
-確保 PostgreSQL 已正常運行後：
-
-```bash
-cd onchain-task-tracker/go-service
-docker compose up -d
-```
-
-驗證服務啟動：
-
-```bash
-docker compose ps
-# go-service 應顯示 running
-
-curl http://localhost:8081/api/tasks
-# 應回傳 JSON 陣列（空陣列或任務列表）
-```
-
----
-
-## 7. React 前端開發環境啟動
-
-React 前端在本地以 Vite dev server 啟動，透過環境變數指向 Go 後端 API。
-
-### react-service/.env
-
-Clone 後從範本複製並填入真實值：
-
-```bash
-cd react-service
-cp .env.example .env
-# 填入 VITE_RPC_URL、VITE_REWARD_VAULT_ADDRESS 等真實值
-```
-
-> 完整欄位說明請直接查看 `react-service/.env.example`。
-
-### 啟動前端
-
-```bash
-cd onchain-task-tracker/react-service
-npm install
-npm run dev
-```
-
-Vite 將在 `http://localhost:5173` 啟動開發伺服器。
-
-> **架構重點：** React 前端**絕不**直接連線資料庫。所有資料操作均透過 Go API（`localhost:8081/api`）進行，資料庫連線完全由後端封裝處理。
-
----
-
-## 8. 服務驗證與維運指令集
-
-### 標準啟動流程（新人 SOP）
-
-```bash
-# Step 1：啟動資料庫基礎設施
-cd onchain-task-tracker/infra
-docker compose up -d
-
-# Step 2：等待 PostgreSQL 健康檢查通過（約 10-30 秒）
-docker compose ps   # 確認 Status 為 healthy
-
-# Step 3：啟動 Go 後端服務
-cd ../go-service
-docker compose up -d
-
-# Step 4：啟動 React 前端
-cd ../react-service
-npm run dev
-
-# 開啟瀏覽器：http://localhost:5173
-```
-
-### 重新部署流程
-
-依修改的範圍選擇對應的重部署方式：
-
----
-
-**情境 A：只改了 Go 後端程式碼**
-
-```bash
-cd onchain-task-tracker/go-service
-
-# 重新建置映像並重啟容器（資料庫不受影響）
+```powershell
+cd D:\Git\onchain-project\go-service
+Copy-Item .env.example .env
 docker compose up --build -d
-
-# 確認新容器正常啟動
 docker compose ps
-docker compose logs -f --tail=30
 ```
 
----
+補充說明：
 
-**情境 B：只改了前端（React）**
+- `.env.example` 已包含目前房屋平台主線所需的大部分欄位。
+- 若你把 `go-service` 也跑在 Docker 內，`DB_HOST` / `MINIO_ENDPOINT` 可沿用預設值，或改成共享網路下的 `onchain-postgres` / `onchain-minio:9000`。
+- 若只做前後端主線驗證，可先不填 `PropertyRegistry / AgencyRegistry / CaseTracker / ListingStakeVault` 相關地址；目前正式已接線的是 `IdentityNFT` 與其 indexer。
 
-Vite dev server 支援 Hot Reload，存檔後瀏覽器自動更新，**不需要任何重啟指令**。
+### 4.3 啟動 React 前端
 
-若前端有新增套件（`npm install <pkg>`）：
-
-```bash
-cd onchain-task-tracker/react-service
+```powershell
+cd D:\Git\onchain-project\react-service
+Copy-Item .env.example .env
 npm install
-# Vite dev server 會自動偵測，通常不需重啟
+npm run dev
 ```
+
+目前前端最重要的環境變數是：
+
+- `VITE_API_GO_SERVICE_URL`
+- `VITE_CHAIN_ID`
+- `VITE_CHAIN_NAME`
+- `VITE_RPC_URL`
+- `VITE_EXPLORER_URL`
+
+補充邊界：
+
+- `react-service/.env.example` 內仍保留部分舊任務系統相容欄位，這些不是目前房屋平台主幹的主要依賴。
+- 目前正式主線以前端呼叫 Go API 為主，Gate 2 之後才會逐步增加更多房屋平台合約直連頁面。
+
+### 4.4 合約工作流（選用）
+
+```powershell
+cd D:\Git\onchain-project\task-reward-vault
+Copy-Item .env.example .env
+npm install
+npm run compile
+```
+
+只有在以下情況需要進入這一步：
+
+- 驗證或修改 Solidity 合約
+- 重新部署 `IdentityNFT / PropertyRegistry / AgencyRegistry / ListingStakeVault / CaseTracker`
+- 驗證 `.env` 與合約地址是否對齊
 
 ---
 
-**情境 C：更新了環境變數（.env）**
+## 5. 驗證方式
 
-```bash
-# go-service .env 有變動
-cd onchain-task-tracker/go-service
-docker compose down
+### 5.1 後端基本驗證
+
+```powershell
+curl http://localhost:8081/api/listings
+```
+
+預期結果：
+
+- 取得 JSON 回應
+- 即使資料為空，也不應該再是舊 `/api/tasks` 路線
+
+### 5.2 前端建置驗證
+
+```powershell
+cd D:\Git\onchain-project\react-service
+npm run build
+```
+
+### 5.3 合約編譯驗證
+
+```powershell
+cd D:\Git\onchain-project\task-reward-vault
+npm run compile
+```
+
+補充：
+
+- 若 Hardhat 卡在 compiler cache lock，先確認沒有殘留中的編譯程序，再重新執行。
+- 這個問題屬環境穩定性議題，不應被寫成「合約主線已驗收完成」。
+
+---
+
+## 6. 常見接手路徑
+
+### 情境 A：只想跑目前主線 UI / API
+
+1. 啟動 `infra/`
+2. 啟動 `go-service/`
+3. 啟動 `react-service/`
+4. 驗證 `/api/listings`
+5. 依序測試 `/login`、`/kyc`、`/member`、`/profile`、`/listings`
+
+### 情境 B：要做鏈上功能開發
+
+1. 先完成情境 A
+2. 準備 `task-reward-vault/.env`
+3. 編譯或部署房屋平台合約
+4. 把地址同步回 `go-service/.env`
+5. 再對照當前 Gate 決定是否需要補 indexer / read model / 前端頁面
+
+### 情境 C：要接手規劃與文件
+
+1. 先讀 `docs/開發規劃書.md`
+2. 再讀 `docs/架構設計書.md`
+3. 再讀 `docs/superpowers/specs/2026-04-22-platform-mainline-gate-roadmap-design.md`
+4. 最後才回來看各藍圖文件與操作指南
+
+---
+
+## 7. 常見問題
+
+### `go-service` 起不來，提示 `network onchain not found`
+
+先回 `infra/` 執行：
+
+```powershell
 docker compose up -d
-
-# infra .env 有變動（調整 DB 密碼或 port）
-cd onchain-task-tracker/infra
-docker compose down
-docker compose up -d
 ```
 
-> **注意：** 修改 `DB_PASS` 後，若 Volume 內的資料庫已用舊密碼建立，單純重啟無效。需清除 Volume 重建（會遺失資料），或直接進入資料庫用 `ALTER USER` 修改密碼。
+`go-service/docker-compose.yml` 依賴外部 `onchain` network，沒有先起基礎設施就會報錯。
+
+### `.env` 都填了，還是連不到 DB / MinIO
+
+先確認你是「容器內連線」還是「宿主機連線」：
+
+- 容器內可用 `host.docker.internal`，也可改成共享網路服務名
+- 宿主機通常用 `localhost`
+
+### 為什麼文件不再寫 `/api/tasks`
+
+因為舊任務追蹤路線已不是目前房屋平台主線。repo 內仍有少量舊相容痕跡，但目前正式接手與驗收應以 listings / kyc / auth / profile 路線為準。
 
 ---
 
-**情境 D：更新了資料庫結構（新增欄位或資料表）**
+## 8. 文件關聯
 
-init SQL 只在 Volume 第一次建立時執行，後續修改需手動套用：
-
-```bash
-# 方式一：直接進入容器執行 SQL（推薦，不影響現有資料）
-docker exec -it onchain-postgres psql -U postgres -d TASK
-# 進入後執行 ALTER TABLE 或 CREATE TABLE
-
-# 方式二：用 pgcli 執行
-pgcli -h localhost -p 5432 -u postgres -d TASK
-```
-
----
-
-**情境 E：完整重建（環境損壞或全新同步）**
-
-```bash
-# 停止所有服務
-cd onchain-task-tracker/go-service && docker compose down
-cd ../infra && docker compose down
-
-# 清除舊映像（保留 Volume 資料）
-docker compose down --rmi local
-
-# 重新啟動
-docker compose up -d                         # infra
-cd ../go-service && docker compose up --build -d   # go-service
-cd ../react-service && npm run dev           # react
-```
-
-> 若需要完全清空資料重來（包含資料庫內容）：在 infra 目錄執行 `docker compose down -v`，**此操作會永久刪除所有資料庫資料，請確認後再執行**。
-
----
-
-### 常用維運指令
-
-| 指令 | 說明 |
-| :--- | :--- |
-| `docker compose up -d` | 啟動服務（背景執行） |
-| `docker compose up --build -d` | 重新建置映像後啟動 |
-| `docker compose ps` | 查看容器狀態與健康狀況 |
-| `docker compose logs -f` | 追蹤即時日誌輸出 |
-| `docker compose logs -f --tail=30` | 只看最新 30 行日誌 |
-| `docker compose down` | 停止並移除容器（**保留資料 Volume**） |
-| `docker compose down --rmi local` | 同上，並刪除本地建置的映像 |
-| `docker compose down -v` | 停止並**同時清除資料 Volume**（慎用） |
-| `docker compose build --no-cache` | 強制完整重新建置映像檔（不用快取） |
-
-### 連線驗證
-
-**PostgreSQL 驗證：**
-
-```bash
-docker exec -it onchain-postgres psql -U postgres -d TASK
-
-# 進入後確認 tasks 資料表存在：
-\dt
-# 應顯示 tasks 資料表
-
-# 查看資料表結構：
-\d tasks
-```
-
-**Redis 驗證（預留容器）：**
-
-```bash
-docker exec -it onchain-redis redis-cli ping
-# 回傳 PONG 即代表容器正常運行
-```
-
-**Go API 驗證：**
-
-```bash
-# 健康確認（取得任務列表）
-curl http://localhost:8081/api/tasks
-
-# 建立測試任務
-curl -X POST http://localhost:8081/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title":"測試任務","description":"驗證 API 正常運作","status":"pending","priority":"medium"}'
-```
-
----
-
-## 9. 本機資料庫 GUI / CLI 工具
-
-Docker 只負責跑 PostgreSQL 容器，pgAdmin 和 pgcli 安裝在**本機**，透過 Port 映射直接連入。
-
----
-
-### 9.1 pgAdmin 4（圖形化介面）
-
-#### 安裝
-
-前往 [pgadmin.org/download](https://www.pgadmin.org/download/) 下載對應平台的安裝包並執行安裝。
-
-#### 前置條件
-
-確認 `onchain-postgres` 容器已啟動且狀態為 **healthy**：
-
-```bash
-cd onchain-task-tracker/infra
-docker compose ps
-# onchain-postgres   healthy
-```
-
-#### 新增伺服器步驟
-
-**Step 1** — 開啟 pgAdmin 4，在首頁點擊 **Add New Server**。
-
-**Step 2 — General 分頁**
-
-| 欄位 | 填入值 |
-| :--- | :--- |
-| Name | `Onchain Task DB`（任意名稱） |
-
-**Step 3 — Connection 分頁**
-
-| 欄位 | 填入值 | 說明 |
-| :--- | :--- | :--- |
-| Host name/address | `localhost` | Docker 已做 Port 映射，從本機連用 localhost |
-| Port | `5432` | 對應 `PG_PORT`，預設 5432 |
-| Maintenance database | `postgres` | 預設即可 |
-| Username | `postgres` | 對應 `POSTGRES_USER` |
-| Password | *(你的 POSTGRES_PASSWORD)* | 填入 `infra/.env` 中設定的密碼 |
-| Save password | 勾選 | 方便下次免輸入 |
-
-**Step 4** — 點擊 **Save**，左側 Browser 展開即可看到 `TASK` 資料庫。
-
-> **常見問題：** 若連線失敗顯示 "could not connect to server"，請先確認容器狀態為 healthy，而非僅 running。
-
----
-
-### 9.2 pgcli（智慧補全的命令列介面）
-
-pgcli 是 psql 的強化版，支援 SQL 智慧補全、語法高亮、表格式輸出。
-
-#### 安裝
-
-```bash
-pip install pgcli
-```
-
-> Mac 使用者可用 `brew install pgcli`。
-> 若安裝後輸入 `pgcli` 顯示「找不到指令」，改用 `python -m pgcli` 啟動。
-
-#### 連線指令
-
-**參數格式：**
-
-```bash
-pgcli -h localhost -p 5432 -u postgres -d TASK
-```
-
-**URI 格式（一行搞定）：**
-
-```bash
-pgcli postgres://postgres:your_password_here@localhost:5432/TASK
-```
-
-輸入後提示輸入密碼（輸入時不顯示字元，屬正常安全機制），按 Enter 即進入。
-
-#### 進入後的常用指令
-
-成功連線後提示字元為 `postgres@localhost:TASK>`：
-
-| 指令 | 說明 |
-| :--- | :--- |
-| `\dt` | 列出所有 Table |
-| `\d tasks` | 查看 tasks 表欄位結構 |
-| `SELECT * FROM tasks;` | 查詢所有任務資料 |
-| `\e` | 開啟外部編輯器編寫 SQL |
-| `exit` 或 `Ctrl+D` | 離開 pgcli |
-
-> **pgcli 強項：** 輸入 `SEL` 後按 `Tab` 自動補全為 `SELECT`；查詢結果過長時自動進入捲動模式，按 `q` 退出。
-
----
-
-## 10. 進階建議
-
-### 安全防護
-
-- **資料庫密碼：** `.env` 檔案包含真實密碼，**絕對不可提交至 Git**。請確認 `.gitignore` 中已正確排除 `.env`（非 `.env.example`）。
-- **CORS 設定：** Go 服務目前允許來自 `http://localhost:5173` 的請求。正式環境部署時，請在 `router.go` 中更新為實際的前端網域。
-- **PostgreSQL 版本升級注意事項：** 若需從 PostgreSQL 15 升級至更高版本，直接更改 Image tag **會因磁碟 Volume 格式不相容而失敗**。正確步驟：
-  1. `pg_dump` 匯出資料
-  2. `docker compose down -v` 清除舊 Volume
-  3. 更新 image 版本後重新啟動
-  4. 還原資料
-
-### 常見問題排查
-
-| 問題現象 | 可能原因 | 解決方式 |
-| :--- | :--- | :--- |
-| Go 服務起動失敗，log 出現連線拒絕 | PostgreSQL 尚未就緒 | 確認 `infra` 的 postgres 已 healthy 再啟動 go-service |
-| `host.docker.internal` 無法解析 | Docker Desktop 未啟動 | 確認 Docker Desktop 正常運行 |
-| tasks 資料表不存在 | init SQL 未被執行 | 清除 `infra/data/postgres/` 再重新啟動（init 只在首次建立 Volume 時執行） |
-| React 呼叫 API 返回 CORS 錯誤 | 前端 Port 不符 | 確認 Vite 在 5173，或調整 go-service 的 CORS 設定 |
+- 目前主線：`docs/開發規劃書.md`
+- 目前架構：`docs/架構設計書.md`
+- Gate Roadmap：`docs/superpowers/specs/2026-04-22-platform-mainline-gate-roadmap-design.md`
+- DB 規格：`docs/database/relational-database-spec.md`

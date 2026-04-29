@@ -1,103 +1,40 @@
-# CLAUDE.md — onchain-task-tracker / react-service
+# CLAUDE.md -- trusted-housing-platform / react-service
 
 ## Project Overview
 
-React SPA for an on-chain task tracker. Manages tasks with create/update/archive/filter functionality. Designed to integrate with a Go backend and eventually support wallet (blockchain) connections.
+React SPA for the trusted housing platform. Mainline flows today are KYC/onboarding, wallet plus password auth, member/profile views, listing CRUD, and viewing appointments.
 
 ## Tech Stack
 
-- **React 19** + **TypeScript 5** (strict mode)
-- **Vite 8** (build tool, dev server)
-- **React Router v7** (SPA routing)
-- **Plain CSS** — all styles live in `src/index.css`; no Tailwind, no CSS-in-JS
-- **Fetch API** — no axios or HTTP client libraries
-- **No state management library** — local `useState` only
+- React 19 + TypeScript 5 in strict mode
+- Vite 8 for build and dev server
+- React Router for SPA routing
+- Tailwind utility classes already embedded in the UI layer
+- Native `fetch` for API access
+- Local component state with `useState` and `useEffect`
 
-## Project Structure
+## Mainline Routes
 
-```
-src/
-  api/          # Fetch-based API clients (taskApi.ts, dashboardApi.ts)
-  components/
-    common/     # Reusable UI (AppModal, AppButton, FilterTabs, Header, ...)
-    task/       # Task-specific UI (TaskCard, TaskForm)
-  layouts/      # AppLayout (wraps pages with Header)
-  pages/        # Route-level components (HomePage, TaskListPage)
-  router/       # Route definitions (index.tsx)
-  types/        # Shared TypeScript types (task.ts)
-  index.css     # ALL active styles — single stylesheet
-  main.tsx      # Entry point
-```
+| Path | Page | Description |
+| --- | --- | --- |
+| `/` | `HomePage` | Public landing page and recent live listings |
+| `/listings` | `ListingListPage` | Public listing index plus authenticated owner dashboard section |
+| `/listings/:id` | `ListingDetailPage` | Listing detail, owner actions, and viewing appointments |
+| `/listings/new` | `ListingCreatePage` | Verified-user listing creation |
+| `/kyc` | `OnboardingPage` | KYC and onboarding flow |
+| `/member` | `IdentityCenterPage` | KYC status, live Gate 0 actions, and credential overview |
+| `/profile` | `MemberProfilePage` | Account and profile details |
 
-## Routes
+## API Conventions
 
-| Path     | Page            | Description                        |
-|----------|-----------------|------------------------------------|
-| `/`      | `HomePage`      | Dashboard: summary cards + recent tasks |
-| `/tasks` | `TaskListPage`  | Full task list with CRUD + filters |
+- API clients live in `src/api/`
+- Use native `fetch` with `credentials: "include"`
+- Backend responses are parsed in the local API client layer, not in pages
+- Listing pages must render honest loading, empty, and error states instead of placeholder inventory
 
-## Environment Variables
+## What To Avoid
 
-Defined in `.env`:
-
-```
-VITE_API_GO_SERVICE_URL=http://localhost:8081/api
-```
-
-Referenced in `src/api/taskApi.ts` via `import.meta.env.VITE_API_GO_SERVICE_URL`.
-
-## API Layer Conventions
-
-- All API calls are in `src/api/`
-- Use native `fetch`, async/await, try/catch
-- Backend response shape: `{ success: boolean, data: T, message: string }`
-- Errors are surfaced as feedback banners in pages (not thrown globally)
-
-## Component Conventions
-
-- Functional components with explicit TypeScript prop interfaces
-- Controlled forms: single `useState` object + one `handleChange` handler
-- Modal pattern: `isOpen: boolean` + `onClose: () => void` props
-- Callbacks passed down from pages: `onEdit`, `onDelete`, `onSubmit`
-- No global context currently used
-
-## Styling Conventions
-
-- CSS class names: `kebab-case`
-- All styles in `src/index.css` — add new styles here, do not create per-component CSS files
-- Responsive breakpoint: `@media (max-width: 1024px)`
-- Key color tokens (defined inline in CSS):
-  - Header bg: `#111827`
-  - Page bg: `#f5f7fb`
-  - Accent blue: `#0369a1`
-  - Text: `#1f2937`
-
-## Naming Conventions
-
-- **Components/Types:** PascalCase
-- **Files:** PascalCase for components, camelCase for utilities/API
-- **CSS classes:** kebab-case
-- **Type files:** `*.ts` (not `.d.ts`)
-
-## Code Quality
-
-- ESLint (flat config, v9) + Prettier (4-space indent, double quotes, trailing commas)
-- `noUnusedLocals` and `noUnusedParameters` enforced by TypeScript
-- No test framework configured
-
-## Dev Commands
-
-```bash
-npm run dev       # Start dev server
-npm run build     # tsc -b && vite build
-npm run lint      # Run ESLint
-npm run preview   # Preview production build
-```
-
-## What to Avoid
-
-- Do not add state management libraries (Zustand, Redux) unless explicitly requested
-- Do not create per-component CSS files — use `index.css`
-- Do not add axios or other HTTP clients — use fetch
-- Do not add a testing framework unless asked
-- Do not use `contexts/` or `hooks/` directories unless there is a real need — they are currently empty placeholders
+- Do not reintroduce Task Tracker terminology into mainline pages
+- Do not add a frontend test framework unless the user explicitly asks
+- Do not treat `/logs` as a primary user-facing proof surface
+- Do not create fake listing cards or mock owner dashboards on live routes

@@ -5,10 +5,14 @@ import (
 	"log"
 
 	"go-service/internal/db/repository"
+	agentmod "go-service/internal/modules/agent"
 	authmod "go-service/internal/modules/auth"
+	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
+	propertymod "go-service/internal/modules/property"
+	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/blockchain"
 	"go-service/internal/platform/config"
@@ -54,8 +58,13 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	otpRepo := repository.NewOTPRepository(postgresDB)
 	kycSessionRepo := repository.NewKYCSessionRepository(postgresDB)
 	credentialRepo := repository.NewUserCredentialRepository(postgresDB)
+	credentialSubmissionRepo := repository.NewCredentialSubmissionRepository(postgresDB)
 	listingRepo := repository.NewListingRepository(postgresDB)
+	propertyRepo := repository.NewPropertyRepository(postgresDB)
 	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
+	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
+	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
+	agentProfileRepo := repository.NewAgentProfileRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -115,6 +124,19 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 				log.Printf("[bootstrap] identity worker init failed: %v", err)
 			} else {
 				idx.RegisterWorker(identityWorker)
+			}
+
+			credentialWorker, err := credentialmod.NewWorker(
+				blockchainConfig.IdentityNFTAddress,
+				userRepo,
+				credentialRepo,
+				checkpointStore,
+				blockchainConfig.IdentityNFTStartBlock,
+			)
+			if err != nil {
+				log.Printf("[bootstrap] credential worker init failed: %v", err)
+			} else {
+				idx.RegisterWorker(credentialWorker)
 			}
 		}
 
@@ -189,12 +211,55 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	userHandler := usermod.NewHandler(userSvc)
 	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
 
-	// ── 13. Listing module ────────────────────────────────────
-	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo)
+	// ── 13. Listing and credential modules ────────────────────────────────────────
+	propertySvc := propertymod.NewService(propertyRepo)
+	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
-	// ── 14. Router ────────────────────────────────────────────
-	r := SetupRouter(listingHandler, logHandler, authHandler, loginHandler, resetPasswordHandler, userHandler, adminHandler, onboardingHandler, sessionRepo)
+	credentialSvc := credentialmod.NewService(
+		userRepo,
+		credentialSubmissionRepo,
+		credentialRepo,
+		identityContractSvc,
+		minioClient,
+		visionClient,
+		chainSyncer,
+		propertySvc,
+		listingSvc,
+	)
+	credentialHandler := credentialmod.NewHandler(credentialSvc)
+	credentialAdminHandler := credentialmod.NewAdminHandler(credentialSvc, blockchainConfig.GodModeWalletAddress)
+
+	// ── 14. Agent directory module ────────────────────────────
+	agentSvc := agentmod.NewService(credentialRepo, agentProfileRepo, userRepo)
+	agentHandler := agentmod.NewHandler(agentSvc)
+
+	// ── 15. Tenant module ─────────────────────────────────────
+	tenantSvc := tenantmod.NewService(
+		userRepo,
+		credentialRepo,
+		tenantProfileRepo,
+		tenantRequirementRepo,
+		minioClient,
+	)
+	tenantHandler := tenantmod.NewHandler(tenantSvc)
+
+	// ── 16. Router ────────────────────────────────────────────
+	r := SetupRouter(
+		listingHandler,
+		logHandler,
+		authHandler,
+		loginHandler,
+		resetPasswordHandler,
+		userHandler,
+		adminHandler,
+		onboardingHandler,
+		credentialHandler,
+		credentialAdminHandler,
+		sessionRepo,
+		agentHandler,
+		tenantHandler,
+	)
 
 	return r, cleanupFn, nil
 }

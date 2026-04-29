@@ -4,10 +4,13 @@ import (
 	"time"
 
 	"go-service/internal/db/repository"
+	agentmod "go-service/internal/modules/agent"
 	authmod "go-service/internal/modules/auth"
+	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
+	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	platformauth "go-service/internal/platform/auth"
 
@@ -24,7 +27,11 @@ func SetupRouter(
 	userHandler *usermod.Handler,
 	adminHandler *usermod.AdminHandler,
 	onboardingHandler *onboardingmod.Handler,
+	credentialHandler *credentialmod.Handler,
+	credentialAdminHandler *credentialmod.AdminHandler,
 	sessionRepo *repository.SessionRepository,
+	agentHandler *agentmod.Handler,
+	tenantHandler *tenantmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -56,6 +63,7 @@ func SetupRouter(
 			protected.GET("/listings/mine", listingHandler.ListMyListings)
 			protected.POST("/listings", listingHandler.CreateListing)
 			protected.PUT("/listings/:id", listingHandler.UpdateListing)
+			protected.PUT("/listings/:id/intent", listingHandler.SetListingIntent)
 			protected.PUT("/listings/:id/publish", listingHandler.PublishListing)
 			protected.PUT("/listings/:id/remove", listingHandler.RemoveListing)
 			protected.PUT("/listings/:id/close", listingHandler.CloseListing)
@@ -86,10 +94,43 @@ func SetupRouter(
 			// Admin
 			protected.GET("/admin/kyc/pending", adminHandler.ListPendingManual)
 			protected.PUT("/admin/kyc/:id/review", adminHandler.ReviewSubmission)
+			protected.GET("/admin/credentials/pending", credentialAdminHandler.ListPendingManual)
+			protected.PUT("/admin/credentials/:id/review", credentialAdminHandler.ReviewSubmission)
+
+			// Role credentials
+			protected.GET("/credentials/me", credentialHandler.GetMyCredentials)
+			protected.POST("/credentials/:type/submissions", credentialHandler.CreateSubmission)
+			protected.GET("/credentials/:type/submissions/latest", credentialHandler.GetLatestSubmission)
+			protected.POST("/credentials/:type/submissions/:id/files", credentialHandler.UploadFiles)
+			protected.POST("/credentials/:type/submissions/:id/analyze", credentialHandler.AnalyzeSubmission)
+			protected.POST("/credentials/:type/submissions/:id/manual", credentialHandler.RequestManualReview)
+			protected.POST("/credentials/:type/submissions/:id/activate", credentialHandler.ActivateSubmission)
+			protected.POST("/credentials/:type/submissions/:id/stop", credentialHandler.StopSubmission)
+			protected.GET("/credentials/:type/submissions/:id/files/main", credentialHandler.GetMainFile)
+			protected.GET("/credentials/:type/submissions/:id/files/support", credentialHandler.GetSupportFile)
+
+			// Agent private profile
+			protected.GET("/agents/me/profile", agentHandler.GetMyProfile)
+			protected.PUT("/agents/me/profile", agentHandler.UpsertMyProfile)
+
+			// Tenant profile and requirements (tenant-only)
+			protected.GET("/tenant/profile", tenantHandler.GetMyProfile)
+			protected.PUT("/tenant/profile", tenantHandler.UpsertMyProfile)
+			protected.POST("/tenant/profile/documents", tenantHandler.UploadMyDocument)
+			protected.GET("/tenant/requirements/mine", tenantHandler.ListMyRequirements)
+			protected.POST("/tenant/requirements", tenantHandler.CreateRequirement)
+			protected.PUT("/tenant/requirements/:id", tenantHandler.UpdateRequirement)
+			protected.PUT("/tenant/requirements/:id/status", tenantHandler.UpdateRequirementStatus)
+			protected.GET("/requirements", tenantHandler.ListVisibleRequirements)
+			protected.GET("/requirements/:id", tenantHandler.GetVisibleRequirement)
 		}
 
 		// ── Blockchain logs (public) ──────────────────────────────
 		api.GET("/blockchain-logs", logHandler.GetLogs)
+
+		// ── Agent directory (public) ─────────────────────────────
+		api.GET("/agents", agentHandler.ListAgents)
+		api.GET("/agents/:wallet", agentHandler.GetAgentByWallet)
 
 		// ── Auth ──────────────────────────────────────────────────
 		api.POST("/auth/wallet/siwe/message", authHandler.SIWEMessageHandler)

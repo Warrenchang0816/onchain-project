@@ -26,6 +26,7 @@ type UpdateListingRequest struct {
 	Description       *string  `json:"description"`
 	Address           string   `json:"address"            binding:"required"`
 	District          *string  `json:"district"`
+	ListType          string   `json:"list_type"          binding:"omitempty,oneof=UNSET RENT SALE"`
 	Price             float64  `json:"price"              binding:"required,gt=0"`
 	AreaPing          *float64 `json:"area_ping"`
 	Floor             *int     `json:"floor"`
@@ -38,6 +39,10 @@ type UpdateListingRequest struct {
 
 type PublishListingRequest struct {
 	DurationDays int `json:"duration_days" binding:"required,min=7"`
+}
+
+type SetListingIntentRequest struct {
+	ListType string `json:"list_type" binding:"required,oneof=RENT SALE"`
 }
 
 type LockNegotiationRequest struct {
@@ -57,8 +62,9 @@ type AppointmentResponse struct {
 }
 
 type ListingResponse struct {
-	ID          int64 `json:"id"`
-	OwnerUserID int64 `json:"owner_user_id"`
+	ID          int64  `json:"id"`
+	OwnerUserID int64  `json:"owner_user_id"`
+	PropertyID  *int64 `json:"property_id,omitempty"`
 
 	Title       string  `json:"title"`
 	Description *string `json:"description,omitempty"`
@@ -76,6 +82,8 @@ type ListingResponse struct {
 	IsParkingIncluded bool     `json:"is_parking_included"`
 
 	Status                 string                `json:"status"`
+	DraftOrigin            string                `json:"draft_origin"`
+	SetupStatus            string                `json:"setup_status"`
 	NegotiatingAppointment *AppointmentResponse  `json:"negotiating_appointment,omitempty"`
 	Appointments           []AppointmentResponse `json:"appointments,omitempty"` // only in detail view
 
@@ -86,7 +94,16 @@ type ListingResponse struct {
 	CreatedAt   string  `json:"created_at"`
 	UpdatedAt   string  `json:"updated_at"`
 
-	IsOwner bool `json:"is_owner"`
+	IsOwner  bool                            `json:"is_owner"`
+	Property *ListingPropertySummaryResponse `json:"property,omitempty"`
+}
+
+type ListingPropertySummaryResponse struct {
+	ID                 int64  `json:"id"`
+	VerificationStatus string `json:"verification_status"`
+	CompletenessStatus string `json:"completeness_status"`
+	DeedHash           string `json:"deed_hash"`
+	DisclosureHash     string `json:"disclosure_hash"`
 }
 
 // ── Appointment Request / Response ────────────────────────────────────────────

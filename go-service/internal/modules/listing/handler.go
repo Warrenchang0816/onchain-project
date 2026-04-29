@@ -26,7 +26,7 @@ func getWallet(c *gin.Context) string {
 	return s
 }
 
-func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, callerWallet string, ownerWallet string) ListingResponse {
+func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, isOwner bool) ListingResponse {
 	resp := ListingResponse{
 		ID:                l.ID,
 		OwnerUserID:       l.OwnerUserID,
@@ -37,14 +37,29 @@ func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, call
 		IsPetAllowed:      l.IsPetAllowed,
 		IsParkingIncluded: l.IsParkingIncluded,
 		Status:            l.Status,
+		DraftOrigin:       l.DraftOrigin,
+		SetupStatus:       l.SetupStatus,
 		DailyFeeNTD:       l.DailyFeeNTD,
 		CreatedAt:         l.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt:         l.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
-		IsOwner:           callerWallet != "" && callerWallet == ownerWallet,
+		IsOwner:           isOwner,
 	}
 
 	if l.Description.Valid {
 		resp.Description = &l.Description.String
+	}
+	if l.PropertyID.Valid {
+		v := l.PropertyID.Int64
+		resp.PropertyID = &v
+	}
+	if l.Property != nil {
+		resp.Property = &ListingPropertySummaryResponse{
+			ID:                 l.Property.ID,
+			VerificationStatus: l.Property.VerificationStatus,
+			CompletenessStatus: l.Property.CompletenessStatus,
+			DeedHash:           l.Property.DeedHash,
+			DisclosureHash:     l.Property.DisclosureHash,
+		}
 	}
 	if l.District.Valid {
 		resp.District = &l.District.String
@@ -142,10 +157,9 @@ func (h *Handler) ListListings(c *gin.Context) {
 		return
 	}
 
-	caller := getWallet(c)
 	resp := make([]ListingResponse, 0, len(listings))
 	for _, l := range listings {
-		resp = append(resp, toListingResponse(l, nil, caller, ""))
+		resp = append(resp, toListingResponse(l, nil, false))
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
@@ -160,7 +174,7 @@ func (h *Handler) ListMyListings(c *gin.Context) {
 	}
 	resp := make([]ListingResponse, 0, len(listings))
 	for _, l := range listings {
-		resp = append(resp, toListingResponse(l, nil, wallet, wallet))
+		resp = append(resp, toListingResponse(l, nil, true))
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
@@ -179,9 +193,13 @@ func (h *Handler) GetListing(c *gin.Context) {
 		return
 	}
 
-	// Resolve owner wallet for isOwner flag (best-effort; empty if not found).
 	caller := getWallet(c)
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": toListingResponse(l, appts, caller, "")})
+	isOwner, ownerErr := h.svc.IsListingOwner(l.OwnerUserID, caller)
+	if ownerErr != nil {
+		handleSvcError(c, ownerErr)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": toListingResponse(l, appts, isOwner)})
 }
 
 // POST /api/listings  (auth required, KYC VERIFIED)
@@ -213,6 +231,25 @@ func (h *Handler) UpdateListing(c *gin.Context) {
 		return
 	}
 	if err := h.svc.Update(id, getWallet(c), req); err != nil {
+		handleSvcError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// PUT /api/listings/:id/intent  (auth required, owner only)
+func (h *Handler) SetListingIntent(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req SetListingIntentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.svc.SetIntent(id, getWallet(c), req); err != nil {
 		handleSvcError(c, err)
 		return
 	}

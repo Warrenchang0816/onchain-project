@@ -15,7 +15,7 @@ export function toChecksumAddress(address: string): string {
 export async function signSIWEMessage(message: string, address: string): Promise<string> {
     const provider = window.ethereum;
     if (!provider) {
-        throw new Error("MetaMask not installed");
+        throw new Error("請先安裝 MetaMask。");
     }
 
     const signature = await provider.request({
