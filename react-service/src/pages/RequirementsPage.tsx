@@ -4,7 +4,7 @@ import { getRequirementList, type TenantRequirement, type TenantRequirementStatu
 import SiteLayout from "@/layouts/SiteLayout";
 
 const statusLabel: Record<TenantRequirementStatus, string> = {
-    OPEN: "開放媒合",
+    OPEN: "開放中",
     PAUSED: "暫停",
     CLOSED: "已關閉",
 };
@@ -30,7 +30,7 @@ export default function RequirementsPage() {
                 setError("");
                 setItems(await getRequirementList({ district: district.trim() || undefined, status }));
             } catch (err) {
-                setError(err instanceof Error ? err.message : "讀取租屋需求失敗。");
+                setError(err instanceof Error ? err.message : "讀取租屋需求失敗");
             } finally {
                 setLoading(false);
             }
@@ -51,24 +51,16 @@ export default function RequirementsPage() {
                 <header className="space-y-3">
                     <h1 className="text-4xl font-extrabold text-on-surface">租屋需求列表</h1>
                     <p className="max-w-3xl text-sm leading-[1.8] text-on-surface-variant">
-                        屋主與仲介可瀏覽租客自行公開的需求條件。進一步媒合前，仍需由各方自行確認資料與意願。
+                        房東與仲介可以在這裡瀏覽租客公開的需求條件。租客敏感資料只會依照後端授權規則顯示。
                     </p>
                 </header>
 
                 <section className="flex flex-col gap-3 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 md:flex-row md:items-center">
-                    <input
-                        className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
-                        value={district}
-                        onChange={(e) => updateFilter("district", e.target.value)}
-                        placeholder="篩選區域，例如：信義區"
-                    />
-                    <select
-                        className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
-                        value={status}
-                        onChange={(e) => updateFilter("status", e.target.value)}
-                    >
-                        <option value="OPEN">開放媒合</option>
+                    <input className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" value={district} onChange={(e) => updateFilter("district", e.target.value)} placeholder="行政區，例如：信義區" />
+                    <select className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" value={status} onChange={(e) => updateFilter("status", e.target.value)}>
+                        <option value="OPEN">開放中</option>
                         <option value="PAUSED">暫停</option>
+                        <option value="CLOSED">已關閉</option>
                     </select>
                     <button type="button" onClick={() => setSearchParams(new URLSearchParams({ status: "OPEN" }))} className="rounded-lg border border-outline-variant/25 bg-transparent px-4 py-3 text-sm text-on-surface">
                         清除篩選
@@ -90,18 +82,16 @@ export default function RequirementsPage() {
                                 <div className="flex items-start justify-between gap-4">
                                     <div>
                                         <span className="rounded-full bg-tertiary/10 px-3 py-1 text-xs font-bold text-tertiary">{statusLabel[item.status]}</span>
-                                        <h2 className="mt-4 text-xl font-bold text-on-surface">{item.targetDistrict}</h2>
+                                        <h2 className="mt-4 text-xl font-bold text-on-surface">{item.targetDistrict || "未設定行政區"}</h2>
                                     </div>
-                                    {item.hasAdvancedData ? (
-                                        <span className="rounded-full bg-primary-container/15 px-3 py-1 text-xs font-bold text-primary-container">資料較完整</span>
-                                    ) : null}
+                                    {item.hasAdvancedData ? <span className="rounded-full bg-primary-container/15 px-3 py-1 text-xs font-bold text-primary-container">進階資料</span> : null}
                                 </div>
                                 <p className="mt-4 text-lg font-extrabold text-on-surface">{formatBudget(item)}</p>
-                                <p className="mt-2 line-clamp-2 text-sm leading-[1.75] text-on-surface-variant">{item.layoutNote || "租客尚未補充格局需求。"}</p>
+                                <p className="mt-2 line-clamp-2 text-sm leading-[1.75] text-on-surface-variant">{item.layoutNote || "租客尚未填寫需求說明。"}</p>
                                 <div className="mt-4 flex flex-wrap gap-2 text-xs text-on-surface-variant">
-                                    {item.moveInDate ? <span className="rounded-full bg-surface-container-low px-3 py-1">可入住：{item.moveInDate}</span> : null}
-                                    {item.petFriendlyNeeded ? <span className="rounded-full bg-surface-container-low px-3 py-1">需可養寵物</span> : null}
-                                    {item.parkingNeeded ? <span className="rounded-full bg-surface-container-low px-3 py-1">需車位</span> : null}
+                                    {item.moveInDate ? <span className="rounded-full bg-surface-container-low px-3 py-1">入住日：{item.moveInDate}</span> : null}
+                                    {item.petFriendlyNeeded ? <span className="rounded-full bg-surface-container-low px-3 py-1">需要可養寵物</span> : null}
+                                    {item.parkingNeeded ? <span className="rounded-full bg-surface-container-low px-3 py-1">需要車位</span> : null}
                                 </div>
                             </article>
                         ))}
