@@ -66,6 +66,8 @@ func SetupRouter(
 			protected.POST("/listings", listingHandler.CreateListing)
 			protected.PUT("/listings/:id", listingHandler.UpdateListing)
 			protected.PUT("/listings/:id/intent", listingHandler.SetListingIntent)
+			protected.PUT("/listings/:id/rent-details", listingHandler.UpdateRentDetails)
+			protected.PUT("/listings/:id/sale-details", listingHandler.UpdateSaleDetails)
 			protected.PUT("/listings/:id/publish", listingHandler.PublishListing)
 			protected.PUT("/listings/:id/remove", listingHandler.RemoveListing)
 			protected.PUT("/listings/:id/close", listingHandler.CloseListing)

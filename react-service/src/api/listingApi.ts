@@ -67,6 +67,8 @@ export type Listing = {
     bathroom_count?: number;
     is_pet_allowed: boolean;
     is_parking_included: boolean;
+    rent_details?: RentDetails;
+    sale_details?: SaleDetails;
     status: ListingStatus;
     draft_origin: ListingDraftOrigin;
     setup_status: ListingSetupStatus;
@@ -80,6 +82,28 @@ export type Listing = {
     updated_at: string;
     is_owner: boolean;
     image_url?: string; // optional cover photo when the backend provides one; UI must not synthesize fake inventory
+};
+
+export type RentDetails = {
+    monthly_rent: number;
+    deposit_months: number;
+    management_fee_monthly: number;
+    minimum_lease_months: number;
+    can_register_household: boolean;
+    can_cook: boolean;
+    rent_notes: string;
+};
+
+export type SaleDetails = {
+    sale_total_price: number;
+    sale_unit_price_per_ping?: number;
+    main_building_ping?: number;
+    auxiliary_building_ping?: number;
+    balcony_ping?: number;
+    land_ping?: number;
+    parking_space_type?: string;
+    parking_space_price?: number;
+    sale_notes: string;
 };
 
 export type CreateListingPayload = {
@@ -113,6 +137,52 @@ export type UpdateListingPayload = {
     bathroom_count?: number;
     is_pet_allowed: boolean;
     is_parking_included: boolean;
+};
+
+export type UpdateRentDetailsPayload = {
+    title: string;
+    description?: string;
+    address: string;
+    district?: string;
+    price: number;
+    area_ping: number;
+    floor?: number;
+    total_floors?: number;
+    room_count: number;
+    bathroom_count: number;
+    is_pet_allowed: boolean;
+    is_parking_included: boolean;
+    monthly_rent: number;
+    deposit_months: number;
+    management_fee_monthly: number;
+    minimum_lease_months: number;
+    can_register_household: boolean;
+    can_cook: boolean;
+    rent_notes: string;
+};
+
+export type UpdateSaleDetailsPayload = {
+    title: string;
+    description?: string;
+    address: string;
+    district?: string;
+    price: number;
+    area_ping: number;
+    floor?: number;
+    total_floors?: number;
+    room_count: number;
+    bathroom_count: number;
+    is_pet_allowed: boolean;
+    is_parking_included: boolean;
+    sale_total_price: number;
+    sale_unit_price_per_ping?: number;
+    main_building_ping?: number;
+    auxiliary_building_ping?: number;
+    balcony_ping?: number;
+    land_ping?: number;
+    parking_space_type?: string;
+    parking_space_price?: number;
+    sale_notes: string;
 };
 
 async function parseResponse<T>(res: Response): Promise<T> {
@@ -177,6 +247,26 @@ export async function setListingIntent(id: number, listType: Exclude<ListingType
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ list_type: listType }),
+    });
+    await parseResponse<unknown>(res);
+}
+
+export async function updateRentDetails(id: number, payload: UpdateRentDetailsPayload): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/listings/${id}/rent-details`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+    });
+    await parseResponse<unknown>(res);
+}
+
+export async function updateSaleDetails(id: number, payload: UpdateSaleDetailsPayload): Promise<void> {
+    const res = await fetch(`${API_BASE_URL}/listings/${id}/sale-details`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
     });
     await parseResponse<unknown>(res);
 }

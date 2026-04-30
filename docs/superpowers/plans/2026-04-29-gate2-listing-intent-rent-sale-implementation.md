@@ -391,5 +391,20 @@ npm run build
 ## 自檢結果
 
 - 規格涵蓋：物件 ready 不自動公開、出租/出售分流、公開列表只顯示 ACTIVE、角色 OCR 文案不宣稱官方認證。
+
+---
+
+## 2026-04-30 continuation: relational rent/sale details
+
+- [x] Kept `listings` as the shared workflow/read-summary table.
+- [x] Added relational one-to-one detail tables:
+  - `listing_rent_details`
+  - `listing_sale_details`
+- [x] Added owner-only APIs:
+  - `PUT /api/listings/:id/rent-details`
+  - `PUT /api/listings/:id/sale-details`
+- [x] Added rent/sale readiness rules so `setup_status` becomes `READY` only when the matching detail row is complete.
+- [x] Added frontend API types and wrappers for the new endpoints.
+- [x] Verified with focused listing tests and full backend `go test ./...`.
 - 範圍控制：本計畫先完成刊登目的分流與最小 ready 檢核，不在本階段擴充完整信義房屋欄位級 schema。
 - 後續階段：等使用者提供不動產說明書版本後，再擴充 `properties` 的正式財產/現況欄位與 `SALE` 詳細交易欄位。

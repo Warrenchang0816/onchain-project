@@ -267,6 +267,198 @@ func (r *ListingRepository) UpdateInfo(
 	return nil
 }
 
+func (r *ListingRepository) UpdateRentDetails(id int64, listing model.Listing, details model.ListingRentDetails, setupStatus string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("listing_repo: UpdateRentDetails begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := updateListingDetailsCore(tx, id, listing, setupStatus); err != nil {
+		return fmt.Errorf("listing_repo: UpdateRentDetails listing: %w", err)
+	}
+	_, err = tx.Exec(`
+		INSERT INTO listing_rent_details (
+			listing_id, monthly_rent, deposit_months, management_fee_monthly,
+			minimum_lease_months, can_register_household, can_cook, rent_notes
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+		ON CONFLICT (listing_id) DO UPDATE SET
+			monthly_rent=EXCLUDED.monthly_rent,
+			deposit_months=EXCLUDED.deposit_months,
+			management_fee_monthly=EXCLUDED.management_fee_monthly,
+			minimum_lease_months=EXCLUDED.minimum_lease_months,
+			can_register_household=EXCLUDED.can_register_household,
+			can_cook=EXCLUDED.can_cook,
+			rent_notes=EXCLUDED.rent_notes,
+			updated_at=NOW()`,
+		id,
+		details.MonthlyRent,
+		details.DepositMonths,
+		details.ManagementFeeMonthly,
+		details.MinimumLeaseMonths,
+		details.CanRegisterHousehold,
+		details.CanCook,
+		details.RentNotes,
+	)
+	if err != nil {
+		return fmt.Errorf("listing_repo: UpdateRentDetails detail: %w", err)
+	}
+	return tx.Commit()
+}
+
+func (r *ListingRepository) UpdateSaleDetails(id int64, listing model.Listing, details model.ListingSaleDetails, setupStatus string) error {
+	tx, err := r.db.Begin()
+	if err != nil {
+		return fmt.Errorf("listing_repo: UpdateSaleDetails begin: %w", err)
+	}
+	defer tx.Rollback()
+
+	if err := updateListingDetailsCore(tx, id, listing, setupStatus); err != nil {
+		return fmt.Errorf("listing_repo: UpdateSaleDetails listing: %w", err)
+	}
+	_, err = tx.Exec(`
+		INSERT INTO listing_sale_details (
+			listing_id, sale_total_price, sale_unit_price_per_ping,
+			main_building_ping, auxiliary_building_ping, balcony_ping, land_ping,
+			parking_space_type, parking_space_price, sale_notes
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+		ON CONFLICT (listing_id) DO UPDATE SET
+			sale_total_price=EXCLUDED.sale_total_price,
+			sale_unit_price_per_ping=EXCLUDED.sale_unit_price_per_ping,
+			main_building_ping=EXCLUDED.main_building_ping,
+			auxiliary_building_ping=EXCLUDED.auxiliary_building_ping,
+			balcony_ping=EXCLUDED.balcony_ping,
+			land_ping=EXCLUDED.land_ping,
+			parking_space_type=EXCLUDED.parking_space_type,
+			parking_space_price=EXCLUDED.parking_space_price,
+			sale_notes=EXCLUDED.sale_notes,
+			updated_at=NOW()`,
+		id,
+		details.SaleTotalPrice,
+		details.SaleUnitPricePerPing,
+		details.MainBuildingPing,
+		details.AuxiliaryBuildingPing,
+		details.BalconyPing,
+		details.LandPing,
+		details.ParkingSpaceType,
+		details.ParkingSpacePrice,
+		details.SaleNotes,
+	)
+	if err != nil {
+		return fmt.Errorf("listing_repo: UpdateSaleDetails detail: %w", err)
+	}
+	return tx.Commit()
+}
+
+func updateListingDetailsCore(tx *sql.Tx, id int64, listing model.Listing, setupStatus string) error {
+	_, err := tx.Exec(`
+		UPDATE listings
+		SET title=$1, description=$2, address=$3, district=$4,
+		    list_type=$5, setup_status=$6,
+		    price=$7, area_ping=$8, floor=$9, total_floors=$10,
+		    room_count=$11, bathroom_count=$12,
+		    is_pet_allowed=$13, is_parking_included=$14,
+		    updated_at=NOW()
+		WHERE id=$15`,
+		listing.Title,
+		listing.Description,
+		listing.Address,
+		listing.District,
+		listing.ListType,
+		setupStatus,
+		listing.Price,
+		listing.AreaPing,
+		listing.Floor,
+		listing.TotalFloors,
+		listing.RoomCount,
+		listing.BathroomCount,
+		listing.IsPetAllowed,
+		listing.IsParkingIncluded,
+		id,
+	)
+	return err
+}
+
+func (r *ListingRepository) AttachDetails(l *model.Listing) error {
+	if l == nil {
+		return nil
+	}
+	rent, err := r.findRentDetails(l.ID)
+	if err != nil {
+		return err
+	}
+	sale, err := r.findSaleDetails(l.ID)
+	if err != nil {
+		return err
+	}
+	l.RentDetails = rent
+	l.SaleDetails = sale
+	return nil
+}
+
+func (r *ListingRepository) findRentDetails(listingID int64) (*model.ListingRentDetails, error) {
+	row := r.db.QueryRow(`
+		SELECT id, listing_id, monthly_rent, deposit_months, management_fee_monthly,
+		       minimum_lease_months, can_register_household, can_cook, rent_notes,
+		       created_at, updated_at
+		FROM listing_rent_details
+		WHERE listing_id=$1`, listingID)
+	d := &model.ListingRentDetails{}
+	err := row.Scan(
+		&d.ID,
+		&d.ListingID,
+		&d.MonthlyRent,
+		&d.DepositMonths,
+		&d.ManagementFeeMonthly,
+		&d.MinimumLeaseMonths,
+		&d.CanRegisterHousehold,
+		&d.CanCook,
+		&d.RentNotes,
+		&d.CreatedAt,
+		&d.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("listing_repo: findRentDetails: %w", err)
+	}
+	return d, nil
+}
+
+func (r *ListingRepository) findSaleDetails(listingID int64) (*model.ListingSaleDetails, error) {
+	row := r.db.QueryRow(`
+		SELECT id, listing_id, sale_total_price, sale_unit_price_per_ping,
+		       main_building_ping, auxiliary_building_ping, balcony_ping, land_ping,
+		       parking_space_type, parking_space_price, sale_notes,
+		       created_at, updated_at
+		FROM listing_sale_details
+		WHERE listing_id=$1`, listingID)
+	d := &model.ListingSaleDetails{}
+	err := row.Scan(
+		&d.ID,
+		&d.ListingID,
+		&d.SaleTotalPrice,
+		&d.SaleUnitPricePerPing,
+		&d.MainBuildingPing,
+		&d.AuxiliaryBuildingPing,
+		&d.BalconyPing,
+		&d.LandPing,
+		&d.ParkingSpaceType,
+		&d.ParkingSpacePrice,
+		&d.SaleNotes,
+		&d.CreatedAt,
+		&d.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("listing_repo: findSaleDetails: %w", err)
+	}
+	return d, nil
+}
+
 // SetStatus transitions a listing to the given status.
 func (r *ListingRepository) SetStatus(id int64, status string) error {
 	_, err := r.db.Exec(`

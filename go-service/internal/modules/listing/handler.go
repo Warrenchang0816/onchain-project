@@ -84,6 +84,51 @@ func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, isOw
 		v := l.BathroomCount.Int64
 		resp.BathroomCount = &v
 	}
+	if l.RentDetails != nil {
+		resp.RentDetails = &RentDetailsResponse{
+			MonthlyRent:          l.RentDetails.MonthlyRent,
+			DepositMonths:        l.RentDetails.DepositMonths,
+			ManagementFeeMonthly: l.RentDetails.ManagementFeeMonthly,
+			MinimumLeaseMonths:   l.RentDetails.MinimumLeaseMonths,
+			CanRegisterHousehold: l.RentDetails.CanRegisterHousehold,
+			CanCook:              l.RentDetails.CanCook,
+			RentNotes:            l.RentDetails.RentNotes,
+		}
+	}
+	if l.SaleDetails != nil {
+		resp.SaleDetails = &SaleDetailsResponse{
+			SaleTotalPrice: l.SaleDetails.SaleTotalPrice,
+			SaleNotes:      l.SaleDetails.SaleNotes,
+		}
+		if l.SaleDetails.SaleUnitPricePerPing.Valid {
+			v := l.SaleDetails.SaleUnitPricePerPing.Float64
+			resp.SaleDetails.SaleUnitPricePerPing = &v
+		}
+		if l.SaleDetails.MainBuildingPing.Valid {
+			v := l.SaleDetails.MainBuildingPing.Float64
+			resp.SaleDetails.MainBuildingPing = &v
+		}
+		if l.SaleDetails.AuxiliaryBuildingPing.Valid {
+			v := l.SaleDetails.AuxiliaryBuildingPing.Float64
+			resp.SaleDetails.AuxiliaryBuildingPing = &v
+		}
+		if l.SaleDetails.BalconyPing.Valid {
+			v := l.SaleDetails.BalconyPing.Float64
+			resp.SaleDetails.BalconyPing = &v
+		}
+		if l.SaleDetails.LandPing.Valid {
+			v := l.SaleDetails.LandPing.Float64
+			resp.SaleDetails.LandPing = &v
+		}
+		if l.SaleDetails.ParkingSpaceType.Valid {
+			v := l.SaleDetails.ParkingSpaceType.String
+			resp.SaleDetails.ParkingSpaceType = &v
+		}
+		if l.SaleDetails.ParkingSpacePrice.Valid {
+			v := l.SaleDetails.ParkingSpacePrice.Float64
+			resp.SaleDetails.ParkingSpacePrice = &v
+		}
+	}
 	if l.PublishedAt.Valid {
 		s := l.PublishedAt.Time.Format("2006-01-02T15:04:05Z07:00")
 		resp.PublishedAt = &s
@@ -250,6 +295,44 @@ func (h *Handler) SetListingIntent(c *gin.Context) {
 		return
 	}
 	if err := h.svc.SetIntent(id, getWallet(c), req); err != nil {
+		handleSvcError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// PUT /api/listings/:id/rent-details  (auth required, owner only)
+func (h *Handler) UpdateRentDetails(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req UpdateRentDetailsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.svc.UpdateRentDetails(id, getWallet(c), req); err != nil {
+		handleSvcError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+// PUT /api/listings/:id/sale-details  (auth required, owner only)
+func (h *Handler) UpdateSaleDetails(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	var req UpdateSaleDetailsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if err := h.svc.UpdateSaleDetails(id, getWallet(c), req); err != nil {
 		handleSvcError(c, err)
 		return
 	}
