@@ -16,9 +16,9 @@ async function revokeWalletPermissions() {
 
 function deriveRole(kycStatus: KYCStatus, credentials: string[]): string {
     if (credentials.includes("AGENT")) return "仲介";
-    if (credentials.includes("OWNER")) return "屋主";
+    if (credentials.includes("OWNER")) return "房東";
     if (credentials.includes("TENANT")) return "租客";
-    if (kycStatus === "VERIFIED") return "自然人";
+    if (kycStatus === "VERIFIED") return "已驗證";
     if (kycStatus === "PENDING") return "審核中";
     return "訪客";
 }
@@ -94,8 +94,8 @@ export default function Header() {
 
     const menuItems = [
         { label: "會員資料", path: "/profile" },
-        { label: "身份中心", path: "/member" },
-        { label: "我的最愛", path: "/favorites" },
+        { label: "身分工作台", path: "/member" },
+        { label: "收藏", path: "/favorites" },
         { label: "鏈上紀錄", path: "/logs" },
         { label: "設定", path: "/settings" },
     ];
@@ -103,18 +103,14 @@ export default function Header() {
     return (
         <header className="sticky top-0 z-50 h-[64px] w-full border-b border-outline-variant/10 bg-[#FFFEF9]/90 backdrop-blur-xl">
             <div className="mx-auto flex h-full w-full max-w-[1440px] items-center justify-between px-6 font-['Inter','Noto_Sans_TC'] md:px-12">
-                <button
-                    type="button"
-                    onClick={() => navigate("/")}
-                    className="bg-transparent text-xl font-extrabold text-on-surface"
-                >
-                    去中心化房屋平台
+                <button type="button" onClick={() => navigate("/")} className="bg-transparent text-xl font-extrabold text-on-surface">
+                    鏈上房產平台
                 </button>
 
                 <nav className="hidden items-center gap-8 md:flex">
                     <NavLink to="/" end className={navLinkCls}>首頁</NavLink>
                     <NavLink to="/listings" className={navLinkCls}>房源列表</NavLink>
-                    {canBrowseRequirements ? <NavLink to="/requirements" className={navLinkCls}>租屋需求列表</NavLink> : null}
+                    {canBrowseRequirements ? <NavLink to="/requirements" className={navLinkCls}>租屋需求</NavLink> : null}
                     <NavLink to="/agents" className={navLinkCls}>仲介列表</NavLink>
                 </nav>
 
@@ -123,18 +119,14 @@ export default function Header() {
                         <span className="text-xs text-on-surface-variant">讀取中...</span>
                     ) : state.authenticated ? (
                         <>
-                            <button
-                                type="button"
-                                className="hidden bg-transparent font-medium text-on-surface transition-colors hover:text-primary-container md:block"
-                                onClick={() => navigate("/member")}
-                            >
+                            <button type="button" className="hidden bg-transparent font-medium text-on-surface transition-colors hover:text-primary-container md:block" onClick={() => navigate("/member")}>
                                 {role}
                             </button>
                             <div className="relative" ref={menuRef}>
                                 <button
                                     type="button"
                                     onClick={() => setIsMenuOpen((open) => !open)}
-                                    aria-label="帳號選單"
+                                    aria-label="開啟會員選單"
                                     className="flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/30 bg-surface-variant"
                                 >
                                     <span className="material-symbols-outlined text-on-surface-variant" style={{ fontVariationSettings: "'FILL' 1" }}>
@@ -163,11 +155,7 @@ export default function Header() {
                                             </button>
                                         ))}
                                         <div className="border-t border-surface-container">
-                                            <button
-                                                type="button"
-                                                className="w-full bg-transparent px-4 py-2.5 text-left text-sm text-error transition-colors hover:bg-error-container"
-                                                onClick={() => void handleLogout()}
-                                            >
+                                            <button type="button" className="w-full bg-transparent px-4 py-2.5 text-left text-sm text-error transition-colors hover:bg-error-container" onClick={() => void handleLogout()}>
                                                 登出
                                             </button>
                                         </div>
@@ -177,19 +165,10 @@ export default function Header() {
                         </>
                     ) : (
                         <>
-                            <button
-                                type="button"
-                                onClick={() => navigate("/login")}
-                                className="hidden bg-transparent font-medium text-on-surface transition-colors hover:text-primary-container md:block"
-                            >
+                            <button type="button" onClick={() => navigate("/login")} className="hidden bg-transparent font-medium text-on-surface transition-colors hover:text-primary-container md:block">
                                 登入
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => navigate("/login")}
-                                aria-label="登入"
-                                className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-variant"
-                            >
+                            <button type="button" onClick={() => navigate("/login")} aria-label="登入" className="flex h-9 w-9 items-center justify-center rounded-full bg-surface-variant">
                                 <span className="material-symbols-outlined text-on-surface-variant" style={{ fontVariationSettings: "'FILL' 1" }}>
                                     person
                                 </span>
