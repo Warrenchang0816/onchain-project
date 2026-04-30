@@ -11,9 +11,14 @@ import {
     removeListing,
     type Listing,
     type ListingType,
+    type UpdateRentDetailsPayload,
     type UpdateListingPayload,
+    type UpdateSaleDetailsPayload,
     updateListing,
+    updateRentDetails,
+    updateSaleDetails,
 } from "../api/listingApi";
+import ListingDetailsForm from "../components/listing/ListingDetailsForm";
 import ListingEditorForm from "../components/listing/ListingEditorForm";
 import { listingToEditorValues } from "../components/listing/listingEditorValues";
 import SiteLayout from "../layouts/SiteLayout";
@@ -30,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = {
     SUSPENDED: "已暫停",
 };
 
-type ModalType = "publish" | "edit" | "book" | null;
+type ModalType = "publish" | "edit" | "book" | "rentDetails" | "saleDetails" | null;
 
 function ActionButton(props: { children: ReactNode; onClick?: () => void; variant?: "primary" | "secondary" | "danger"; disabled?: boolean }) {
     const cls = {
@@ -69,6 +74,20 @@ function formatPrice(listing: Listing): string {
     if (listing.list_type === "RENT") return `NT$ ${listing.price.toLocaleString()} / 月`;
     if (listing.list_type === "SALE") return `NT$ ${listing.price.toLocaleString()}`;
     return "尚未選擇出租或出售";
+}
+
+function formatCurrency(value?: number): string {
+    if (value === undefined || value <= 0) return "-";
+    return `NT$ ${value.toLocaleString()}`;
+}
+
+function DetailItem(props: { label: string; value: ReactNode }) {
+    return (
+        <div className="rounded-xl bg-surface-container-low p-4">
+            <p className="text-sm text-on-surface-variant">{props.label}</p>
+            <p className="mt-1 text-lg font-bold text-on-surface">{props.value}</p>
+        </div>
+    );
 }
 
 export default function ListingDetailPage() {
@@ -170,6 +189,8 @@ export default function ListingDetailPage() {
     const handlePublish = () => runAction(() => publishListing(listingId, publishDays), `房源已上架 ${publishDays} 天。`);
     const handleEdit = (payload: UpdateListingPayload) => runAction(() => updateListing(listingId, payload), "房源已更新。");
     const handleSetIntent = (listType: Exclude<ListingType, "UNSET">) => runAction(() => setListingIntent(listingId, listType), listType === "RENT" ? "已切換為出租刊登。" : "已切換為賣屋刊登。");
+    const handleRentDetails = (payload: UpdateRentDetailsPayload) => runAction(() => updateRentDetails(listingId, payload), "出租資料已儲存。");
+    const handleSaleDetails = (payload: UpdateSaleDetailsPayload) => runAction(() => updateSaleDetails(listingId, payload), "出售資料已儲存。");
     const handleRemove = () => runAction(() => removeListing(listingId), "房源已下架。");
     const handleClose = () => runAction(() => closeListing(listingId), "房源已結案。");
     const handleBook = () => {
@@ -230,6 +251,36 @@ export default function ListingDetailPage() {
                         </div>
 
                         {listing.description ? <p className="mt-8 whitespace-pre-wrap text-sm leading-[1.9] text-on-surface-variant">{listing.description}</p> : null}
+
+                        {listing.rent_details ? (
+                            <section className="mt-8 border-t border-surface-container pt-6">
+                                <h2 className="text-base font-bold text-on-surface">出租明細</h2>
+                                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                                    <DetailItem label="月租金" value={`${formatCurrency(listing.rent_details.monthly_rent)} / 月`} />
+                                    <DetailItem label="押金" value={`${listing.rent_details.deposit_months} 個月`} />
+                                    <DetailItem label="最短租期" value={`${listing.rent_details.minimum_lease_months} 個月`} />
+                                    <DetailItem label="管理費" value={`${formatCurrency(listing.rent_details.management_fee_monthly)} / 月`} />
+                                    <DetailItem label="可入籍" value={listing.rent_details.can_register_household ? "可以" : "不可"} />
+                                    <DetailItem label="可開伙" value={listing.rent_details.can_cook ? "可以" : "不可"} />
+                                </div>
+                                {listing.rent_details.rent_notes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-[1.8] text-on-surface-variant">{listing.rent_details.rent_notes}</p> : null}
+                            </section>
+                        ) : null}
+
+                        {listing.sale_details ? (
+                            <section className="mt-8 border-t border-surface-container pt-6">
+                                <h2 className="text-base font-bold text-on-surface">出售明細</h2>
+                                <div className="mt-4 grid gap-4 md:grid-cols-3">
+                                    <DetailItem label="出售總價" value={formatCurrency(listing.sale_details.sale_total_price)} />
+                                    <DetailItem label="每坪單價" value={formatCurrency(listing.sale_details.sale_unit_price_per_ping)} />
+                                    <DetailItem label="主建物坪數" value={listing.sale_details.main_building_ping ?? "-"} />
+                                    <DetailItem label="附屬建物坪數" value={listing.sale_details.auxiliary_building_ping ?? "-"} />
+                                    <DetailItem label="土地坪數" value={listing.sale_details.land_ping ?? "-"} />
+                                    <DetailItem label="車位" value={listing.sale_details.parking_space_type || "-"} />
+                                </div>
+                                {listing.sale_details.sale_notes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-[1.8] text-on-surface-variant">{listing.sale_details.sale_notes}</p> : null}
+                            </section>
+                        ) : null}
                     </article>
 
                     <aside className="flex flex-col gap-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
@@ -245,6 +296,16 @@ export default function ListingDetailPage() {
                                     <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">物件揭露尚未完成，完成財產/現況說明與重大事項確認後，才能選擇出租或賣屋。</p>
                                 ) : null}
                                 {canPublish ? <ActionButton variant="primary" onClick={() => setModal("publish")}>公開刊登</ActionButton> : null}
+                                {listing.status === "DRAFT" && propertyReady && listing.list_type === "RENT" ? (
+                                    <ActionButton variant={listing.rent_details ? "secondary" : "primary"} disabled={isActionLoading} onClick={() => setModal("rentDetails")}>
+                                        {listing.rent_details ? "編輯出租資料" : "補齊出租資料"}
+                                    </ActionButton>
+                                ) : null}
+                                {listing.status === "DRAFT" && propertyReady && listing.list_type === "SALE" ? (
+                                    <ActionButton variant={listing.sale_details ? "secondary" : "primary"} disabled={isActionLoading} onClick={() => setModal("saleDetails")}>
+                                        {listing.sale_details ? "編輯出售資料" : "補齊出售資料"}
+                                    </ActionButton>
+                                ) : null}
                                 {listing.status === "DRAFT" && !needsIntent && !canPublish ? (
                                     <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">已選擇{listing.list_type === "RENT" ? "出租" : "賣屋"}，請補齊刊登資料後再公開。</p>
                                 ) : null}
@@ -287,6 +348,24 @@ export default function ListingDetailPage() {
                     submitting={isActionLoading}
                     submitLabel="儲存變更"
                     onSubmit={(payload) => handleEdit(payload as UpdateListingPayload)}
+                    onCancel={() => setModal(null)}
+                />
+            </Modal>
+            <Modal isOpen={modal === "rentDetails"} title="出租刊登資料" onClose={() => setModal(null)}>
+                <ListingDetailsForm
+                    mode="rent"
+                    listing={listing}
+                    submitting={isActionLoading}
+                    onSubmit={handleRentDetails}
+                    onCancel={() => setModal(null)}
+                />
+            </Modal>
+            <Modal isOpen={modal === "saleDetails"} title="出售刊登資料" onClose={() => setModal(null)}>
+                <ListingDetailsForm
+                    mode="sale"
+                    listing={listing}
+                    submitting={isActionLoading}
+                    onSubmit={handleSaleDetails}
                     onCancel={() => setModal(null)}
                 />
             </Modal>
