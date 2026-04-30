@@ -10,6 +10,7 @@ import (
 	listingmod "go-service/internal/modules/listing"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
+	propertymod "go-service/internal/modules/property"
 	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	platformauth "go-service/internal/platform/auth"
@@ -32,6 +33,7 @@ func SetupRouter(
 	sessionRepo *repository.SessionRepository,
 	agentHandler *agentmod.Handler,
 	tenantHandler *tenantmod.Handler,
+	propertyHandler *propertymod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -69,6 +71,12 @@ func SetupRouter(
 			protected.PUT("/listings/:id/close", listingHandler.CloseListing)
 			protected.PUT("/listings/:id/negotiate", listingHandler.LockNegotiation)
 			protected.PUT("/listings/:id/unlock", listingHandler.UnlockNegotiation)
+
+			// Property management (owner)
+			protected.GET("/properties/mine", propertyHandler.ListMyProperties)
+			protected.GET("/properties/:id", propertyHandler.GetProperty)
+			protected.PUT("/properties/:id/disclosure", propertyHandler.UpdateDisclosure)
+			protected.POST("/properties/:id/disclosure/confirm", propertyHandler.ConfirmDisclosure)
 
 			// Appointment management
 			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)

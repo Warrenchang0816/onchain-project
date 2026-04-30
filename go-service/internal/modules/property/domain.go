@@ -94,6 +94,8 @@ type BuiltDisclosureSnapshot struct {
 	Address                string
 	DeedNo                 string
 	DeedHash               string
+	PropertyStatementJSON  []byte
+	WarrantyAnswersJSON    []byte
 	DisclosureSnapshotJSON []byte
 	DisclosureHash         string
 }
@@ -130,19 +132,28 @@ func BuildDisclosureSnapshot(in DisclosureInput) (BuiltDisclosureSnapshot, error
 	}
 
 	deedNo := strings.TrimSpace(in.OwnershipDocNo)
+	statement := normalizeStatement(in.Statement)
 	snapshot := DisclosureSnapshot{
 		Version:                      1,
 		OwnerUserID:                  in.OwnerUserID,
 		SourceCredentialSubmissionID: in.SourceCredentialSubmissionID,
 		PropertyAddress:              address,
 		OwnershipDocNo:               deedNo,
-		Statement:                    normalizeStatement(in.Statement),
+		Statement:                    statement,
 		Warranties:                   warranties,
 		AttachmentSummaries:          normalizeAttachmentSummaries(in.AttachmentSummaries),
 		PlatformNotice:               PlatformResponsibilityNotice,
 		WatermarkText:                WatermarkShortText,
 	}
 
+	statementRaw, err := json.Marshal(statement)
+	if err != nil {
+		return BuiltDisclosureSnapshot{}, fmt.Errorf("property statement marshal: %w", err)
+	}
+	warrantiesRaw, err := json.Marshal(warranties)
+	if err != nil {
+		return BuiltDisclosureSnapshot{}, fmt.Errorf("property warranty answers marshal: %w", err)
+	}
 	raw, err := json.Marshal(snapshot)
 	if err != nil {
 		return BuiltDisclosureSnapshot{}, fmt.Errorf("property disclosure snapshot marshal: %w", err)
@@ -153,6 +164,8 @@ func BuildDisclosureSnapshot(in DisclosureInput) (BuiltDisclosureSnapshot, error
 		Address:                address,
 		DeedNo:                 deedNo,
 		DeedHash:               sha256Hex([]byte(deedSeed)),
+		PropertyStatementJSON:  statementRaw,
+		WarrantyAnswersJSON:    warrantiesRaw,
 		DisclosureSnapshotJSON: raw,
 		DisclosureHash:         sha256Hex(raw),
 	}, nil

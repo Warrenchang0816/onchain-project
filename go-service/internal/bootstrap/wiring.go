@@ -212,7 +212,8 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
 
 	// ── 13. Listing and credential modules ────────────────────────────────────────
-	propertySvc := propertymod.NewService(propertyRepo)
+	propertySvc := propertymod.NewService(propertyRepo, userRepo)
+	propertyHandler := propertymod.NewHandler(propertySvc)
 	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
@@ -259,6 +260,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		sessionRepo,
 		agentHandler,
 		tenantHandler,
+		propertyHandler,
 	)
 
 	return r, cleanupFn, nil

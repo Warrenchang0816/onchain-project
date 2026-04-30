@@ -313,3 +313,19 @@ npm run build
 ## 目前需等使用者補充的項目
 
 財產/現況說明書正式欄位需等使用者提供版本後再精準對齊。本階段先用分類化 JSON 結構承接，不把欄位寫死到無法調整。
+---
+
+## 2026-04-29 continuation: property owner API
+
+- [x] Added owner-authenticated property service methods:
+  - `ListMine`
+  - `GetForOwner`
+  - `UpdateDisclosureForOwner`
+  - `ConfirmDisclosureForOwner`
+- [x] Added property API DTO/handler layer:
+  - `GET /api/properties/mine`
+  - `GET /api/properties/:id`
+  - `PUT /api/properties/:id/disclosure`
+  - `POST /api/properties/:id/disclosure/confirm`
+- [x] Added repository support for `ListByOwnerUserID`.
+- [x] Verified with focused property tests and full backend `go test ./...`.
