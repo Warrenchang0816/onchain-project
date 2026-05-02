@@ -6,34 +6,24 @@ import {
     bookAppointment,
     closeListing,
     getListing,
-    setListingIntent,
     publishListing,
     removeListing,
+    setListingIntent,
     type Listing,
     type ListingType,
-    type UpdateRentDetailsPayload,
     type UpdateListingPayload,
+    type UpdateRentDetailsPayload,
     type UpdateSaleDetailsPayload,
     updateListing,
     updateRentDetails,
     updateSaleDetails,
 } from "../api/listingApi";
+import ListingDetailShell from "../components/listing/ListingDetailShell";
 import ListingDetailsForm from "../components/listing/ListingDetailsForm";
 import ListingEditorForm from "../components/listing/ListingEditorForm";
 import { listingToEditorValues } from "../components/listing/listingEditorValues";
+import { buildListingDisplayModel } from "../components/listing/listingDisplayModel";
 import SiteLayout from "../layouts/SiteLayout";
-
-const STATUS_LABEL: Record<string, string> = {
-    DRAFT: "草稿",
-    ACTIVE: "上架中",
-    NEGOTIATING: "媒合中",
-    LOCKED: "已鎖定",
-    SIGNING: "簽約中",
-    CLOSED: "已結案",
-    EXPIRED: "已到期",
-    REMOVED: "已下架",
-    SUSPENDED: "已暫停",
-};
 
 type ModalType = "publish" | "edit" | "book" | "rentDetails" | "saleDetails" | null;
 
@@ -69,27 +59,6 @@ function Modal(props: { isOpen: boolean; title: string; onClose: () => void; chi
     );
 }
 
-function formatPrice(listing: Listing): string {
-    if (listing.price <= 0) return "價格未設定";
-    if (listing.list_type === "RENT") return `NT$ ${listing.price.toLocaleString()} / 月`;
-    if (listing.list_type === "SALE") return `NT$ ${listing.price.toLocaleString()}`;
-    return "尚未選擇出租或出售";
-}
-
-function formatCurrency(value?: number): string {
-    if (value === undefined || value <= 0) return "-";
-    return `NT$ ${value.toLocaleString()}`;
-}
-
-function DetailItem(props: { label: string; value: ReactNode }) {
-    return (
-        <div className="rounded-xl bg-surface-container-low p-4">
-            <p className="text-sm text-on-surface-variant">{props.label}</p>
-            <p className="mt-1 text-lg font-bold text-on-surface">{props.value}</p>
-        </div>
-    );
-}
-
 export default function ListingDetailPage() {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
@@ -110,7 +79,7 @@ export default function ListingDetailPage() {
 
     const load = async () => {
         if (Number.isNaN(listingId)) {
-            setErrorMsg("房源編號不正確。");
+            setErrorMsg("物件編號不正確");
             setIsLoading(false);
             return;
         }
@@ -120,7 +89,7 @@ export default function ListingDetailPage() {
             setListing(await getListing(listingId));
         } catch (err) {
             setListing(null);
-            setErrorMsg(err instanceof Error ? err.message : "讀取房源失敗。");
+            setErrorMsg(err instanceof Error ? err.message : "讀取物件失敗");
         } finally {
             setIsLoading(false);
         }
@@ -128,7 +97,9 @@ export default function ListingDetailPage() {
 
     useEffect(() => {
         void load();
-        void getAuthMe().then((auth) => setIsAuthenticated(auth.authenticated)).catch(() => undefined);
+        void getAuthMe()
+            .then((auth) => setIsAuthenticated(auth.authenticated))
+            .catch(() => undefined);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [listingId]);
 
@@ -141,7 +112,7 @@ export default function ListingDetailPage() {
             setSuccessMsg(successMessage);
             await load();
         } catch (err) {
-            setErrorMsg(err instanceof Error ? err.message : "操作失敗。");
+            setErrorMsg(err instanceof Error ? err.message : "操作失敗");
         } finally {
             setIsActionLoading(false);
             setModal(null);
@@ -152,7 +123,7 @@ export default function ListingDetailPage() {
         return (
             <SiteLayout>
                 <div className="flex items-center justify-center py-32">
-                    <span className="animate-pulse text-sm text-on-surface-variant">讀取房源中...</span>
+                    <span className="animate-pulse text-sm text-on-surface-variant">讀取物件中...</span>
                 </div>
             </SiteLayout>
         );
@@ -163,9 +134,13 @@ export default function ListingDetailPage() {
             <SiteLayout>
                 <main className="mx-auto w-full max-w-[960px] px-6 py-20 md:px-12">
                     <div className="flex flex-col gap-4 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10">
-                        <h1 className="text-3xl font-extrabold text-on-background">找不到房源</h1>
-                        <p className="text-sm text-on-surface-variant">{errorMsg || "此房源可能已下架或不存在。"}</p>
-                        <button type="button" className="self-start rounded-lg bg-primary-container px-5 py-2.5 text-sm font-bold text-on-primary-container" onClick={() => navigate("/listings")}>
+                        <h1 className="text-3xl font-extrabold text-on-background">找不到物件</h1>
+                        <p className="text-sm text-on-surface-variant">{errorMsg || "這筆物件可能不存在或已無法瀏覽。"}</p>
+                        <button
+                            type="button"
+                            className="self-start rounded-lg bg-primary-container px-5 py-2.5 text-sm font-bold text-on-primary-container"
+                            onClick={() => navigate("/listings")}
+                        >
                             返回房源列表
                         </button>
                     </div>
@@ -176,7 +151,7 @@ export default function ListingDetailPage() {
 
     const isOwner = listing.is_owner || location.pathname.startsWith("/my/listings/");
     const backPath = isOwner ? "/my/listings" : "/listings";
-    const backLabel = isOwner ? "返回我的房源" : "返回房源列表";
+    const backLabel = isOwner ? "返回我的刊登" : "返回房源列表";
     const canBook = hasRole("TENANT") && !isOwner && listing.status === "ACTIVE";
     const appointments = listing.appointments ?? [];
     const propertyReady =
@@ -185,17 +160,19 @@ export default function ListingDetailPage() {
         Boolean(listing.property?.disclosure_hash);
     const needsIntent = listing.status === "DRAFT" && listing.list_type === "UNSET";
     const canPublish = listing.status === "DRAFT" && listing.setup_status === "READY" && propertyReady && listing.list_type !== "UNSET";
+    const displayModel = buildListingDisplayModel(listing);
 
-    const handlePublish = () => runAction(() => publishListing(listingId, publishDays), `房源已上架 ${publishDays} 天。`);
-    const handleEdit = (payload: UpdateListingPayload) => runAction(() => updateListing(listingId, payload), "房源已更新。");
-    const handleSetIntent = (listType: Exclude<ListingType, "UNSET">) => runAction(() => setListingIntent(listingId, listType), listType === "RENT" ? "已切換為出租刊登。" : "已切換為賣屋刊登。");
-    const handleRentDetails = (payload: UpdateRentDetailsPayload) => runAction(() => updateRentDetails(listingId, payload), "出租資料已儲存。");
-    const handleSaleDetails = (payload: UpdateSaleDetailsPayload) => runAction(() => updateSaleDetails(listingId, payload), "出售資料已儲存。");
-    const handleRemove = () => runAction(() => removeListing(listingId), "房源已下架。");
-    const handleClose = () => runAction(() => closeListing(listingId), "房源已結案。");
+    const handlePublish = () => runAction(() => publishListing(listingId, publishDays), `物件已發布 ${publishDays} 天`);
+    const handleEdit = (payload: UpdateListingPayload) => runAction(() => updateListing(listingId, payload), "刊登資料已更新");
+    const handleSetIntent = (listType: Exclude<ListingType, "UNSET">) =>
+        runAction(() => setListingIntent(listingId, listType), listType === "RENT" ? "已設定為出租刊登" : "已設定為出售刊登");
+    const handleRentDetails = (payload: UpdateRentDetailsPayload) => runAction(() => updateRentDetails(listingId, payload), "出租資料已更新");
+    const handleSaleDetails = (payload: UpdateSaleDetailsPayload) => runAction(() => updateSaleDetails(listingId, payload), "賣屋資料已更新");
+    const handleRemove = () => runAction(() => removeListing(listingId), "物件已下架");
+    const handleClose = () => runAction(() => closeListing(listingId), "物件已結案");
     const handleBook = () => {
         if (!preferredTime) return;
-        return runAction(() => bookAppointment(listingId, new Date(preferredTime).toISOString(), bookingNote).then(() => undefined), "看房預約已送出。");
+        return runAction(() => bookAppointment(listingId, new Date(preferredTime).toISOString(), bookingNote).then(() => undefined), "預約已送出");
     };
 
     return (
@@ -210,138 +187,110 @@ export default function ListingDetailPage() {
 
                 {listing.status === "DRAFT" && listing.setup_status === "INCOMPLETE" ? (
                     <div className="rounded-xl border border-amber-700/20 bg-amber-700/10 p-4 text-sm text-amber-700">
-                        這筆房源仍是未完善草稿，不會出現在公開列表。物件揭露完成後，請先選擇上架出租或上架賣屋，再補齊價格、坪數、房間數與衛浴數後公開。
+                        這筆刊登資料尚未完整，請補齊必要欄位後再發布。
                     </div>
                 ) : null}
 
-                <section className="grid gap-8 lg:grid-cols-[1fr_360px]">
-                    <article className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
-                        <div className="mb-5 flex flex-wrap gap-2">
-                            <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface-variant">{STATUS_LABEL[listing.status] ?? listing.status}</span>
-                            <span className="rounded-full bg-primary-container/15 px-3 py-1 text-xs font-bold text-primary-container">
-                                {listing.setup_status === "READY" ? "資料可上架" : "尚未完善"}
-                            </span>
-                            {listing.draft_origin === "OWNER_ACTIVATION" ? (
-                                <span className="rounded-full bg-tertiary/10 px-3 py-1 text-xs font-bold text-tertiary">屋主認證草稿</span>
+                <ListingDetailShell
+                    model={displayModel}
+                    mode={isOwner ? "ownerPreview" : "public"}
+                    actions={
+                        <>
+                            {isOwner ? (
+                                <>
+                                    {propertyReady && needsIntent ? (
+                                        <>
+                                            <ActionButton variant="primary" disabled={isActionLoading} onClick={() => void handleSetIntent("RENT")}>
+                                                刊登出租
+                                            </ActionButton>
+                                            <ActionButton disabled={isActionLoading} onClick={() => void handleSetIntent("SALE")}>
+                                                刊登出售
+                                            </ActionButton>
+                                        </>
+                                    ) : null}
+                                    {listing.status === "DRAFT" && !propertyReady ? (
+                                        <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">
+                                            物件驗證資料尚未完成，請先完成揭露與產權確認後再刊登。
+                                        </p>
+                                    ) : null}
+                                    {canPublish ? (
+                                        <ActionButton variant="primary" onClick={() => setModal("publish")}>
+                                            發布物件
+                                        </ActionButton>
+                                    ) : null}
+                                    {listing.status === "DRAFT" && propertyReady && listing.list_type === "RENT" ? (
+                                        <ActionButton variant={listing.rent_details ? "secondary" : "primary"} disabled={isActionLoading} onClick={() => setModal("rentDetails")}>
+                                            {listing.rent_details ? "編輯出租資料" : "補齊出租資料"}
+                                        </ActionButton>
+                                    ) : null}
+                                    {listing.status === "DRAFT" && propertyReady && listing.list_type === "SALE" ? (
+                                        <ActionButton variant={listing.sale_details ? "secondary" : "primary"} disabled={isActionLoading} onClick={() => setModal("saleDetails")}>
+                                            {listing.sale_details ? "編輯賣屋資料" : "補齊賣屋資料"}
+                                        </ActionButton>
+                                    ) : null}
+                                    {listing.status === "DRAFT" && !needsIntent && !canPublish ? (
+                                        <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">
+                                            已選擇{listing.list_type === "RENT" ? "出租" : "出售"}，請補齊刊登資料後再發布。
+                                        </p>
+                                    ) : null}
+                                    {listing.status === "DRAFT" || listing.status === "ACTIVE" ? (
+                                        <ActionButton onClick={() => setModal("edit")}>編輯刊登</ActionButton>
+                                    ) : null}
+                                    <ActionButton onClick={() => navigate(`/my/listings/${listing.id}/print`)}>預覽刊登書</ActionButton>
+                                    {listing.status === "ACTIVE" ? (
+                                        <ActionButton variant="danger" onClick={() => void handleRemove()}>
+                                            下架物件
+                                        </ActionButton>
+                                    ) : null}
+                                    {listing.status === "ACTIVE" || listing.status === "NEGOTIATING" ? (
+                                        <ActionButton onClick={() => void handleClose()}>結案</ActionButton>
+                                    ) : null}
+                                </>
+                            ) : isAuthenticated ? (
+                                <>
+                                    {canBook ? (
+                                        <ActionButton variant="primary" onClick={() => setModal("book")}>
+                                            預約看屋
+                                        </ActionButton>
+                                    ) : null}
+                                    {!canBook ? <p className="text-center text-sm text-on-surface-variant">目前無法預約此物件。</p> : null}
+                                </>
+                            ) : (
+                                <ActionButton variant="primary" onClick={() => navigate("/login")}>
+                                    登入後聯絡
+                                </ActionButton>
+                            )}
+
+                            {appointments.length > 0 ? (
+                                <div className="mt-4 border-t border-surface-container pt-4">
+                                    <h2 className="text-sm font-bold text-on-surface">預約紀錄</h2>
+                                    <p className="mt-2 text-sm text-on-surface-variant">目前共有 {appointments.length} 筆預約。</p>
+                                </div>
                             ) : null}
-                        </div>
-                        <div className="text-sm font-semibold text-on-surface-variant">房源序號 #{listing.id}</div>
-                        <h1 className="mt-2 text-4xl font-extrabold text-on-surface">{listing.title || "未命名房源"}</h1>
-                        <p className="mt-3 text-sm leading-[1.8] text-on-surface-variant">{listing.address || "尚未填寫地址"}</p>
-                        <p className="mt-6 text-3xl font-extrabold text-primary-container">{formatPrice(listing)}</p>
-
-                        <div className="mt-8 grid gap-4 md:grid-cols-3">
-                            <div className="rounded-xl bg-surface-container-low p-4">
-                                <p className="text-sm text-on-surface-variant">坪數</p>
-                                <p className="mt-1 text-lg font-bold text-on-surface">{listing.area_ping !== undefined ? `${listing.area_ping} 坪` : "未填寫"}</p>
-                            </div>
-                            <div className="rounded-xl bg-surface-container-low p-4">
-                                <p className="text-sm text-on-surface-variant">格局</p>
-                                <p className="mt-1 text-lg font-bold text-on-surface">
-                                    {listing.room_count !== undefined ? `${listing.room_count} 房` : "未填寫"}
-                                    {listing.bathroom_count !== undefined ? ` / ${listing.bathroom_count} 衛` : ""}
-                                </p>
-                            </div>
-                            <div className="rounded-xl bg-surface-container-low p-4">
-                                <p className="text-sm text-on-surface-variant">樓層</p>
-                                <p className="mt-1 text-lg font-bold text-on-surface">
-                                    {listing.floor ?? "?"}{listing.total_floors !== undefined ? ` / ${listing.total_floors}` : ""}
-                                </p>
-                            </div>
-                        </div>
-
-                        {listing.description ? <p className="mt-8 whitespace-pre-wrap text-sm leading-[1.9] text-on-surface-variant">{listing.description}</p> : null}
-
-                        {listing.rent_details ? (
-                            <section className="mt-8 border-t border-surface-container pt-6">
-                                <h2 className="text-base font-bold text-on-surface">出租明細</h2>
-                                <div className="mt-4 grid gap-4 md:grid-cols-3">
-                                    <DetailItem label="月租金" value={`${formatCurrency(listing.rent_details.monthly_rent)} / 月`} />
-                                    <DetailItem label="押金" value={`${listing.rent_details.deposit_months} 個月`} />
-                                    <DetailItem label="最短租期" value={`${listing.rent_details.minimum_lease_months} 個月`} />
-                                    <DetailItem label="管理費" value={`${formatCurrency(listing.rent_details.management_fee_monthly)} / 月`} />
-                                    <DetailItem label="可入籍" value={listing.rent_details.can_register_household ? "可以" : "不可"} />
-                                    <DetailItem label="可開伙" value={listing.rent_details.can_cook ? "可以" : "不可"} />
-                                </div>
-                                {listing.rent_details.rent_notes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-[1.8] text-on-surface-variant">{listing.rent_details.rent_notes}</p> : null}
-                            </section>
-                        ) : null}
-
-                        {listing.sale_details ? (
-                            <section className="mt-8 border-t border-surface-container pt-6">
-                                <h2 className="text-base font-bold text-on-surface">出售明細</h2>
-                                <div className="mt-4 grid gap-4 md:grid-cols-3">
-                                    <DetailItem label="出售總價" value={formatCurrency(listing.sale_details.sale_total_price)} />
-                                    <DetailItem label="每坪單價" value={formatCurrency(listing.sale_details.sale_unit_price_per_ping)} />
-                                    <DetailItem label="主建物坪數" value={listing.sale_details.main_building_ping ?? "-"} />
-                                    <DetailItem label="附屬建物坪數" value={listing.sale_details.auxiliary_building_ping ?? "-"} />
-                                    <DetailItem label="土地坪數" value={listing.sale_details.land_ping ?? "-"} />
-                                    <DetailItem label="車位" value={listing.sale_details.parking_space_type || "-"} />
-                                </div>
-                                {listing.sale_details.sale_notes ? <p className="mt-4 whitespace-pre-wrap text-sm leading-[1.8] text-on-surface-variant">{listing.sale_details.sale_notes}</p> : null}
-                            </section>
-                        ) : null}
-                    </article>
-
-                    <aside className="flex flex-col gap-4 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
-                        {isOwner ? (
-                            <>
-                                {propertyReady && needsIntent ? (
-                                    <>
-                                        <ActionButton variant="primary" disabled={isActionLoading} onClick={() => void handleSetIntent("RENT")}>上架出租</ActionButton>
-                                        <ActionButton disabled={isActionLoading} onClick={() => void handleSetIntent("SALE")}>上架賣屋</ActionButton>
-                                    </>
-                                ) : null}
-                                {listing.status === "DRAFT" && !propertyReady ? (
-                                    <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">物件揭露尚未完成，完成財產/現況說明與重大事項確認後，才能選擇出租或賣屋。</p>
-                                ) : null}
-                                {canPublish ? <ActionButton variant="primary" onClick={() => setModal("publish")}>公開刊登</ActionButton> : null}
-                                {listing.status === "DRAFT" && propertyReady && listing.list_type === "RENT" ? (
-                                    <ActionButton variant={listing.rent_details ? "secondary" : "primary"} disabled={isActionLoading} onClick={() => setModal("rentDetails")}>
-                                        {listing.rent_details ? "編輯出租資料" : "補齊出租資料"}
-                                    </ActionButton>
-                                ) : null}
-                                {listing.status === "DRAFT" && propertyReady && listing.list_type === "SALE" ? (
-                                    <ActionButton variant={listing.sale_details ? "secondary" : "primary"} disabled={isActionLoading} onClick={() => setModal("saleDetails")}>
-                                        {listing.sale_details ? "編輯出售資料" : "補齊出售資料"}
-                                    </ActionButton>
-                                ) : null}
-                                {listing.status === "DRAFT" && !needsIntent && !canPublish ? (
-                                    <p className="rounded-xl bg-surface-container-low p-4 text-sm leading-[1.7] text-on-surface-variant">已選擇{listing.list_type === "RENT" ? "出租" : "賣屋"}，請補齊刊登資料後再公開。</p>
-                                ) : null}
-                                {(listing.status === "DRAFT" || listing.status === "ACTIVE") ? <ActionButton onClick={() => setModal("edit")}>編輯房源</ActionButton> : null}
-                                {listing.status === "ACTIVE" ? <ActionButton variant="danger" onClick={() => void handleRemove()}>下架房源</ActionButton> : null}
-                                {(listing.status === "ACTIVE" || listing.status === "NEGOTIATING") ? <ActionButton onClick={() => void handleClose()}>結案</ActionButton> : null}
-                            </>
-                        ) : isAuthenticated ? (
-                            <>
-                                {canBook ? <ActionButton variant="primary" onClick={() => setModal("book")}>預約看房</ActionButton> : null}
-                                {!canBook ? <p className="text-center text-sm text-on-surface-variant">目前不可預約此房源。</p> : null}
-                            </>
-                        ) : (
-                            <ActionButton variant="primary" onClick={() => navigate("/login")}>登入後預約看房</ActionButton>
-                        )}
-
-                        {appointments.length > 0 ? (
-                            <div className="mt-4 border-t border-surface-container pt-4">
-                                <h2 className="text-sm font-bold text-on-surface">預約紀錄</h2>
-                                <p className="mt-2 text-sm text-on-surface-variant">目前共有 {appointments.length} 筆預約。</p>
-                            </div>
-                        ) : null}
-                    </aside>
-                </section>
+                        </>
+                    }
+                />
             </main>
 
-            <Modal isOpen={modal === "publish"} title="上架房源" onClose={() => setModal(null)}>
+            <Modal isOpen={modal === "publish"} title="發布物件" onClose={() => setModal(null)}>
                 <div className="flex flex-col gap-4">
                     <label className="text-xs font-semibold text-on-surface-variant">
-                        上架天數
-                        <input className="mt-2 w-full rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" type="number" min={7} max={180} value={publishDays} onChange={(e) => setPublishDays(Number(e.target.value))} />
+                        發布天數
+                        <input
+                            className="mt-2 w-full rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
+                            type="number"
+                            min={7}
+                            max={180}
+                            value={publishDays}
+                            onChange={(e) => setPublishDays(Number(e.target.value))}
+                        />
                     </label>
-                    <ActionButton variant="primary" disabled={isActionLoading} onClick={() => void handlePublish()}>確認上架</ActionButton>
+                    <ActionButton variant="primary" disabled={isActionLoading} onClick={() => void handlePublish()}>
+                        確認發布
+                    </ActionButton>
                 </div>
             </Modal>
-            <Modal isOpen={modal === "edit"} title="編輯房源" onClose={() => setModal(null)}>
+            <Modal isOpen={modal === "edit"} title="編輯刊登" onClose={() => setModal(null)}>
                 <ListingEditorForm
                     mode="edit"
                     initialValues={listingToEditorValues(listing)}
@@ -352,28 +301,28 @@ export default function ListingDetailPage() {
                 />
             </Modal>
             <Modal isOpen={modal === "rentDetails"} title="出租刊登資料" onClose={() => setModal(null)}>
-                <ListingDetailsForm
-                    mode="rent"
-                    listing={listing}
-                    submitting={isActionLoading}
-                    onSubmit={handleRentDetails}
-                    onCancel={() => setModal(null)}
-                />
+                <ListingDetailsForm mode="rent" listing={listing} submitting={isActionLoading} onSubmit={handleRentDetails} onCancel={() => setModal(null)} />
             </Modal>
-            <Modal isOpen={modal === "saleDetails"} title="出售刊登資料" onClose={() => setModal(null)}>
-                <ListingDetailsForm
-                    mode="sale"
-                    listing={listing}
-                    submitting={isActionLoading}
-                    onSubmit={handleSaleDetails}
-                    onCancel={() => setModal(null)}
-                />
+            <Modal isOpen={modal === "saleDetails"} title="賣屋刊登資料" onClose={() => setModal(null)}>
+                <ListingDetailsForm mode="sale" listing={listing} submitting={isActionLoading} onSubmit={handleSaleDetails} onCancel={() => setModal(null)} />
             </Modal>
-            <Modal isOpen={modal === "book"} title="預約看房" onClose={() => setModal(null)}>
+            <Modal isOpen={modal === "book"} title="預約看屋" onClose={() => setModal(null)}>
                 <div className="flex flex-col gap-4">
-                    <input className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" type="datetime-local" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)} />
-                    <input className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" value={bookingNote} onChange={(e) => setBookingNote(e.target.value)} placeholder="補充說明" />
-                    <ActionButton variant="primary" disabled={!preferredTime || isActionLoading} onClick={() => void handleBook()}>送出預約</ActionButton>
+                    <input
+                        className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
+                        type="datetime-local"
+                        value={preferredTime}
+                        onChange={(e) => setPreferredTime(e.target.value)}
+                    />
+                    <input
+                        className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
+                        value={bookingNote}
+                        onChange={(e) => setBookingNote(e.target.value)}
+                        placeholder="補充說明"
+                    />
+                    <ActionButton variant="primary" disabled={!preferredTime || isActionLoading} onClick={() => void handleBook()}>
+                        送出預約
+                    </ActionButton>
                 </div>
             </Modal>
         </SiteLayout>
