@@ -3176,3 +3176,25 @@ main {
     object-fit: cover;
     display: block;
 }
+
+@media print {
+    @page {
+        size: A4;
+        margin: 14mm;
+    }
+
+    body {
+        background: white;
+    }
+
+    .listing-print-page {
+        break-after: page;
+        page-break-after: always;
+    }
+
+    .listing-print-surface {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+}
