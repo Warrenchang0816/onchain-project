@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 
@@ -26,10 +27,44 @@ var (
 )
 
 type Service struct {
-	listingRepo  *repository.ListingRepository
-	apptRepo     *repository.ListingAppointmentRepository
-	userRepo     *repository.UserRepository
+	listingRepo  ListingStore
+	apptRepo     AppointmentStore
+	userRepo     UserStore
 	propertyRepo PropertyReader
+}
+
+type ListingStore interface {
+	FindAll(repository.ListingFilter) ([]*model.Listing, error)
+	FindByID(id int64) (*model.Listing, error)
+	CountByOwner(ownerUserID int64) (int, error)
+	FindBySourceCredentialSubmission(submissionID int64) (*model.Listing, error)
+	Create(ownerUserID int64, title, address string, description, district *string, listType string, price float64, areaPing *float64, floor, totalFloors, roomCount, bathroomCount *int, isPetAllowed, isParkingIncluded bool, dailyFeeNTD float64) (int64, error)
+	CreateBootstrapDraft(ownerUserID, submissionID, propertyID int64, address string) (int64, error)
+	BindProperty(listingID, propertyID int64) error
+	UpdateIntent(id int64, listType string, setupStatus string) error
+	UpdateInfo(id int64, title, address string, description, district *string, listType string, setupStatus string, price float64, areaPing *float64, floor, totalFloors, roomCount, bathroomCount *int, isPetAllowed, isParkingIncluded bool) error
+	UpdateRentDetails(id int64, listing model.Listing, details model.ListingRentDetails, setupStatus string) error
+	UpdateSaleDetails(id int64, listing model.Listing, details model.ListingSaleDetails, setupStatus string) error
+	Publish(id int64, durationDays int) error
+	SetStatus(id int64, status string) error
+	LockForNegotiation(listingID, appointmentID int64) error
+	UnlockNegotiation(listingID int64) error
+	Close(listingID int64) error
+	AttachDetails(l *model.Listing) error
+}
+
+type AppointmentStore interface {
+	FindByListing(listingID int64) ([]*model.ListingAppointment, error)
+	FindByID(id int64) (*model.ListingAppointment, error)
+	FindByListingAndVisitor(listingID, visitorUserID int64) (*model.ListingAppointment, error)
+	NextQueuePosition(listingID int64) (int, error)
+	Create(listingID, visitorUserID int64, queuePosition int, preferredTime time.Time, note *string) (int64, error)
+	Confirm(id int64, confirmedTime time.Time) error
+	SetStatus(id int64, status string) error
+}
+
+type UserStore interface {
+	FindByWallet(walletAddress string) (*model.User, error)
 }
 
 type PropertyReader interface {
@@ -37,9 +72,9 @@ type PropertyReader interface {
 }
 
 func NewService(
-	listingRepo *repository.ListingRepository,
-	apptRepo *repository.ListingAppointmentRepository,
-	userRepo *repository.UserRepository,
+	listingRepo ListingStore,
+	apptRepo AppointmentStore,
+	userRepo UserStore,
 	propertyRepo PropertyReader,
 ) *Service {
 	return &Service{
@@ -78,10 +113,19 @@ func (s *Service) requireUser(wallet string) (*model.User, error) {
 
 // ListPublic returns all ACTIVE listings with optional filters.
 func (s *Service) ListPublic(listType, district string) ([]*model.Listing, error) {
-	return s.listingRepo.FindAll(repository.ListingFilter{
+	listings, err := s.listingRepo.FindAll(repository.ListingFilter{
 		ListType: listType,
 		District: district,
 	})
+	if err != nil {
+		return nil, err
+	}
+	for _, l := range listings {
+		if err := s.listingRepo.AttachDetails(l); err != nil {
+			return nil, err
+		}
+	}
+	return listings, nil
 }
 
 // ListByOwner returns all listings owned by the given wallet (all statuses).
@@ -99,6 +143,9 @@ func (s *Service) ListByOwner(walletAddress string) ([]*model.Listing, error) {
 	}
 	for _, l := range listings {
 		if err := s.attachProperty(l); err != nil {
+			return nil, err
+		}
+		if err := s.listingRepo.AttachDetails(l); err != nil {
 			return nil, err
 		}
 	}
@@ -120,6 +167,9 @@ func (s *Service) GetDetail(id int64) (*model.Listing, []*model.ListingAppointme
 	}
 	if err := s.attachProperty(l); err != nil {
 		return nil, nil, fmt.Errorf("listing: GetDetail property: %w", err)
+	}
+	if err := s.listingRepo.AttachDetails(l); err != nil {
+		return nil, nil, fmt.Errorf("listing: GetDetail details: %w", err)
 	}
 	return l, appts, nil
 }
@@ -292,6 +342,81 @@ func (s *Service) SetIntent(listingID int64, walletAddress string, req SetListin
 	return s.listingRepo.UpdateIntent(listingID, req.ListType, setupStatus)
 }
 
+func (s *Service) UpdateRentDetails(listingID int64, walletAddress string, req UpdateRentDetailsRequest) error {
+	caller, err := s.requireUser(walletAddress)
+	if err != nil {
+		return err
+	}
+	l, err := s.listingRepo.FindByID(listingID)
+	if err != nil {
+		return fmt.Errorf("listing: UpdateRentDetails: %w", err)
+	}
+	if l == nil {
+		return ErrNotFound
+	}
+	if l.OwnerUserID != caller.ID {
+		return ErrForbidden
+	}
+	if l.Status != model.ListingStatusDraft || l.ListType != model.ListingTypeRent {
+		return ErrInvalidStatus
+	}
+
+	candidate := listingFromRentRequest(l, req)
+	details := model.ListingRentDetails{
+		ListingID:            listingID,
+		MonthlyRent:          req.MonthlyRent,
+		DepositMonths:        req.DepositMonths,
+		ManagementFeeMonthly: req.ManagementFeeMonthly,
+		MinimumLeaseMonths:   req.MinimumLeaseMonths,
+		CanRegisterHousehold: req.CanRegisterHousehold,
+		CanCook:              req.CanCook,
+		RentNotes:            strings.TrimSpace(req.RentNotes),
+	}
+	candidate.RentDetails = &details
+	setupStatus := ComputeSetupStatus(&candidate)
+	return s.listingRepo.UpdateRentDetails(listingID, candidate, details, setupStatus)
+}
+
+func (s *Service) UpdateSaleDetails(listingID int64, walletAddress string, req UpdateSaleDetailsRequest) error {
+	caller, err := s.requireUser(walletAddress)
+	if err != nil {
+		return err
+	}
+	l, err := s.listingRepo.FindByID(listingID)
+	if err != nil {
+		return fmt.Errorf("listing: UpdateSaleDetails: %w", err)
+	}
+	if l == nil {
+		return ErrNotFound
+	}
+	if l.OwnerUserID != caller.ID {
+		return ErrForbidden
+	}
+	if l.Status != model.ListingStatusDraft || l.ListType != model.ListingTypeSale {
+		return ErrInvalidStatus
+	}
+
+	candidate := listingFromSaleRequest(l, req)
+	details := model.ListingSaleDetails{
+		ListingID:             listingID,
+		SaleTotalPrice:        req.SaleTotalPrice,
+		SaleUnitPricePerPing:  nullFloat64(req.SaleUnitPricePerPing),
+		MainBuildingPing:      nullFloat64(req.MainBuildingPing),
+		AuxiliaryBuildingPing: nullFloat64(req.AuxiliaryBuildingPing),
+		BalconyPing:           nullFloat64(req.BalconyPing),
+		LandPing:              nullFloat64(req.LandPing),
+		ParkingSpaceType:      nullString(req.ParkingSpaceType),
+		ParkingSpacePrice:     nullFloat64(req.ParkingSpacePrice),
+		SaleNotes:             strings.TrimSpace(req.SaleNotes),
+	}
+	if !details.SaleUnitPricePerPing.Valid && candidate.AreaPing.Valid && candidate.AreaPing.Float64 > 0 {
+		details.SaleUnitPricePerPing = sql.NullFloat64{Float64: req.SaleTotalPrice / candidate.AreaPing.Float64, Valid: true}
+	}
+	candidate.SaleDetails = &details
+	setupStatus := ComputeSetupStatus(&candidate)
+	return s.listingRepo.UpdateSaleDetails(listingID, candidate, details, setupStatus)
+}
+
 // Publish transitions a DRAFT listing to ACTIVE.
 func (s *Service) Publish(listingID int64, walletAddress string, durationDays int) error {
 	caller, err := s.requireUser(walletAddress)
@@ -327,6 +452,76 @@ func (s *Service) propertyForListing(l *model.Listing) (*model.Property, error) 
 		return nil, nil
 	}
 	return s.propertyRepo.FindByID(l.PropertyID.Int64)
+}
+
+func listingFromRentRequest(existing *model.Listing, req UpdateRentDetailsRequest) model.Listing {
+	l := listingFromCommonRequest(existing, req.Title, req.Address, req.Description, req.District, model.ListingTypeRent, req.Price, req.AreaPing, req.Floor, req.TotalFloors, req.RoomCount, req.BathroomCount, req.IsPetAllowed, req.IsParkingIncluded)
+	return l
+}
+
+func listingFromSaleRequest(existing *model.Listing, req UpdateSaleDetailsRequest) model.Listing {
+	l := listingFromCommonRequest(existing, req.Title, req.Address, req.Description, req.District, model.ListingTypeSale, req.Price, req.AreaPing, req.Floor, req.TotalFloors, req.RoomCount, req.BathroomCount, req.IsPetAllowed, req.IsParkingIncluded)
+	return l
+}
+
+func listingFromCommonRequest(
+	existing *model.Listing,
+	title, address string,
+	description, district *string,
+	listType string,
+	price float64,
+	areaPing *float64,
+	floor, totalFloors, roomCount, bathroomCount *int,
+	isPetAllowed, isParkingIncluded bool,
+) model.Listing {
+	l := *existing
+	l.Title = strings.TrimSpace(title)
+	l.Address = strings.TrimSpace(address)
+	l.Description = nullSQLString(description)
+	l.District = nullSQLString(district)
+	l.ListType = listType
+	l.Price = price
+	l.AreaPing = nullSQLFloat64(areaPing)
+	l.Floor = nullSQLInt64(floor)
+	l.TotalFloors = nullSQLInt64(totalFloors)
+	l.RoomCount = nullSQLInt64(roomCount)
+	l.BathroomCount = nullSQLInt64(bathroomCount)
+	l.IsPetAllowed = isPetAllowed
+	l.IsParkingIncluded = isParkingIncluded
+	return l
+}
+
+func nullSQLString(v *string) sql.NullString {
+	if v == nil {
+		return sql.NullString{}
+	}
+	trimmed := strings.TrimSpace(*v)
+	if trimmed == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: trimmed, Valid: true}
+}
+
+func nullSQLFloat64(v *float64) sql.NullFloat64 {
+	if v == nil {
+		return sql.NullFloat64{}
+	}
+	return sql.NullFloat64{Float64: *v, Valid: true}
+}
+
+func nullSQLInt64(v *int) sql.NullInt64 {
+	if v == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: int64(*v), Valid: true}
+}
+
+func nullFloat64(v *float64) sql.NullFloat64 {
+	return nullSQLFloat64(v)
+}
+
+func nullString(v *string) sql.NullString {
+	return nullSQLString(v)
 }
 
 func (s *Service) attachProperty(l *model.Listing) error {

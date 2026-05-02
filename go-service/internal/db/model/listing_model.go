@@ -61,4 +61,37 @@ type Listing struct {
 	UpdatedAt   time.Time
 
 	Property *Property
+
+	RentDetails *ListingRentDetails
+	SaleDetails *ListingSaleDetails
+}
+
+type ListingRentDetails struct {
+	ID                   int64
+	ListingID            int64
+	MonthlyRent          float64
+	DepositMonths        float64
+	ManagementFeeMonthly float64
+	MinimumLeaseMonths   int
+	CanRegisterHousehold bool
+	CanCook              bool
+	RentNotes            string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+}
+
+type ListingSaleDetails struct {
+	ID                    int64
+	ListingID             int64
+	SaleTotalPrice        float64
+	SaleUnitPricePerPing  sql.NullFloat64
+	MainBuildingPing      sql.NullFloat64
+	AuxiliaryBuildingPing sql.NullFloat64
+	BalconyPing           sql.NullFloat64
+	LandPing              sql.NullFloat64
+	ParkingSpaceType      sql.NullString
+	ParkingSpacePrice     sql.NullFloat64
+	SaleNotes             string
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
 }

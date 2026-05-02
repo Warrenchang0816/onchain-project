@@ -40,6 +40,28 @@ func scanProperty(row *sql.Row) (*model.Property, error) {
 	return p, nil
 }
 
+func scanProperties(rows *sql.Rows) ([]*model.Property, error) {
+	defer rows.Close()
+
+	properties := []*model.Property{}
+	for rows.Next() {
+		p := &model.Property{}
+		if err := rows.Scan(
+			&p.ID, &p.OwnerUserID, &p.SourceCredentialSubmissionID,
+			&p.Address, &p.DeedNo, &p.DeedHash, &p.PropertyStatementJSON, &p.WarrantyAnswersJSON,
+			&p.DisclosureSnapshotJSON, &p.DisclosureHash, &p.VerificationStatus, &p.CompletenessStatus,
+			&p.CreatedAt, &p.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		properties = append(properties, p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return properties, nil
+}
+
 func (r *PropertyRepository) FindByID(id int64) (*model.Property, error) {
 	row := r.db.QueryRow(propertySelectCols+` WHERE id = $1`, id)
 	p, err := scanProperty(row)
@@ -47,6 +69,18 @@ func (r *PropertyRepository) FindByID(id int64) (*model.Property, error) {
 		return nil, fmt.Errorf("property_repo: FindByID: %w", err)
 	}
 	return p, nil
+}
+
+func (r *PropertyRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Property, error) {
+	rows, err := r.db.Query(propertySelectCols+` WHERE owner_user_id = $1 ORDER BY updated_at DESC, id DESC`, ownerUserID)
+	if err != nil {
+		return nil, fmt.Errorf("property_repo: ListByOwnerUserID: %w", err)
+	}
+	properties, err := scanProperties(rows)
+	if err != nil {
+		return nil, fmt.Errorf("property_repo: ListByOwnerUserID scan: %w", err)
+	}
+	return properties, nil
 }
 
 func (r *PropertyRepository) FindBySourceCredentialSubmission(submissionID int64) (*model.Property, error) {
@@ -81,14 +115,18 @@ func (r *PropertyRepository) UpdateDisclosure(id int64, built propertymod.BuiltD
 		SET address=$1,
 		    deed_no=$2,
 		    deed_hash=$3,
-		    disclosure_snapshot_json=$4,
-		    disclosure_hash=$5,
-		    completeness_status=$6,
+		    property_statement_json=$4,
+		    warranty_answers_json=$5,
+		    disclosure_snapshot_json=$6,
+		    disclosure_hash=$7,
+		    completeness_status=$8,
 		    updated_at=NOW()
-		WHERE id=$7`,
+		WHERE id=$9`,
 		built.Address,
 		built.DeedNo,
 		built.DeedHash,
+		built.PropertyStatementJSON,
+		built.WarrantyAnswersJSON,
 		built.DisclosureSnapshotJSON,
 		built.DisclosureHash,
 		model.PropertyCompletenessSnapshotReady,

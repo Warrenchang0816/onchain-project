@@ -21,7 +21,7 @@ const emptyRequirement = {
 };
 
 const statusLabel: Record<TenantRequirementStatus, string> = {
-    OPEN: "開放媒合",
+    OPEN: "開放中",
     PAUSED: "暫停",
     CLOSED: "已關閉",
 };
@@ -52,7 +52,7 @@ export default function MyRequirementsPage() {
 
     useEffect(() => {
         refresh()
-            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取租屋需求失敗。"))
+            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取租屋需求失敗"))
             .finally(() => setLoading(false));
     }, []);
 
@@ -97,7 +97,7 @@ export default function MyRequirementsPage() {
             resetForm();
             await refresh();
         } catch (err) {
-            setError(err instanceof Error ? err.message : "儲存租屋需求失敗。");
+            setError(err instanceof Error ? err.message : "儲存租屋需求失敗");
         } finally {
             setSaving(false);
         }
@@ -110,7 +110,7 @@ export default function MyRequirementsPage() {
             await updateRequirementStatus(id, status);
             await refresh();
         } catch (err) {
-            setError(err instanceof Error ? err.message : "更新狀態失敗。");
+            setError(err instanceof Error ? err.message : "更新需求狀態失敗");
         } finally {
             setSaving(false);
         }
@@ -122,12 +122,12 @@ export default function MyRequirementsPage() {
                 <header className="space-y-3">
                     <h1 className="text-4xl font-extrabold text-on-surface">我的租屋需求</h1>
                     <p className="max-w-3xl text-sm leading-[1.8] text-on-surface-variant">
-                        租屋需求由租客自行建立，不會因租客身份認證自動產生。開放媒合後，屋主與仲介可以在需求列表看到基本條件。
+                        建立並管理你的租屋需求。開放中的需求會出現在房東與仲介可瀏覽的需求列表中，後續媒合流程也會從這裡接上。
                     </p>
                 </header>
 
                 <section className="grid gap-4 md:grid-cols-3">
-                    <div className="rounded-2xl bg-surface-container-lowest p-5">開放媒合 <strong className="ml-2 text-2xl">{counts.open}</strong></div>
+                    <div className="rounded-2xl bg-surface-container-lowest p-5">開放中 <strong className="ml-2 text-2xl">{counts.open}</strong></div>
                     <div className="rounded-2xl bg-surface-container-lowest p-5">暫停 <strong className="ml-2 text-2xl">{counts.paused}</strong></div>
                     <div className="rounded-2xl bg-surface-container-lowest p-5">已關閉 <strong className="ml-2 text-2xl">{counts.closed}</strong></div>
                 </section>
@@ -135,11 +135,11 @@ export default function MyRequirementsPage() {
                 <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6">
                     <h2 className="text-xl font-bold text-on-surface">{editingId ? "編輯需求" : "新增需求"}</h2>
                     <div className="mt-5 grid gap-4 md:grid-cols-2">
-                        <input className={inputCls} value={form.targetDistrict} onChange={(e) => setField("targetDistrict", e.target.value)} placeholder="目標區域，例如：大安區" />
+                        <input className={inputCls} value={form.targetDistrict} onChange={(e) => setField("targetDistrict", e.target.value)} placeholder="行政區，例如：信義區" />
                         <input className={inputCls} type="date" value={form.moveInDate} onChange={(e) => setField("moveInDate", e.target.value)} />
                         <input className={inputCls} type="number" min={0} value={form.budgetMin} onChange={(e) => setField("budgetMin", e.target.value)} placeholder="最低預算" />
                         <input className={inputCls} type="number" min={0} value={form.budgetMax} onChange={(e) => setField("budgetMax", e.target.value)} placeholder="最高預算" />
-                        <textarea className={`${inputCls} md:col-span-2`} rows={4} value={form.layoutNote} onChange={(e) => setField("layoutNote", e.target.value)} placeholder="格局、生活機能或其他條件" />
+                        <textarea className={`${inputCls} md:col-span-2`} rows={4} value={form.layoutNote} onChange={(e) => setField("layoutNote", e.target.value)} placeholder="格局、生活需求、交通或其他條件" />
                     </div>
                     <div className="mt-4 flex flex-wrap gap-6 text-sm text-on-surface-variant">
                         <label className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function MyRequirementsPage() {
                     {error ? <p className="mt-4 text-sm text-error">{error}</p> : null}
                     <div className="mt-6 flex gap-3">
                         <button type="button" disabled={saving} onClick={() => void handleSubmit()} className="rounded-xl bg-primary-container px-5 py-3 text-sm font-bold text-on-primary-container disabled:opacity-60">
-                            {saving ? "儲存中..." : editingId ? "更新需求" : "建立需求"}
+                            {saving ? "儲存中..." : editingId ? "儲存需求" : "新增需求"}
                         </button>
                         {editingId ? (
                             <button type="button" onClick={resetForm} className="rounded-xl border border-outline-variant/25 bg-surface-container-low px-5 py-3 text-sm font-medium text-on-surface">
@@ -173,9 +173,9 @@ export default function MyRequirementsPage() {
                                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                                     <div>
                                         <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-bold text-on-surface-variant">{statusLabel[item.status]}</span>
-                                        <h2 className="mt-3 text-xl font-bold text-on-surface">{item.targetDistrict}</h2>
+                                        <h2 className="mt-3 text-xl font-bold text-on-surface">{item.targetDistrict || "未設定行政區"}</h2>
                                         <p className="mt-1 text-sm text-on-surface-variant">
-                                            NT$ {item.budgetMin.toLocaleString()} - {item.budgetMax.toLocaleString()}，{item.layoutNote || "未填寫補充條件"}
+                                            NT$ {item.budgetMin.toLocaleString()} - {item.budgetMax.toLocaleString()}，{item.layoutNote || "尚未填寫需求說明"}
                                         </p>
                                     </div>
                                     <div className="flex flex-wrap gap-2">

@@ -53,6 +53,11 @@ func TestIsReadyForPublish(t *testing.T) {
 		AreaPing:      nullFloat(21.5),
 		RoomCount:     nullInt(2),
 		BathroomCount: nullInt(1),
+		RentDetails: &model.ListingRentDetails{
+			MonthlyRent:        36000,
+			DepositMonths:      2,
+			MinimumLeaseMonths: 12,
+		},
 	}
 	if !IsReadyForPublish(ready) {
 		t.Fatal("expected ready listing to be publishable")
@@ -82,6 +87,11 @@ func TestIsReadyForPublishRequiresReadyProperty(t *testing.T) {
 		AreaPing:      nullFloat(21.5),
 		RoomCount:     nullInt(2),
 		BathroomCount: nullInt(1),
+		RentDetails: &model.ListingRentDetails{
+			MonthlyRent:        36000,
+			DepositMonths:      2,
+			MinimumLeaseMonths: 12,
+		},
 	}
 
 	if IsReadyForPublishWithProperty(ready, nil) {
@@ -149,6 +159,9 @@ func TestComputeSetupStatus(t *testing.T) {
 		AreaPing:      nullFloat(32.2),
 		RoomCount:     nullInt(3),
 		BathroomCount: nullInt(2),
+		SaleDetails: &model.ListingSaleDetails{
+			SaleTotalPrice: 18800000,
+		},
 	}
 	if got := ComputeSetupStatus(ready); got != model.ListingSetupStatusReady {
 		t.Fatalf("ComputeSetupStatus(ready) = %q, want %q", got, model.ListingSetupStatusReady)
@@ -165,6 +178,52 @@ func TestComputeSetupStatus(t *testing.T) {
 	}
 	if got := ComputeSetupStatus(missingType); got != model.ListingSetupStatusIncomplete {
 		t.Fatalf("ComputeSetupStatus(missingType) = %q, want %q", got, model.ListingSetupStatusIncomplete)
+	}
+}
+
+func TestComputeSetupStatusRequiresRentDetailsForRentListing(t *testing.T) {
+	l := &model.Listing{
+		Title:         "Rent ready home",
+		Address:       "Taipei Main Road 100",
+		ListType:      model.ListingTypeRent,
+		Price:         36000,
+		AreaPing:      nullFloat(21.5),
+		RoomCount:     nullInt(2),
+		BathroomCount: nullInt(1),
+	}
+	if got := ComputeSetupStatus(l); got != model.ListingSetupStatusIncomplete {
+		t.Fatalf("ComputeSetupStatus(missing rent details) = %q, want %q", got, model.ListingSetupStatusIncomplete)
+	}
+
+	l.RentDetails = &model.ListingRentDetails{
+		MonthlyRent:        36000,
+		DepositMonths:      2,
+		MinimumLeaseMonths: 12,
+	}
+	if got := ComputeSetupStatus(l); got != model.ListingSetupStatusReady {
+		t.Fatalf("ComputeSetupStatus(rent ready) = %q, want %q", got, model.ListingSetupStatusReady)
+	}
+}
+
+func TestComputeSetupStatusRequiresSaleDetailsForSaleListing(t *testing.T) {
+	l := &model.Listing{
+		Title:         "Sale ready home",
+		Address:       "Taipei Main Road 100",
+		ListType:      model.ListingTypeSale,
+		Price:         18800000,
+		AreaPing:      nullFloat(32.2),
+		RoomCount:     nullInt(3),
+		BathroomCount: nullInt(2),
+	}
+	if got := ComputeSetupStatus(l); got != model.ListingSetupStatusIncomplete {
+		t.Fatalf("ComputeSetupStatus(missing sale details) = %q, want %q", got, model.ListingSetupStatusIncomplete)
+	}
+
+	l.SaleDetails = &model.ListingSaleDetails{
+		SaleTotalPrice: 18800000,
+	}
+	if got := ComputeSetupStatus(l); got != model.ListingSetupStatusReady {
+		t.Fatalf("ComputeSetupStatus(sale ready) = %q, want %q", got, model.ListingSetupStatusReady)
 	}
 }
 

@@ -45,3 +45,39 @@ ALTER TABLE listings
 
 CREATE INDEX IF NOT EXISTS idx_listings_property_id
     ON listings (property_id);
+
+CREATE TABLE IF NOT EXISTS listing_rent_details (
+    id                         BIGSERIAL PRIMARY KEY,
+    listing_id                 BIGINT        NOT NULL UNIQUE REFERENCES listings(id) ON DELETE CASCADE,
+    monthly_rent               NUMERIC(14,2) NOT NULL DEFAULT 0,
+    deposit_months             NUMERIC(4,1)  NOT NULL DEFAULT 0,
+    management_fee_monthly     NUMERIC(14,2) NOT NULL DEFAULT 0,
+    minimum_lease_months       INT           NOT NULL DEFAULT 0,
+    can_register_household     BOOLEAN       NOT NULL DEFAULT FALSE,
+    can_cook                   BOOLEAN       NOT NULL DEFAULT FALSE,
+    rent_notes                 TEXT          NOT NULL DEFAULT '',
+    created_at                 TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at                 TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_listing_rent_details_listing_id
+    ON listing_rent_details (listing_id);
+
+CREATE TABLE IF NOT EXISTS listing_sale_details (
+    id                         BIGSERIAL PRIMARY KEY,
+    listing_id                 BIGINT        NOT NULL UNIQUE REFERENCES listings(id) ON DELETE CASCADE,
+    sale_total_price           NUMERIC(14,2) NOT NULL DEFAULT 0,
+    sale_unit_price_per_ping   NUMERIC(14,2),
+    main_building_ping         NUMERIC(6,1),
+    auxiliary_building_ping    NUMERIC(6,1),
+    balcony_ping               NUMERIC(6,1),
+    land_ping                  NUMERIC(8,2),
+    parking_space_type         VARCHAR(50),
+    parking_space_price        NUMERIC(14,2),
+    sale_notes                 TEXT          NOT NULL DEFAULT '',
+    created_at                 TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at                 TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_listing_sale_details_listing_id
+    ON listing_sale_details (listing_id);

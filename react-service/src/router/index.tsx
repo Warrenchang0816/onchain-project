@@ -17,6 +17,7 @@ import RequireCredential from "../components/common/RequireCredential";
 import AgentListPage from "../pages/AgentListPage";
 import AgentDetailPage from "../pages/AgentDetailPage";
 import MyListingsPage from "../pages/MyListingsPage";
+import ListingPrintPage from "../pages/ListingPrintPage";
 import TenantProfilePage from "../pages/TenantProfilePage";
 import MyRequirementsPage from "../pages/MyRequirementsPage";
 import RequirementsPage from "../pages/RequirementsPage";
@@ -54,6 +55,14 @@ const router = createBrowserRouter([
         element: (
             <RequireCredential requiredRole="OWNER">
                 <ListingDetailPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/listings/:id/print",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <ListingPrintPage />
             </RequireCredential>
         ),
     },

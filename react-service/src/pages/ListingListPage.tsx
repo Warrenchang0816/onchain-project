@@ -2,75 +2,63 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
 import { getKYCStatus, type KYCStatus } from "../api/kycApi";
-import { getListings, type Listing, type ListingType } from "../api/listingApi";
+import { getListings, type Listing } from "../api/listingApi";
+import ListingResultCard from "../components/listing/ListingResultCard";
+import ListingSearchBar, { type ListingSearchState } from "../components/listing/ListingSearchBar";
+import { buildListingDisplayModel } from "../components/listing/listingDisplayModel";
 import SiteLayout from "../layouts/SiteLayout";
 
-type TypeFilter = "ALL" | Exclude<ListingType, "UNSET">;
+type TypeFilter = ListingSearchState["mode"];
 
-const STATUS_LABEL: Record<string, string> = {
-    DRAFT: "草稿",
-    ACTIVE: "上架中",
-    NEGOTIATING: "媒合中",
-    LOCKED: "已鎖定",
-    SIGNING: "簽約中",
-    CLOSED: "已結案",
-    EXPIRED: "已到期",
-    REMOVED: "已下架",
-    SUSPENDED: "已暫停",
-};
-
-function formatPrice(listing: Listing): string {
-    if (listing.price <= 0) return "價格未設定";
-    if (listing.list_type === "RENT") return `NT$ ${listing.price.toLocaleString()} / 月`;
-    return `NT$ ${listing.price.toLocaleString()}`;
+function resolveTypeFilter(value: string | null): TypeFilter {
+    if (value === "RENT" || value === "SALE") return value;
+    return "ALL";
 }
 
-function ListingCard(props: { listing: Listing; onClick: () => void }) {
-    const { listing, onClick } = props;
-    return (
-        <article
-            onClick={onClick}
-            className="flex cursor-pointer flex-col overflow-hidden rounded-xl border border-outline-variant/10 bg-surface-container-lowest transition-transform duration-300 hover:-translate-y-1"
-        >
-            <div className="relative h-56 w-full overflow-hidden bg-surface-variant">
-                {listing.image_url ? (
-                    <img src={listing.image_url} alt={listing.title} className="h-full w-full object-cover" />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center">
-                        <span className="material-symbols-outlined text-7xl text-on-surface-variant/20" style={{ fontVariationSettings: "'FILL' 1" }}>
-                            home
-                        </span>
-                    </div>
-                )}
-                <div className="absolute left-4 top-4 rounded-full bg-surface-container-lowest px-3 py-1 text-xs font-bold text-on-surface">
-                    {STATUS_LABEL[listing.status] ?? listing.status}
-                </div>
-            </div>
-            <div className="flex flex-grow flex-col p-6">
-                <div className="mb-2 flex items-start justify-between gap-4">
-                    <h3 className="text-xl font-bold leading-tight text-on-surface">{listing.title || "未命名房源"}</h3>
-                    <div className="shrink-0 text-lg font-bold text-primary-container">{formatPrice(listing)}</div>
-                </div>
-                <p className="mb-6 text-sm leading-[1.75] text-on-surface-variant">
-                    {listing.district ? `${listing.district}，` : ""}
-                    {listing.address}
-                </p>
-                <div className="mt-auto flex flex-wrap gap-2">
-                    {listing.area_ping !== undefined ? <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs text-on-surface-variant">{listing.area_ping} 坪</span> : null}
-                    {listing.room_count !== undefined ? (
-                        <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs text-on-surface-variant">
-                            {listing.room_count} 房{listing.bathroom_count !== undefined ? ` / ${listing.bathroom_count} 衛` : ""}
-                        </span>
-                    ) : null}
-                    {listing.floor !== undefined && listing.total_floors !== undefined ? (
-                        <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs text-on-surface-variant">
-                            {listing.floor}F / {listing.total_floors}F
-                        </span>
-                    ) : null}
-                </div>
-            </div>
-        </article>
-    );
+function sortListings(listings: Listing[], sort: string): Listing[] {
+    const sorted = [...listings];
+    if (sort === "newest") {
+        sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    }
+    if (sort === "priceAsc") {
+        sorted.sort((a, b) => a.price - b.price);
+    }
+    if (sort === "priceDesc") {
+        sorted.sort((a, b) => b.price - a.price);
+    }
+    if (sort === "areaDesc") {
+        sorted.sort((a, b) => (b.area_ping ?? 0) - (a.area_ping ?? 0));
+    }
+    return sorted;
+}
+
+function filterListings(listings: Listing[], state: ListingSearchState): Listing[] {
+    return listings.filter((listing) => {
+        const keyword = state.keyword.trim().toLowerCase();
+        const layout = state.layout;
+
+        if (keyword) {
+            const searchable = [listing.title, listing.address, listing.district, String(listing.id)].join(" ").toLowerCase();
+            if (!searchable.includes(keyword)) return false;
+        }
+
+        if (layout) {
+            const rooms = listing.room_count ?? 0;
+            if (layout === "1" && rooms !== 1) return false;
+            if (layout === "2" && rooms !== 2) return false;
+            if (layout === "3" && rooms < 3) return false;
+        }
+
+        if (state.priceBand) {
+            const price = listing.rent_details?.monthly_rent || listing.sale_details?.sale_total_price || listing.price;
+            const isRent = state.mode === "RENT" || listing.list_type === "RENT";
+            if (state.priceBand === "low" && price > (isRent ? 20000 : 10000000)) return false;
+            if (state.priceBand === "mid" && (price <= (isRent ? 20000 : 10000000) || price > (isRent ? 50000 : 30000000))) return false;
+            if (state.priceBand === "high" && price <= (isRent ? 50000 : 30000000)) return false;
+        }
+
+        return true;
+    });
 }
 
 export default function ListingListPage() {
@@ -81,9 +69,25 @@ export default function ListingListPage() {
     const [loadError, setLoadError] = useState("");
     const [isOwner, setIsOwner] = useState(false);
 
-    const typeParam = searchParams.get("type");
-    const typeFilter: TypeFilter = typeParam === "RENT" || typeParam === "SALE" ? typeParam : "ALL";
+    const typeFilter = resolveTypeFilter(searchParams.get("type"));
     const districtFilter = searchParams.get("district")?.trim() ?? "";
+    const [searchState, setSearchState] = useState<ListingSearchState>({
+        mode: typeFilter,
+        district: districtFilter,
+        keyword: "",
+        priceBand: "",
+        layout: "",
+        sort: "default",
+        mapSelected: false,
+    });
+
+    useEffect(() => {
+        setSearchState((current) => ({
+            ...current,
+            mode: typeFilter,
+            district: districtFilter,
+        }));
+    }, [districtFilter, typeFilter]);
 
     useEffect(() => {
         const load = async () => {
@@ -106,7 +110,7 @@ export default function ListingListPage() {
                     setIsOwner(false);
                 }
             } catch (err) {
-                setLoadError(err instanceof Error ? err.message : "讀取房源失敗。");
+                setLoadError(err instanceof Error ? err.message : "讀取刊登列表失敗");
             } finally {
                 setIsLoading(false);
             }
@@ -114,29 +118,33 @@ export default function ListingListPage() {
         void load();
     }, [districtFilter, typeFilter]);
 
-    const setType = (next: TypeFilter) => {
+    const applySearch = () => {
         const nextParams = new URLSearchParams(searchParams);
-        if (next === "ALL") nextParams.delete("type");
-        else nextParams.set("type", next);
+        if (searchState.mode === "ALL") nextParams.delete("type");
+        else nextParams.set("type", searchState.mode);
+        if (searchState.district.trim()) nextParams.set("district", searchState.district.trim());
+        else nextParams.delete("district");
         setSearchParams(nextParams);
     };
 
-    const tabCls = (active: boolean) =>
-        active
-            ? "border-b-2 border-primary-container bg-transparent pb-1 text-lg font-bold text-primary-container"
-            : "bg-transparent pb-1 text-lg font-medium text-on-surface-variant transition-colors hover:text-on-surface";
+    const visibleListings = sortListings(filterListings(listings, searchState), searchState.sort);
+    const pageTitle = typeFilter === "RENT" ? "出租物件" : typeFilter === "SALE" ? "賣屋物件" : "房源列表";
+    const pageDescription =
+        typeFilter === "RENT"
+            ? "用租金、區域與租客條件快速篩選出租物件。"
+            : typeFilter === "SALE"
+              ? "用區域、總價與格局比較可出售物件。"
+              : "瀏覽平台上已公開的出售與出租房源。";
 
     return (
         <SiteLayout>
             <section className="w-full bg-gradient-to-r from-surface to-surface-container-low py-12 md:py-16">
                 <div className="mx-auto max-w-[1440px] px-6 md:px-12">
-                    <h1 className="mb-4 text-3xl font-extrabold tracking-tight text-on-surface md:text-4xl">房源列表</h1>
-                    <p className="max-w-2xl text-base leading-[1.75] text-on-surface-variant md:text-lg">
-                        這裡只顯示已上架的公開房源；屋主草稿會保留在私人工作區，不會出現在公開列表。
-                    </p>
+                    <h1 className="mb-4 text-3xl font-extrabold tracking-tight text-on-surface md:text-4xl">{pageTitle}</h1>
+                    <p className="max-w-2xl text-base leading-[1.75] text-on-surface-variant md:text-lg">{pageDescription}</p>
                     {districtFilter ? (
                         <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-2 text-sm text-on-surface">
-                            <span>區域篩選：{districtFilter}</span>
+                            <span>目前區域：{districtFilter}</span>
                             <button
                                 type="button"
                                 onClick={() => {
@@ -153,21 +161,17 @@ export default function ListingListPage() {
                 </div>
             </section>
 
-            <section className="sticky top-[64px] z-40 w-full bg-surface-container-lowest">
-                <div className="mx-auto flex max-w-[1440px] flex-col items-start justify-between gap-4 px-6 py-4 md:flex-row md:items-center md:px-12">
-                    <div className="flex items-center gap-6">
-                        <button type="button" onClick={() => setType("ALL")} className={tabCls(typeFilter === "ALL")}>全部</button>
-                        <button type="button" onClick={() => setType("RENT")} className={tabCls(typeFilter === "RENT")}>出租</button>
-                        <button type="button" onClick={() => setType("SALE")} className={tabCls(typeFilter === "SALE")}>出售</button>
-                    </div>
+            <section className="sticky top-[64px] z-40 w-full border-b border-outline-variant/10 bg-surface-container-lowest">
+                <div className="mx-auto max-w-[1440px] px-6 py-4 md:px-12">
+                    <ListingSearchBar state={searchState} onChange={setSearchState} onSearch={applySearch} />
                     {isOwner ? (
                         <button
                             type="button"
                             onClick={() => navigate("/my/listings")}
-                            className="flex items-center gap-2 rounded-lg bg-primary-container px-4 py-2 text-on-primary-container transition-opacity hover:opacity-90"
+                            className="mt-4 flex items-center gap-2 rounded-lg bg-primary-container px-4 py-2 text-on-primary-container transition-opacity hover:opacity-90"
                         >
                             <span className="material-symbols-outlined text-sm">home_work</span>
-                            <span className="text-sm font-medium">我的房源</span>
+                            <span className="text-sm font-medium">我的刊登</span>
                         </button>
                     ) : null}
                 </div>
@@ -181,15 +185,19 @@ export default function ListingListPage() {
                         </div>
                     ) : loadError ? (
                         <div className="rounded-xl border border-error/20 bg-error-container p-8 text-sm text-on-error-container">{loadError}</div>
-                    ) : listings.length === 0 ? (
+                    ) : visibleListings.length === 0 ? (
                         <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-center">
-                            <h2 className="text-2xl font-bold text-on-surface">目前沒有符合條件的房源</h2>
-                            <p className="mt-2 text-sm text-on-surface-variant">屋主可先建立草稿，資料完善後再公開上架。</p>
+                            <h2 className="text-2xl font-bold text-on-surface">目前沒有符合條件的物件</h2>
+                            <p className="mt-2 text-sm text-on-surface-variant">請調整搜尋條件，或稍後再回來查看。</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 md:gap-12">
-                            {listings.map((listing) => (
-                                <ListingCard key={listing.id} listing={listing} onClick={() => navigate(`/listings/${listing.id}`)} />
+                        <div className="grid grid-cols-1 gap-5">
+                            {visibleListings.map((listing) => (
+                                <ListingResultCard
+                                    key={listing.id}
+                                    listing={buildListingDisplayModel(listing)}
+                                    onClick={() => navigate(`/listings/${listing.id}`)}
+                                />
                             ))}
                         </div>
                     )}

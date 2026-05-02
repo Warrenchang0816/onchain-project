@@ -30,7 +30,24 @@ func ComputeSetupStatus(l *model.Listing) string {
 	if !l.AreaPing.Valid || !l.RoomCount.Valid || !l.BathroomCount.Valid {
 		return model.ListingSetupStatusIncomplete
 	}
+	if l.ListType == model.ListingTypeRent && !HasCompleteRentDetails(l.RentDetails) {
+		return model.ListingSetupStatusIncomplete
+	}
+	if l.ListType == model.ListingTypeSale && !HasCompleteSaleDetails(l.SaleDetails) {
+		return model.ListingSetupStatusIncomplete
+	}
 	return model.ListingSetupStatusReady
+}
+
+func HasCompleteRentDetails(details *model.ListingRentDetails) bool {
+	return details != nil &&
+		details.MonthlyRent > 0 &&
+		details.DepositMonths >= 0 &&
+		details.MinimumLeaseMonths > 0
+}
+
+func HasCompleteSaleDetails(details *model.ListingSaleDetails) bool {
+	return details != nil && details.SaleTotalPrice > 0
 }
 
 func IsReadyForPublish(l *model.Listing) bool {
