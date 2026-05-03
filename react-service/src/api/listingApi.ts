@@ -84,6 +84,13 @@ export type Listing = {
     image_url?: string; // optional cover photo when the backend provides one; UI must not synthesize fake inventory
 };
 
+export type TaiwanDistrictOption = {
+    id: number;
+    county: string;
+    district: string;
+    postal_code: string;
+};
+
 export type RentDetails = {
     monthly_rent: number;
     deposit_months: number;
@@ -203,6 +210,12 @@ export async function getListings(params?: { type?: Exclude<ListingType, "UNSET"
     const url = `${API_BASE_URL}/listings${qs.toString() ? `?${qs}` : ""}`;
     const res = await fetch(url, { credentials: "include" });
     const data = await parseResponse<{ data: Listing[] }>(res);
+    return data.data;
+}
+
+export async function getTaiwanDistricts(): Promise<TaiwanDistrictOption[]> {
+    const res = await fetch(`${API_BASE_URL}/locations/districts`, { credentials: "include" });
+    const data = await parseResponse<{ data: TaiwanDistrictOption[] }>(res);
     return data.data;
 }
 

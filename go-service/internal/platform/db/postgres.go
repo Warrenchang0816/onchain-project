@@ -29,5 +29,9 @@ func NewPostgresDB() (*sql.DB, error) {
 		return nil, err
 	}
 
+	if err := EnsureSchema(db); err != nil {
+		return nil, err
+	}
+
 	return db, nil
 }

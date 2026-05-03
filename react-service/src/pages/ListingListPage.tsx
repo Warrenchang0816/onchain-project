@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
 import { getKYCStatus, type KYCStatus } from "../api/kycApi";
-import { getListings, type Listing } from "../api/listingApi";
+import { getListings, getTaiwanDistricts, type Listing, type TaiwanDistrictOption } from "../api/listingApi";
 import ListingResultCard from "../components/listing/ListingResultCard";
 import ListingSearchBar, { type ListingSearchState } from "../components/listing/ListingSearchBar";
 import { buildListingDisplayModel } from "../components/listing/listingDisplayModel";
@@ -68,6 +68,7 @@ export default function ListingListPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [loadError, setLoadError] = useState("");
     const [isOwner, setIsOwner] = useState(false);
+    const [districtOptions, setDistrictOptions] = useState<TaiwanDistrictOption[]>([]);
 
     const typeFilter = resolveTypeFilter(searchParams.get("type"));
     const districtFilter = searchParams.get("district")?.trim() ?? "";
@@ -98,11 +99,13 @@ export default function ListingListPage() {
                     ...(typeFilter !== "ALL" ? { type: typeFilter } : {}),
                     ...(districtFilter ? { district: districtFilter } : {}),
                 };
-                const [publicListings, auth] = await Promise.all([
+                const [publicListings, districts, auth] = await Promise.all([
                     getListings(Object.keys(params).length > 0 ? params : undefined),
+                    getTaiwanDistricts(),
                     getAuthMe().catch(() => ({ authenticated: false })),
                 ]);
                 setListings(publicListings);
+                setDistrictOptions(districts);
                 if (auth.authenticated) {
                     const kyc = await getKYCStatus().catch(() => ({ kycStatus: "UNVERIFIED" as KYCStatus, credentials: [] as string[] }));
                     setIsOwner(kyc.credentials?.includes("OWNER") ?? false);
@@ -163,7 +166,12 @@ export default function ListingListPage() {
 
             <section className="sticky top-[64px] z-40 w-full border-b border-outline-variant/10 bg-surface-container-lowest">
                 <div className="mx-auto max-w-[1440px] px-6 py-4 md:px-12">
-                    <ListingSearchBar state={searchState} onChange={setSearchState} onSearch={applySearch} />
+                    <ListingSearchBar
+                        state={searchState}
+                        districtOptions={districtOptions}
+                        onChange={setSearchState}
+                        onSearch={applySearch}
+                    />
                     {isOwner ? (
                         <button
                             type="button"

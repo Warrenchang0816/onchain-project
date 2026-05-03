@@ -8,6 +8,7 @@ import (
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
+	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
 	propertymod "go-service/internal/modules/property"
@@ -34,6 +35,7 @@ func SetupRouter(
 	agentHandler *agentmod.Handler,
 	tenantHandler *tenantmod.Handler,
 	propertyHandler *propertymod.Handler,
+	locationHandler *locationmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -141,6 +143,7 @@ func SetupRouter(
 		// ── Agent directory (public) ─────────────────────────────
 		api.GET("/agents", agentHandler.ListAgents)
 		api.GET("/agents/:wallet", agentHandler.GetAgentByWallet)
+		api.GET("/locations/districts", locationHandler.ListDistricts)
 
 		// ── Auth ──────────────────────────────────────────────────
 		api.POST("/auth/wallet/siwe/message", authHandler.SIWEMessageHandler)
