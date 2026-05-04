@@ -10,7 +10,7 @@ require (
 	github.com/ethereum/go-ethereum v1.17.2
 	github.com/gin-contrib/cors v1.7.7
 	github.com/gin-gonic/gin v1.12.0
-	github.com/lib/pq v1.12.0
+	github.com/lib/pq v1.12.3
 	github.com/minio/minio-go/v7 v7.0.100
 	github.com/spruceid/siwe-go v0.2.1
 	golang.org/x/crypto v0.48.0
