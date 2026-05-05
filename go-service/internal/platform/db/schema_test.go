@@ -25,6 +25,15 @@ type fakeResult int64
 func (r fakeResult) LastInsertId() (int64, error) { return 0, nil }
 func (r fakeResult) RowsAffected() (int64, error) { return int64(r), nil }
 
+type recordingDB struct {
+	statements []string
+}
+
+func (r *recordingDB) Exec(query string, args ...any) (sql.Result, error) {
+	r.statements = append(r.statements, query)
+	return fakeResult(0), nil
+}
+
 func TestEnsureSchemaAddsListingPropertyIDAndTaiwanDistricts(t *testing.T) {
 	db := &fakeSchemaDB{}
 
@@ -66,6 +75,36 @@ func TestEnsureSchemaAddsListingPropertyIDAndTaiwanDistricts(t *testing.T) {
 
 	if !strings.Contains(all, "DELETE FROM taiwan_districts") {
 		t.Fatal("expected schema migration to clean previously misclassified district seed rows")
+	}
+}
+
+func TestEnsureSchemaAddsTenantRequirementMatchingSchema(t *testing.T) {
+	db := &recordingDB{}
+	if err := EnsureSchema(db); err != nil {
+		t.Fatalf("EnsureSchema() error = %v", err)
+	}
+	joined := strings.Join(db.statements, "\n")
+	required := []string{
+		"ALTER TABLE tenant_requirements",
+		"area_min_ping",
+		"area_max_ping",
+		"room_min",
+		"bathroom_min",
+		"move_in_timeline",
+		"minimum_lease_months",
+		"can_cook_needed",
+		"can_register_household_needed",
+		"lifestyle_note",
+		"must_have_note",
+		"CREATE TABLE IF NOT EXISTS tenant_requirement_districts",
+		"idx_tenant_requirement_districts_requirement_id",
+		"idx_tenant_requirement_districts_location",
+		"INSERT INTO tenant_requirement_districts",
+	}
+	for _, want := range required {
+		if !strings.Contains(joined, want) {
+			t.Fatalf("EnsureSchema statements missing %q\n%s", want, joined)
+		}
 	}
 }
 
