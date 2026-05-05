@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
 import { getKYCStatus, type KYCStatus } from "../api/kycApi";
@@ -6,6 +6,7 @@ import { getListings, getTaiwanDistricts, type Listing, type TaiwanDistrictOptio
 import ListingResultCard from "../components/listing/ListingResultCard";
 import ListingSearchBar, { type ListingSearchState } from "../components/listing/ListingSearchBar";
 import { buildListingDisplayModel } from "../components/listing/listingDisplayModel";
+import { districtOptionToSelection, encodeDistrictToken, type DistrictSelection } from "../components/location/districtSelection";
 import SiteLayout from "../layouts/SiteLayout";
 
 type TypeFilter = ListingSearchState["mode"];
@@ -13,6 +14,14 @@ type TypeFilter = ListingSearchState["mode"];
 function resolveTypeFilter(value: string | null): TypeFilter {
     if (value === "RENT" || value === "SALE") return value;
     return "ALL";
+}
+
+function readSelectedDistricts(options: TaiwanDistrictOption[], tokens: string[]): DistrictSelection[] {
+    const optionMap = new Map(options.map((option) => [encodeDistrictToken(option), option]));
+    return tokens
+        .map((token) => optionMap.get(token))
+        .filter((option): option is TaiwanDistrictOption => Boolean(option))
+        .map(districtOptionToSelection);
 }
 
 function sortListings(listings: Listing[], sort: string): Listing[] {
@@ -71,10 +80,11 @@ export default function ListingListPage() {
     const [districtOptions, setDistrictOptions] = useState<TaiwanDistrictOption[]>([]);
 
     const typeFilter = resolveTypeFilter(searchParams.get("type"));
-    const districtFilter = searchParams.get("district")?.trim() ?? "";
+    const districtTokens = useMemo(() => searchParams.getAll("district"), [searchParams]);
+    const selectedDistricts = useMemo(() => readSelectedDistricts(districtOptions, districtTokens), [districtOptions, districtTokens]);
     const [searchState, setSearchState] = useState<ListingSearchState>({
         mode: typeFilter,
-        district: districtFilter,
+        districts: [],
         keyword: "",
         priceBand: "",
         layout: "",
@@ -86,9 +96,9 @@ export default function ListingListPage() {
         setSearchState((current) => ({
             ...current,
             mode: typeFilter,
-            district: districtFilter,
+            districts: selectedDistricts,
         }));
-    }, [districtFilter, typeFilter]);
+    }, [selectedDistricts, typeFilter]);
 
     useEffect(() => {
         const load = async () => {
@@ -97,7 +107,7 @@ export default function ListingListPage() {
                 setLoadError("");
                 const params = {
                     ...(typeFilter !== "ALL" ? { type: typeFilter } : {}),
-                    ...(districtFilter ? { district: districtFilter } : {}),
+                    ...(districtTokens.length > 0 ? { districts: districtTokens } : {}),
                 };
                 const [publicListings, districts, auth] = await Promise.all([
                     getListings(Object.keys(params).length > 0 ? params : undefined),
@@ -113,30 +123,30 @@ export default function ListingListPage() {
                     setIsOwner(false);
                 }
             } catch (err) {
-                setLoadError(err instanceof Error ? err.message : "讀取刊登列表失敗");
+                setLoadError(err instanceof Error ? err.message : "讀取房源列表失敗");
             } finally {
                 setIsLoading(false);
             }
         };
         void load();
-    }, [districtFilter, typeFilter]);
+    }, [districtTokens, typeFilter]);
 
     const applySearch = () => {
         const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete("district");
         if (searchState.mode === "ALL") nextParams.delete("type");
         else nextParams.set("type", searchState.mode);
-        if (searchState.district.trim()) nextParams.set("district", searchState.district.trim());
-        else nextParams.delete("district");
+        searchState.districts.forEach((district) => nextParams.append("district", encodeDistrictToken(district)));
         setSearchParams(nextParams);
     };
 
     const visibleListings = sortListings(filterListings(listings, searchState), searchState.sort);
-    const pageTitle = typeFilter === "RENT" ? "出租物件" : typeFilter === "SALE" ? "賣屋物件" : "房源列表";
+    const pageTitle = typeFilter === "RENT" ? "租屋列表" : typeFilter === "SALE" ? "買屋列表" : "房源列表";
     const pageDescription =
         typeFilter === "RENT"
-            ? "用租金、區域與租客條件快速篩選出租物件。"
+            ? "瀏覽平台上已公開的出租房源，依行政區、租金與格局快速找到合適物件。"
             : typeFilter === "SALE"
-              ? "用區域、總價與格局比較可出售物件。"
+              ? "瀏覽平台上已公開的出售房源，依行政區、總價與格局縮小搜尋範圍。"
               : "瀏覽平台上已公開的出售與出租房源。";
 
     return (
@@ -145,9 +155,9 @@ export default function ListingListPage() {
                 <div className="mx-auto max-w-[1440px] px-6 md:px-12">
                     <h1 className="mb-4 text-3xl font-extrabold tracking-tight text-on-surface md:text-4xl">{pageTitle}</h1>
                     <p className="max-w-2xl text-base leading-[1.75] text-on-surface-variant md:text-lg">{pageDescription}</p>
-                    {districtFilter ? (
-                        <div className="mt-5 inline-flex items-center gap-3 rounded-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-2 text-sm text-on-surface">
-                            <span>目前區域：{districtFilter}</span>
+                    {selectedDistricts.length > 0 ? (
+                        <div className="mt-5 inline-flex flex-wrap items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-lowest px-4 py-2 text-sm text-on-surface">
+                            <span>目前區域：{selectedDistricts.map((district) => district.district).join("、")}</span>
                             <button
                                 type="button"
                                 onClick={() => {
@@ -179,7 +189,7 @@ export default function ListingListPage() {
                             className="mt-4 flex items-center gap-2 rounded-lg bg-primary-container px-4 py-2 text-on-primary-container transition-opacity hover:opacity-90"
                         >
                             <span className="material-symbols-outlined text-sm">home_work</span>
-                            <span className="text-sm font-medium">我的刊登</span>
+                            <span className="text-sm font-medium">管理物件</span>
                         </button>
                     ) : null}
                 </div>
@@ -195,7 +205,7 @@ export default function ListingListPage() {
                         <div className="rounded-xl border border-error/20 bg-error-container p-8 text-sm text-on-error-container">{loadError}</div>
                     ) : visibleListings.length === 0 ? (
                         <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-center">
-                            <h2 className="text-2xl font-bold text-on-surface">目前沒有符合條件的物件</h2>
+                            <h2 className="text-2xl font-bold text-on-surface">目前沒有符合條件的房源</h2>
                             <p className="mt-2 text-sm text-on-surface-variant">請調整搜尋條件，或稍後再回來查看。</p>
                         </div>
                     ) : (

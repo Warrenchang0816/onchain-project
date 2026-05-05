@@ -2,6 +2,7 @@ package listing
 
 import (
 	"database/sql"
+	"reflect"
 	"testing"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 type fakeListingStore struct {
 	byID               map[int64]*model.Listing
+	lastFindAllFilter  repository.ListingFilter
 	updatedRentID      int64
 	updatedRent        model.ListingRentDetails
 	updatedRentListing model.Listing
@@ -21,7 +23,8 @@ type fakeListingStore struct {
 	updatedSaleStatus  string
 }
 
-func (f *fakeListingStore) FindAll(repository.ListingFilter) ([]*model.Listing, error) {
+func (f *fakeListingStore) FindAll(filter repository.ListingFilter) ([]*model.Listing, error) {
+	f.lastFindAllFilter = filter
 	return nil, nil
 }
 func (f *fakeListingStore) FindByID(id int64) (*model.Listing, error) { return f.byID[id], nil }
@@ -95,6 +98,28 @@ type fakeListingUserStore struct {
 
 func (f *fakeListingUserStore) FindByWallet(wallet string) (*model.User, error) {
 	return f.byWallet[wallet], nil
+}
+
+func TestListPublicNormalizesMultiDistrictFilters(t *testing.T) {
+	listings := &fakeListingStore{}
+	svc := NewService(listings, &fakeApptStore{}, &fakeListingUserStore{}, nil)
+
+	_, err := svc.ListPublic(model.ListingTypeRent, []string{
+		"台北市:大安區:106",
+		"台北市:信義區:110",
+		"新北市",
+		"",
+	})
+	if err != nil {
+		t.Fatalf("ListPublic() error = %v", err)
+	}
+	if listings.lastFindAllFilter.ListType != model.ListingTypeRent {
+		t.Fatalf("ListType = %q, want %q", listings.lastFindAllFilter.ListType, model.ListingTypeRent)
+	}
+	wantDistricts := []string{"大安區", "信義區", "新北市"}
+	if !reflect.DeepEqual(listings.lastFindAllFilter.Districts, wantDistricts) {
+		t.Fatalf("Districts = %#v, want %#v", listings.lastFindAllFilter.Districts, wantDistricts)
+	}
 }
 
 func TestUpdateRentDetailsStoresRentDetailsAndMarksReady(t *testing.T) {

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/lib/pq"
+
 	"go-service/internal/db/model"
 )
 
@@ -80,10 +82,11 @@ func (r *ListingRepository) FindByID(id int64) (*model.Listing, error) {
 
 // ListFilter holds optional filter parameters for listing queries.
 type ListingFilter struct {
-	ListType string // "RENT" | "SALE" | "" (all)
-	District string // "" = no filter
-	Status   string // "" = only ACTIVE
-	OwnerID  int64  // 0 = all owners
+	ListType  string   // "RENT" | "SALE" | "" (all)
+	District  string   // "" = no filter; kept for legacy callers
+	Districts []string // district names normalized by service
+	Status    string   // "" = only ACTIVE
+	OwnerID   int64    // 0 = all owners
 }
 
 // FindAll returns listings with optional filters.
@@ -111,9 +114,18 @@ func (r *ListingRepository) FindAll(f ListingFilter) ([]*model.Listing, error) {
 		idx++
 	}
 
+	districts := append([]string{}, f.Districts...)
 	if f.District != "" {
-		q += fmt.Sprintf(` AND district = $%d`, idx)
-		args = append(args, f.District)
+		districts = append(districts, f.District)
+	}
+	if len(districts) > 0 {
+		if len(districts) == 1 {
+			q += fmt.Sprintf(` AND district = $%d`, idx)
+			args = append(args, districts[0])
+		} else {
+			q += fmt.Sprintf(` AND district = ANY($%d)`, idx)
+			args = append(args, pq.Array(districts))
+		}
 		idx++
 	}
 
