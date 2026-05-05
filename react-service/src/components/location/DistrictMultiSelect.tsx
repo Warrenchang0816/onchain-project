@@ -57,7 +57,7 @@ export default function DistrictMultiSelect({
                 onClick={() => setIsOpen((open) => !open)}
                 className="flex w-full items-center justify-between rounded-xl border border-outline-variant/15 bg-surface px-4 py-3 text-left text-sm text-on-surface outline-none transition-colors focus:ring-2 focus:ring-primary-container"
             >
-                <span>{label}</span>
+                <span className="truncate">{label}</span>
                 <span className="material-symbols-outlined text-base text-on-surface-variant">expand_more</span>
             </button>
 

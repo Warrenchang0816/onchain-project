@@ -1,34 +1,84 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { getTaiwanDistricts, type TaiwanDistrictOption } from "@/api/listingApi";
 import { getRequirementList, type TenantRequirement, type TenantRequirementStatus } from "@/api/tenantApi";
+import RentalSearchFilters, { type RentalSearchFilterValues } from "@/components/search/RentalSearchFilters";
+import TenantRequirementCard from "@/components/tenant/TenantRequirementCard";
+import { districtOptionToSelection, encodeDistrictToken, type DistrictSelection } from "@/components/location/districtSelection";
 import SiteLayout from "@/layouts/SiteLayout";
 
-const statusLabel: Record<TenantRequirementStatus, string> = {
-    OPEN: "開放中",
-    PAUSED: "暫停",
-    CLOSED: "已關閉",
-};
+const statusOptions: { value: TenantRequirementStatus; label: string }[] = [
+    { value: "OPEN", label: "開放中" },
+    { value: "PAUSED", label: "暫停" },
+    { value: "CLOSED", label: "已結案" },
+];
 
-function formatBudget(item: TenantRequirement) {
-    return `NT$ ${item.budgetMin.toLocaleString()} - ${item.budgetMax.toLocaleString()}`;
+function readSelectedDistricts(options: TaiwanDistrictOption[], tokens: string[]): DistrictSelection[] {
+    const optionMap = new Map(options.map((option) => [encodeDistrictToken(option), option]));
+    return tokens
+        .map((token) => optionMap.get(token))
+        .filter((option): option is TaiwanDistrictOption => Boolean(option))
+        .map(districtOptionToSelection);
+}
+
+function budgetMatches(item: TenantRequirement, minValue: string, maxValue: string): boolean {
+    const min = Number(minValue);
+    const max = Number(maxValue);
+    if (minValue && Number.isFinite(min) && item.budgetMax < min) return false;
+    if (maxValue && Number.isFinite(max) && item.budgetMin > max) return false;
+    return true;
 }
 
 export default function RequirementsPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
+    const [districtOptions, setDistrictOptions] = useState<TaiwanDistrictOption[]>([]);
     const [items, setItems] = useState<TenantRequirement[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    const district = searchParams.get("district") ?? "";
+    const selectedDistricts = useMemo(
+        () => readSelectedDistricts(districtOptions, searchParams.getAll("district")),
+        [districtOptions, searchParams],
+    );
     const status = (searchParams.get("status") ?? "OPEN") as TenantRequirementStatus;
+    const keyword = searchParams.get("keyword") ?? "";
+    const budgetMin = searchParams.get("budgetMin") ?? "";
+    const budgetMax = searchParams.get("budgetMax") ?? "";
+
+    const [filters, setFilters] = useState<RentalSearchFilterValues>({
+        districts: [],
+        keyword: "",
+        budgetMin: "",
+        budgetMax: "",
+    });
+
+    useEffect(() => {
+        setFilters({ districts: selectedDistricts, keyword, budgetMin, budgetMax });
+    }, [selectedDistricts, keyword, budgetMin, budgetMax]);
+
+    useEffect(() => {
+        const loadDistricts = async () => {
+            try {
+                setDistrictOptions(await getTaiwanDistricts());
+            } catch {
+                setDistrictOptions([]);
+            }
+        };
+        void loadDistricts();
+    }, []);
 
     useEffect(() => {
         const load = async () => {
             try {
                 setLoading(true);
                 setError("");
-                setItems(await getRequirementList({ district: district.trim() || undefined, status }));
+                const results = await getRequirementList({
+                    districts: selectedDistricts.map(encodeDistrictToken),
+                    status,
+                    keyword: keyword.trim() || undefined,
+                });
+                setItems(results.filter((item) => budgetMatches(item, budgetMin, budgetMax)));
             } catch (err) {
                 setError(err instanceof Error ? err.message : "讀取租屋需求失敗");
             } finally {
@@ -36,64 +86,75 @@ export default function RequirementsPage() {
             }
         };
         void load();
-    }, [district, status]);
+    }, [budgetMax, budgetMin, keyword, selectedDistricts, status]);
 
-    const updateFilter = (key: string, value: string) => {
-        const next = new URLSearchParams(searchParams);
-        if (value) next.set(key, value);
-        else next.delete(key);
+    const applyFilters = () => {
+        const next = new URLSearchParams();
+        filters.districts.forEach((district) => next.append("district", encodeDistrictToken(district)));
+        if (filters.keyword.trim()) next.set("keyword", filters.keyword.trim());
+        if (filters.budgetMin.trim()) next.set("budgetMin", filters.budgetMin.trim());
+        if (filters.budgetMax.trim()) next.set("budgetMax", filters.budgetMax.trim());
+        next.set("status", status);
         setSearchParams(next);
     };
+
+    const resetFilters = () => setSearchParams(new URLSearchParams({ status: "OPEN" }));
 
     return (
         <SiteLayout>
             <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-6 py-12 md:px-12">
                 <header className="space-y-3">
-                    <h1 className="text-4xl font-extrabold text-on-surface">租屋需求列表</h1>
+                    <h1 className="text-4xl font-extrabold text-on-surface">租屋需求</h1>
                     <p className="max-w-3xl text-sm leading-[1.8] text-on-surface-variant">
-                        房東與仲介可以在這裡瀏覽租客公開的需求條件。租客敏感資料只會依照後端授權規則顯示。
+                        瀏覽租客公開的租屋條件，依行政區、預算與關鍵字找到適合媒合的需求。
                     </p>
                 </header>
 
-                <section className="flex flex-col gap-3 rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5 md:flex-row md:items-center">
-                    <input className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" value={district} onChange={(e) => updateFilter("district", e.target.value)} placeholder="行政區，例如：信義區" />
-                    <select className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container" value={status} onChange={(e) => updateFilter("status", e.target.value)}>
-                        <option value="OPEN">開放中</option>
-                        <option value="PAUSED">暫停</option>
-                        <option value="CLOSED">已關閉</option>
-                    </select>
-                    <button type="button" onClick={() => setSearchParams(new URLSearchParams({ status: "OPEN" }))} className="rounded-lg border border-outline-variant/25 bg-transparent px-4 py-3 text-sm text-on-surface">
-                        清除篩選
-                    </button>
-                </section>
+                <div className="grid gap-3">
+                    <RentalSearchFilters
+                        districtOptions={districtOptions}
+                        values={filters}
+                        submitLabel="搜尋需求"
+                        onChange={setFilters}
+                        onSubmit={applyFilters}
+                        onReset={resetFilters}
+                    />
+                    <div className="flex flex-wrap items-center gap-3">
+                        <label className="text-sm font-bold text-on-surface" htmlFor="requirement-status">狀態</label>
+                        <select
+                            id="requirement-status"
+                            className="rounded-xl border border-outline-variant/15 bg-surface px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
+                            value={status}
+                            onChange={(event) => {
+                                const next = new URLSearchParams(searchParams);
+                                next.set("status", event.target.value);
+                                setSearchParams(next);
+                            }}
+                        >
+                            {statusOptions.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
                 {loading ? (
                     <div className="py-20 text-center text-sm text-on-surface-variant">讀取中...</div>
                 ) : error ? (
                     <div className="rounded-xl border border-error/20 bg-error-container p-6 text-sm text-on-error-container">{error}</div>
                 ) : items.length === 0 ? (
-                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-center text-sm text-on-surface-variant">
-                        目前沒有符合條件的租屋需求。
+                    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-center">
+                        <h2 className="text-2xl font-extrabold text-on-surface">目前沒有符合條件的需求</h2>
+                        <p className="mt-2 text-sm text-on-surface-variant">請調整搜尋條件，或稍後再回來查看。</p>
                     </div>
                 ) : (
                     <section className="grid gap-4 md:grid-cols-2">
                         {items.map((item) => (
-                            <article key={item.id} className="cursor-pointer rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-6 transition-transform hover:-translate-y-0.5" onClick={() => navigate(`/requirements/${item.id}`)}>
-                                <div className="flex items-start justify-between gap-4">
-                                    <div>
-                                        <span className="rounded-full bg-tertiary/10 px-3 py-1 text-xs font-bold text-tertiary">{statusLabel[item.status]}</span>
-                                        <h2 className="mt-4 text-xl font-bold text-on-surface">{item.targetDistrict || "未設定行政區"}</h2>
-                                    </div>
-                                    {item.hasAdvancedData ? <span className="rounded-full bg-primary-container/15 px-3 py-1 text-xs font-bold text-primary-container">進階資料</span> : null}
-                                </div>
-                                <p className="mt-4 text-lg font-extrabold text-on-surface">{formatBudget(item)}</p>
-                                <p className="mt-2 line-clamp-2 text-sm leading-[1.75] text-on-surface-variant">{item.layoutNote || "租客尚未填寫需求說明。"}</p>
-                                <div className="mt-4 flex flex-wrap gap-2 text-xs text-on-surface-variant">
-                                    {item.moveInDate ? <span className="rounded-full bg-surface-container-low px-3 py-1">入住日：{item.moveInDate}</span> : null}
-                                    {item.petFriendlyNeeded ? <span className="rounded-full bg-surface-container-low px-3 py-1">需要可養寵物</span> : null}
-                                    {item.parkingNeeded ? <span className="rounded-full bg-surface-container-low px-3 py-1">需要車位</span> : null}
-                                </div>
-                            </article>
+                            <TenantRequirementCard
+                                key={item.id}
+                                requirement={item}
+                                onOpen={() => navigate(`/requirements/${item.id}`)}
+                            />
                         ))}
                     </section>
                 )}
