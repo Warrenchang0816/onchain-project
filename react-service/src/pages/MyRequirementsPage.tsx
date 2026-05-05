@@ -31,12 +31,21 @@ const inputCls = "rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm
 function toPayload(form: typeof emptyRequirement): TenantRequirementPayload {
     return {
         targetDistrict: form.targetDistrict.trim(),
+        districts: [],
         budgetMin: Number(form.budgetMin || 0),
         budgetMax: Number(form.budgetMax || 0),
+        roomMin: 0,
+        bathroomMin: 0,
         layoutNote: form.layoutNote.trim(),
         moveInDate: form.moveInDate || null,
+        moveInTimeline: "",
+        minimumLeaseMonths: 0,
         petFriendlyNeeded: form.petFriendlyNeeded,
         parkingNeeded: form.parkingNeeded,
+        canCookNeeded: false,
+        canRegisterHouseholdNeeded: false,
+        lifestyleNote: "",
+        mustHaveNote: "",
     };
 }
 
