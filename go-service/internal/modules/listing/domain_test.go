@@ -97,30 +97,30 @@ func TestIsReadyForPublishRequiresReadyProperty(t *testing.T) {
 	if IsReadyForPublishWithProperty(ready, nil) {
 		t.Fatal("expected missing property to block publish")
 	}
-	if IsReadyForPublishWithProperty(ready, &model.Property{
-		VerificationStatus: model.PropertyVerificationVerified,
-		CompletenessStatus: model.PropertyCompletenessDisclosureRequired,
+	if IsReadyForPublishWithProperty(ready, &model.Customer{
+		VerificationStatus: model.CustomerVerificationVerified,
+		CompletenessStatus: model.CustomerCompletenessDisclosureRequired,
 		DisclosureHash:     "abc",
 	}) {
 		t.Fatal("expected incomplete property disclosure to block publish")
 	}
-	if IsReadyForPublishWithProperty(ready, &model.Property{
-		VerificationStatus: model.PropertyVerificationDraft,
-		CompletenessStatus: model.PropertyCompletenessReadyForListing,
+	if IsReadyForPublishWithProperty(ready, &model.Customer{
+		VerificationStatus: model.CustomerVerificationDraft,
+		CompletenessStatus: model.CustomerCompletenessReadyForListing,
 		DisclosureHash:     "abc",
 	}) {
 		t.Fatal("expected unverified property to block publish")
 	}
-	if IsReadyForPublishWithProperty(ready, &model.Property{
-		VerificationStatus: model.PropertyVerificationVerified,
-		CompletenessStatus: model.PropertyCompletenessReadyForListing,
+	if IsReadyForPublishWithProperty(ready, &model.Customer{
+		VerificationStatus: model.CustomerVerificationVerified,
+		CompletenessStatus: model.CustomerCompletenessReadyForListing,
 		DisclosureHash:     "",
 	}) {
 		t.Fatal("expected missing disclosure hash to block publish")
 	}
-	if !IsReadyForPublishWithProperty(ready, &model.Property{
-		VerificationStatus: model.PropertyVerificationVerified,
-		CompletenessStatus: model.PropertyCompletenessReadyForListing,
+	if !IsReadyForPublishWithProperty(ready, &model.Customer{
+		VerificationStatus: model.CustomerVerificationVerified,
+		CompletenessStatus: model.CustomerCompletenessReadyForListing,
 		DisclosureHash:     "abc",
 	}) {
 		t.Fatal("expected complete listing with ready property to be publishable")
@@ -135,15 +135,15 @@ func TestCanSelectListingIntentRequiresReadyProperty(t *testing.T) {
 		ListType: model.ListingTypeUnset,
 		Price:    30000,
 	}
-	p := &model.Property{
-		VerificationStatus: model.PropertyVerificationDraft,
-		CompletenessStatus: model.PropertyCompletenessDisclosureRequired,
+	p := &model.Customer{
+		VerificationStatus: model.CustomerVerificationDraft,
+		CompletenessStatus: model.CustomerCompletenessDisclosureRequired,
 	}
 	if CanSelectListingIntent(l, p) {
 		t.Fatal("expected incomplete property to block listing intent selection")
 	}
-	p.VerificationStatus = model.PropertyVerificationVerified
-	p.CompletenessStatus = model.PropertyCompletenessReadyForListing
+	p.VerificationStatus = model.CustomerVerificationVerified
+	p.CompletenessStatus = model.CustomerCompletenessReadyForListing
 	p.DisclosureHash = "abc123"
 	if !CanSelectListingIntent(l, p) {
 		t.Fatal("expected draft listing with ready property to allow intent selection")

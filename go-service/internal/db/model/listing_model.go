@@ -60,7 +60,7 @@ type Listing struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 
-	Property *Property
+	Property *Customer
 
 	RentDetails *ListingRentDetails
 	SaleDetails *ListingSaleDetails

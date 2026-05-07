@@ -17,15 +17,15 @@ type fakePropertyService struct {
 	confirmID  int64
 }
 
-func (f *fakePropertyService) ListMine(wallet string) ([]*model.Property, error) {
+func (f *fakePropertyService) ListMine(wallet string) ([]*model.Customer, error) {
 	f.listWallet = wallet
-	return []*model.Property{
-		{ID: 11, OwnerUserID: 7, Address: "Taipei Main Road 100", VerificationStatus: model.PropertyVerificationDraft, CompletenessStatus: model.PropertyCompletenessDisclosureRequired},
+	return []*model.Customer{
+		{ID: 11, OwnerUserID: 7, Address: "Taipei Main Road 100", VerificationStatus: model.CustomerVerificationDraft, CompletenessStatus: model.CustomerCompletenessDisclosureRequired},
 	}, nil
 }
 
-func (f *fakePropertyService) GetForOwner(id int64, wallet string) (*model.Property, error) {
-	return &model.Property{ID: id, OwnerUserID: 7, Address: "Taipei Main Road 100"}, nil
+func (f *fakePropertyService) GetForOwner(id int64, wallet string) (*model.Customer, error) {
+	return &model.Customer{ID: id, OwnerUserID: 7, Address: "Taipei Main Road 100"}, nil
 }
 
 func (f *fakePropertyService) UpdateDisclosureForOwner(id int64, wallet string, in DisclosureInput) error {

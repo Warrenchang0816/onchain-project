@@ -6,18 +6,18 @@ import (
 )
 
 const (
-	PropertyVerificationDraft    = "DRAFT"
-	PropertyVerificationVerified = "VERIFIED"
-	PropertyVerificationRejected = "REJECTED"
+	CustomerVerificationDraft    = "DRAFT"
+	CustomerVerificationVerified = "VERIFIED"
+	CustomerVerificationRejected = "REJECTED"
 
-	PropertyCompletenessBasicCreated       = "BASIC_CREATED"
-	PropertyCompletenessDisclosureRequired = "DISCLOSURE_REQUIRED"
-	PropertyCompletenessWarrantyRequired   = "WARRANTY_REQUIRED"
-	PropertyCompletenessSnapshotReady      = "SNAPSHOT_READY"
-	PropertyCompletenessReadyForListing    = "READY_FOR_LISTING"
+	CustomerCompletenessBasicCreated       = "BASIC_CREATED"
+	CustomerCompletenessDisclosureRequired = "DISCLOSURE_REQUIRED"
+	CustomerCompletenessWarrantyRequired   = "WARRANTY_REQUIRED"
+	CustomerCompletenessSnapshotReady      = "SNAPSHOT_READY"
+	CustomerCompletenessReadyForListing    = "READY_FOR_LISTING"
 )
 
-type Property struct {
+type Customer struct {
 	ID                           int64
 	OwnerUserID                  int64
 	SourceCredentialSubmissionID sql.NullInt64

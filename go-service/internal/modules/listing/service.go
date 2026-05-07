@@ -68,7 +68,7 @@ type UserStore interface {
 }
 
 type PropertyReader interface {
-	FindByID(id int64) (*model.Property, error)
+	FindByID(id int64) (*model.Customer, error)
 }
 
 func NewService(
@@ -472,7 +472,7 @@ func (s *Service) Publish(listingID int64, walletAddress string, durationDays in
 	return s.listingRepo.Publish(listingID, durationDays)
 }
 
-func (s *Service) propertyForListing(l *model.Listing) (*model.Property, error) {
+func (s *Service) propertyForListing(l *model.Listing) (*model.Customer, error) {
 	if l == nil || !l.PropertyID.Valid || s.propertyRepo == nil {
 		return nil, nil
 	}

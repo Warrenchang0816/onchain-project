@@ -12,8 +12,8 @@ import (
 )
 
 type APIService interface {
-	ListMine(wallet string) ([]*model.Property, error)
-	GetForOwner(id int64, wallet string) (*model.Property, error)
+	ListMine(wallet string) ([]*model.Customer, error)
+	GetForOwner(id int64, wallet string) (*model.Customer, error)
 	UpdateDisclosureForOwner(id int64, wallet string, in DisclosureInput) error
 	ConfirmDisclosureForOwner(id int64, wallet string) error
 }
@@ -32,7 +32,7 @@ func walletFromContext(c *gin.Context) string {
 	return s
 }
 
-func toPropertyResponse(p *model.Property) PropertyResponse {
+func toPropertyResponse(p *model.Customer) PropertyResponse {
 	resp := PropertyResponse{
 		ID:                 p.ID,
 		OwnerUserID:        p.OwnerUserID,

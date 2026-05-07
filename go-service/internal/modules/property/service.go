@@ -16,9 +16,9 @@ var (
 )
 
 type Repository interface {
-	FindByID(id int64) (*model.Property, error)
-	FindBySourceCredentialSubmission(submissionID int64) (*model.Property, error)
-	ListByOwnerUserID(ownerUserID int64) ([]*model.Property, error)
+	FindByID(id int64) (*model.Customer, error)
+	FindBySourceCredentialSubmission(submissionID int64) (*model.Customer, error)
+	ListByOwnerUserID(ownerUserID int64) ([]*model.Customer, error)
 	CreateDraftFromOwnerCredential(ownerUserID, submissionID int64, built BuiltPropertyDraft) (int64, error)
 	UpdateDisclosure(id int64, built BuiltDisclosureSnapshot) error
 	MarkReadyForListing(id int64) error
@@ -56,7 +56,7 @@ func (s *Service) BootstrapOwnerCredentialProperty(in DisclosureInput) (int64, e
 	return s.repo.CreateDraftFromOwnerCredential(in.OwnerUserID, in.SourceCredentialSubmissionID, built)
 }
 
-func (s *Service) ListMine(walletAddress string) ([]*model.Property, error) {
+func (s *Service) ListMine(walletAddress string) ([]*model.Customer, error) {
 	caller, err := s.requireUser(walletAddress)
 	if err != nil {
 		return nil, err
@@ -64,7 +64,7 @@ func (s *Service) ListMine(walletAddress string) ([]*model.Property, error) {
 	return s.repo.ListByOwnerUserID(caller.ID)
 }
 
-func (s *Service) GetForOwner(propertyID int64, walletAddress string) (*model.Property, error) {
+func (s *Service) GetForOwner(propertyID int64, walletAddress string) (*model.Customer, error) {
 	return s.requireOwner(propertyID, walletAddress)
 }
 
@@ -135,7 +135,7 @@ func (s *Service) requireUser(walletAddress string) (*model.User, error) {
 	return user, nil
 }
 
-func (s *Service) requireOwner(propertyID int64, walletAddress string) (*model.Property, error) {
+func (s *Service) requireOwner(propertyID int64, walletAddress string) (*model.Customer, error) {
 	caller, err := s.requireUser(walletAddress)
 	if err != nil {
 		return nil, err

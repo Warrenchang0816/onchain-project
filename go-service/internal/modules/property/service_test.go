@@ -10,24 +10,24 @@ import (
 )
 
 type fakePropertyRepo struct {
-	byID     map[int64]*model.Property
-	bySource map[int64]*model.Property
-	byOwner  map[int64][]*model.Property
+	byID     map[int64]*model.Customer
+	bySource map[int64]*model.Customer
+	byOwner  map[int64][]*model.Customer
 
 	updatedID       int64
 	updatedSnapshot BuiltDisclosureSnapshot
 	markedReadyID   int64
 }
 
-func (f *fakePropertyRepo) FindBySourceCredentialSubmission(submissionID int64) (*model.Property, error) {
+func (f *fakePropertyRepo) FindBySourceCredentialSubmission(submissionID int64) (*model.Customer, error) {
 	return f.bySource[submissionID], nil
 }
 
-func (f *fakePropertyRepo) FindByID(id int64) (*model.Property, error) {
+func (f *fakePropertyRepo) FindByID(id int64) (*model.Customer, error) {
 	return f.byID[id], nil
 }
 
-func (f *fakePropertyRepo) ListByOwnerUserID(ownerUserID int64) ([]*model.Property, error) {
+func (f *fakePropertyRepo) ListByOwnerUserID(ownerUserID int64) ([]*model.Customer, error) {
 	return f.byOwner[ownerUserID], nil
 }
 
@@ -46,7 +46,7 @@ func (f *fakePropertyRepo) UpdateDisclosure(id int64, built BuiltDisclosureSnaps
 		p.WarrantyAnswersJSON = built.WarrantyAnswersJSON
 		p.DisclosureSnapshotJSON = built.DisclosureSnapshotJSON
 		p.DisclosureHash = built.DisclosureHash
-		p.CompletenessStatus = model.PropertyCompletenessSnapshotReady
+		p.CompletenessStatus = model.CustomerCompletenessSnapshotReady
 	}
 	return nil
 }
@@ -54,8 +54,8 @@ func (f *fakePropertyRepo) UpdateDisclosure(id int64, built BuiltDisclosureSnaps
 func (f *fakePropertyRepo) MarkReadyForListing(id int64) error {
 	f.markedReadyID = id
 	if p := f.byID[id]; p != nil {
-		p.VerificationStatus = model.PropertyVerificationVerified
-		p.CompletenessStatus = model.PropertyCompletenessReadyForListing
+		p.VerificationStatus = model.CustomerVerificationVerified
+		p.CompletenessStatus = model.CustomerCompletenessReadyForListing
 	}
 	return nil
 }
@@ -69,7 +69,7 @@ func (f *fakeUserRepo) FindByWallet(wallet string) (*model.User, error) {
 }
 
 func TestListMineReturnsCallerProperties(t *testing.T) {
-	repo := &fakePropertyRepo{byOwner: map[int64][]*model.Property{
+	repo := &fakePropertyRepo{byOwner: map[int64][]*model.Customer{
 		7: {
 			{ID: 11, OwnerUserID: 7, Address: "Taipei A"},
 			{ID: 12, OwnerUserID: 7, Address: "Taipei B"},
@@ -93,7 +93,7 @@ func TestListMineReturnsCallerProperties(t *testing.T) {
 }
 
 func TestUpdateDisclosureForOwnerPreservesStoredOwnerAndSource(t *testing.T) {
-	repo := &fakePropertyRepo{byID: map[int64]*model.Property{
+	repo := &fakePropertyRepo{byID: map[int64]*model.Customer{
 		11: {
 			ID:                           11,
 			OwnerUserID:                  7,
@@ -137,7 +137,7 @@ func TestUpdateDisclosureForOwnerPreservesStoredOwnerAndSource(t *testing.T) {
 }
 
 func TestConfirmDisclosureForOwnerRejectsNonOwner(t *testing.T) {
-	repo := &fakePropertyRepo{byID: map[int64]*model.Property{
+	repo := &fakePropertyRepo{byID: map[int64]*model.Customer{
 		11: {
 			ID:                     11,
 			OwnerUserID:            7,
@@ -160,7 +160,7 @@ func TestConfirmDisclosureForOwnerRejectsNonOwner(t *testing.T) {
 }
 
 func TestUpdateDisclosureStoresDeterministicSnapshot(t *testing.T) {
-	repo := &fakePropertyRepo{byID: map[int64]*model.Property{
+	repo := &fakePropertyRepo{byID: map[int64]*model.Customer{
 		11: {ID: 11, OwnerUserID: 7},
 	}}
 	svc := NewService(repo)
@@ -199,17 +199,17 @@ func TestUpdateDisclosureStoresDeterministicSnapshot(t *testing.T) {
 	if len(repo.byID[11].WarrantyAnswersJSON) == 0 {
 		t.Fatal("expected warranty answers JSON to be stored")
 	}
-	if repo.byID[11].CompletenessStatus != model.PropertyCompletenessSnapshotReady {
-		t.Fatalf("completeness = %s, want %s", repo.byID[11].CompletenessStatus, model.PropertyCompletenessSnapshotReady)
+	if repo.byID[11].CompletenessStatus != model.CustomerCompletenessSnapshotReady {
+		t.Fatalf("completeness = %s, want %s", repo.byID[11].CompletenessStatus, model.CustomerCompletenessSnapshotReady)
 	}
 }
 
 func TestConfirmDisclosureRequiresSnapshot(t *testing.T) {
-	repo := &fakePropertyRepo{byID: map[int64]*model.Property{
+	repo := &fakePropertyRepo{byID: map[int64]*model.Customer{
 		11: {
 			ID:                 11,
 			OwnerUserID:        7,
-			CompletenessStatus: model.PropertyCompletenessDisclosureRequired,
+			CompletenessStatus: model.CustomerCompletenessDisclosureRequired,
 		},
 	}}
 	svc := NewService(repo)
@@ -221,15 +221,15 @@ func TestConfirmDisclosureRequiresSnapshot(t *testing.T) {
 }
 
 func TestConfirmDisclosureMarksReadyForListing(t *testing.T) {
-	repo := &fakePropertyRepo{byID: map[int64]*model.Property{
+	repo := &fakePropertyRepo{byID: map[int64]*model.Customer{
 		11: {
 			ID:                           11,
 			OwnerUserID:                  7,
 			SourceCredentialSubmissionID: sql.NullInt64{Int64: 42, Valid: true},
 			DisclosureSnapshotJSON:       []byte(`{"version":1}`),
 			DisclosureHash:               "abc123",
-			VerificationStatus:           model.PropertyVerificationDraft,
-			CompletenessStatus:           model.PropertyCompletenessSnapshotReady,
+			VerificationStatus:           model.CustomerVerificationDraft,
+			CompletenessStatus:           model.CustomerCompletenessSnapshotReady,
 		},
 	}}
 	svc := NewService(repo)
@@ -240,10 +240,10 @@ func TestConfirmDisclosureMarksReadyForListing(t *testing.T) {
 	if repo.markedReadyID != 11 {
 		t.Fatalf("marked ready id = %d, want 11", repo.markedReadyID)
 	}
-	if repo.byID[11].VerificationStatus != model.PropertyVerificationVerified {
-		t.Fatalf("verification = %s, want %s", repo.byID[11].VerificationStatus, model.PropertyVerificationVerified)
+	if repo.byID[11].VerificationStatus != model.CustomerVerificationVerified {
+		t.Fatalf("verification = %s, want %s", repo.byID[11].VerificationStatus, model.CustomerVerificationVerified)
 	}
-	if repo.byID[11].CompletenessStatus != model.PropertyCompletenessReadyForListing {
-		t.Fatalf("completeness = %s, want %s", repo.byID[11].CompletenessStatus, model.PropertyCompletenessReadyForListing)
+	if repo.byID[11].CompletenessStatus != model.CustomerCompletenessReadyForListing {
+		t.Fatalf("completeness = %s, want %s", repo.byID[11].CompletenessStatus, model.CustomerCompletenessReadyForListing)
 	}
 }

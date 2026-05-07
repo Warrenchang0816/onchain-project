@@ -23,8 +23,8 @@ const propertySelectCols = `
 	       created_at, updated_at
 	FROM properties`
 
-func scanProperty(row *sql.Row) (*model.Property, error) {
-	p := &model.Property{}
+func scanProperty(row *sql.Row) (*model.Customer, error) {
+	p := &model.Customer{}
 	err := row.Scan(
 		&p.ID, &p.OwnerUserID, &p.SourceCredentialSubmissionID,
 		&p.Address, &p.DeedNo, &p.DeedHash, &p.PropertyStatementJSON, &p.WarrantyAnswersJSON,
@@ -40,12 +40,12 @@ func scanProperty(row *sql.Row) (*model.Property, error) {
 	return p, nil
 }
 
-func scanProperties(rows *sql.Rows) ([]*model.Property, error) {
+func scanProperties(rows *sql.Rows) ([]*model.Customer, error) {
 	defer rows.Close()
 
-	properties := []*model.Property{}
+	properties := []*model.Customer{}
 	for rows.Next() {
-		p := &model.Property{}
+		p := &model.Customer{}
 		if err := rows.Scan(
 			&p.ID, &p.OwnerUserID, &p.SourceCredentialSubmissionID,
 			&p.Address, &p.DeedNo, &p.DeedHash, &p.PropertyStatementJSON, &p.WarrantyAnswersJSON,
@@ -62,7 +62,7 @@ func scanProperties(rows *sql.Rows) ([]*model.Property, error) {
 	return properties, nil
 }
 
-func (r *PropertyRepository) FindByID(id int64) (*model.Property, error) {
+func (r *PropertyRepository) FindByID(id int64) (*model.Customer, error) {
 	row := r.db.QueryRow(propertySelectCols+` WHERE id = $1`, id)
 	p, err := scanProperty(row)
 	if err != nil {
@@ -71,7 +71,7 @@ func (r *PropertyRepository) FindByID(id int64) (*model.Property, error) {
 	return p, nil
 }
 
-func (r *PropertyRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Property, error) {
+func (r *PropertyRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Customer, error) {
 	rows, err := r.db.Query(propertySelectCols+` WHERE owner_user_id = $1 ORDER BY updated_at DESC, id DESC`, ownerUserID)
 	if err != nil {
 		return nil, fmt.Errorf("property_repo: ListByOwnerUserID: %w", err)
@@ -83,7 +83,7 @@ func (r *PropertyRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Prop
 	return properties, nil
 }
 
-func (r *PropertyRepository) FindBySourceCredentialSubmission(submissionID int64) (*model.Property, error) {
+func (r *PropertyRepository) FindBySourceCredentialSubmission(submissionID int64) (*model.Customer, error) {
 	row := r.db.QueryRow(propertySelectCols+` WHERE source_credential_submission_id = $1 LIMIT 1`, submissionID)
 	p, err := scanProperty(row)
 	if err != nil {
@@ -101,7 +101,7 @@ func (r *PropertyRepository) CreateDraftFromOwnerCredential(ownerUserID, submiss
 		) VALUES ($1,$2,$3,$4,$5,$6,$7)
 		RETURNING id`,
 		ownerUserID, submissionID, built.Address, built.DeedNo, built.DeedHash,
-		model.PropertyVerificationDraft, model.PropertyCompletenessDisclosureRequired,
+		model.CustomerVerificationDraft, model.CustomerCompletenessDisclosureRequired,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("property_repo: CreateDraftFromOwnerCredential: %w", err)
@@ -129,7 +129,7 @@ func (r *PropertyRepository) UpdateDisclosure(id int64, built propertymod.BuiltD
 		built.WarrantyAnswersJSON,
 		built.DisclosureSnapshotJSON,
 		built.DisclosureHash,
-		model.PropertyCompletenessSnapshotReady,
+		model.CustomerCompletenessSnapshotReady,
 		id,
 	)
 	if err != nil {
@@ -145,8 +145,8 @@ func (r *PropertyRepository) MarkReadyForListing(id int64) error {
 		    completeness_status=$2,
 		    updated_at=NOW()
 		WHERE id=$3`,
-		model.PropertyVerificationVerified,
-		model.PropertyCompletenessReadyForListing,
+		model.CustomerVerificationVerified,
+		model.CustomerCompletenessReadyForListing,
 		id,
 	)
 	if err != nil {

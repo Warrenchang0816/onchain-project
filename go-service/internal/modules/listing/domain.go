@@ -63,33 +63,33 @@ func IsReadyForPublish(l *model.Listing) bool {
 	return ComputeSetupStatus(l) == model.ListingSetupStatusReady
 }
 
-func CanSelectListingIntent(l *model.Listing, p *model.Property) bool {
+func CanSelectListingIntent(l *model.Listing, p *model.Customer) bool {
 	if l == nil || p == nil {
 		return false
 	}
 	if l.Status != model.ListingStatusDraft {
 		return false
 	}
-	if p.VerificationStatus != model.PropertyVerificationVerified {
+	if p.VerificationStatus != model.CustomerVerificationVerified {
 		return false
 	}
-	if p.CompletenessStatus != model.PropertyCompletenessReadyForListing {
+	if p.CompletenessStatus != model.CustomerCompletenessReadyForListing {
 		return false
 	}
 	return strings.TrimSpace(p.DisclosureHash) != ""
 }
 
-func IsReadyForPublishWithProperty(l *model.Listing, p *model.Property) bool {
+func IsReadyForPublishWithProperty(l *model.Listing, p *model.Customer) bool {
 	if !IsReadyForPublish(l) {
 		return false
 	}
 	if p == nil {
 		return false
 	}
-	if p.VerificationStatus != model.PropertyVerificationVerified {
+	if p.VerificationStatus != model.CustomerVerificationVerified {
 		return false
 	}
-	if p.CompletenessStatus != model.PropertyCompletenessReadyForListing {
+	if p.CompletenessStatus != model.CustomerCompletenessReadyForListing {
 		return false
 	}
 	return strings.TrimSpace(p.DisclosureHash) != ""
