@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { getTaiwanDistricts, type TaiwanDistrictOption } from "@/api/listingApi";
 import { getRequirementList, type TenantRequirement, type TenantRequirementStatus } from "@/api/tenantApi";
-import RentalSearchFilters, { type RentalSearchFilterValues } from "@/components/search/RentalSearchFilters";
+import ListingSearchFilters, { type ListingSearchFilterValues } from "@/components/search/ListingSearchFilters";
 import TenantRequirementCard from "@/components/tenant/TenantRequirementCard";
 import { districtOptionToSelection, encodeDistrictToken, type DistrictSelection } from "@/components/location/districtSelection";
 import SiteLayout from "@/layouts/SiteLayout";
@@ -43,19 +43,19 @@ export default function RequirementsPage() {
     );
     const status = (searchParams.get("status") ?? "OPEN") as TenantRequirementStatus;
     const keyword = searchParams.get("keyword") ?? "";
-    const budgetMin = searchParams.get("budgetMin") ?? "";
-    const budgetMax = searchParams.get("budgetMax") ?? "";
+    const priceMin = searchParams.get("priceMin") ?? "";
+    const priceMax = searchParams.get("priceMax") ?? "";
 
-    const [filters, setFilters] = useState<RentalSearchFilterValues>({
+    const [filters, setFilters] = useState<ListingSearchFilterValues>({
         districts: [],
         keyword: "",
-        budgetMin: "",
-        budgetMax: "",
+        priceMin: "",
+        priceMax: "",
     });
 
     useEffect(() => {
-        setFilters({ districts: selectedDistricts, keyword, budgetMin, budgetMax });
-    }, [selectedDistricts, keyword, budgetMin, budgetMax]);
+        setFilters({ districts: selectedDistricts, keyword, priceMin, priceMax });
+    }, [selectedDistricts, keyword, priceMin, priceMax]);
 
     useEffect(() => {
         const loadDistricts = async () => {
@@ -78,7 +78,7 @@ export default function RequirementsPage() {
                     status,
                     keyword: keyword.trim() || undefined,
                 });
-                setItems(results.filter((item) => budgetMatches(item, budgetMin, budgetMax)));
+                setItems(results.filter((item) => budgetMatches(item, priceMin, priceMax)));
             } catch (err) {
                 setError(err instanceof Error ? err.message : "讀取租屋需求失敗");
             } finally {
@@ -86,14 +86,14 @@ export default function RequirementsPage() {
             }
         };
         void load();
-    }, [budgetMax, budgetMin, keyword, selectedDistricts, status]);
+    }, [priceMax, priceMin, keyword, selectedDistricts, status]);
 
     const applyFilters = () => {
         const next = new URLSearchParams();
         filters.districts.forEach((district) => next.append("district", encodeDistrictToken(district)));
         if (filters.keyword.trim()) next.set("keyword", filters.keyword.trim());
-        if (filters.budgetMin.trim()) next.set("budgetMin", filters.budgetMin.trim());
-        if (filters.budgetMax.trim()) next.set("budgetMax", filters.budgetMax.trim());
+        if (filters.priceMin.trim()) next.set("priceMin", filters.priceMin.trim());
+        if (filters.priceMax.trim()) next.set("priceMax", filters.priceMax.trim());
         next.set("status", status);
         setSearchParams(next);
     };
@@ -111,10 +111,13 @@ export default function RequirementsPage() {
                 </header>
 
                 <div className="grid gap-3">
-                    <RentalSearchFilters
+                    <ListingSearchFilters
                         districtOptions={districtOptions}
                         values={filters}
                         submitLabel="搜尋需求"
+                        keywordPlaceholder="街道、捷運站、社區、需求備註"
+                        pricePlaceholderMin="最低預算"
+                        pricePlaceholderMax="最高預算"
                         onChange={setFilters}
                         onSubmit={applyFilters}
                         onReset={resetFilters}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { listMyProperties, type Property } from "../api/propertyApi";
 import SiteLayout from "../layouts/SiteLayout";
 
@@ -38,7 +38,14 @@ export default function MyPropertiesPage() {
     return (
         <SiteLayout>
             <main className="mx-auto flex w-full max-w-[1280px] flex-col gap-8 px-6 py-12 md:px-12">
-                <header className="flex items-center justify-between gap-4">
+                <header className="flex flex-col gap-2">
+                    <Link
+                        to="/member"
+                        className="mb-2 inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface"
+                    >
+                        ← 身分工作台
+                    </Link>
+                    <div className="flex items-center justify-between gap-4">
                     <div>
                         <h1 className="text-4xl font-extrabold text-on-surface">我的物件</h1>
                         <p className="mt-2 text-sm text-on-surface-variant">管理你的房屋物件，完成後可上架出租或出售。</p>
@@ -51,6 +58,7 @@ export default function MyPropertiesPage() {
                         <span className="material-symbols-outlined text-sm">add</span>
                         新增物件
                     </button>
+                    </div>
                 </header>
 
                 <section className="grid gap-4 md:grid-cols-3">

@@ -2,31 +2,37 @@ import type { TaiwanDistrictOption } from "../../api/listingApi";
 import DistrictMultiSelect from "../location/DistrictMultiSelect";
 import { type DistrictSelection } from "../location/districtSelection";
 
-export type RentalSearchFilterValues = {
+export type ListingSearchFilterValues = {
     districts: DistrictSelection[];
     keyword: string;
-    budgetMin: string;
-    budgetMax: string;
+    priceMin: string;
+    priceMax: string;
 };
 
-type RentalSearchFiltersProps = {
+type ListingSearchFiltersProps = {
     districtOptions: TaiwanDistrictOption[];
-    values: RentalSearchFilterValues;
-    submitLabel: string;
-    onChange: (next: RentalSearchFilterValues) => void;
+    values: ListingSearchFilterValues;
+    submitLabel?: string;
+    keywordPlaceholder?: string;
+    pricePlaceholderMin?: string;
+    pricePlaceholderMax?: string;
+    onChange: (next: ListingSearchFilterValues) => void;
     onSubmit: () => void;
     onReset: () => void;
 };
 
-export default function RentalSearchFilters({
+export default function ListingSearchFilters({
     districtOptions,
     values,
-    submitLabel,
+    submitLabel = "搜尋",
+    keywordPlaceholder = "地址、社區、關鍵字",
+    pricePlaceholderMin = "最低價格",
+    pricePlaceholderMax = "最高價格",
     onChange,
     onSubmit,
     onReset,
-}: RentalSearchFiltersProps) {
-    const update = (patch: Partial<RentalSearchFilterValues>) => onChange({ ...values, ...patch });
+}: ListingSearchFiltersProps) {
+    const update = (patch: Partial<ListingSearchFilterValues>) => onChange({ ...values, ...patch });
 
     return (
         <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-5">
@@ -39,22 +45,22 @@ export default function RentalSearchFilters({
                 <input
                     className="rounded-xl border border-outline-variant/15 bg-surface px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
                     value={values.keyword}
-                    onChange={(event) => update({ keyword: event.target.value })}
-                    placeholder="街道、捷運站、社區、需求備註"
+                    onChange={(e) => update({ keyword: e.target.value })}
+                    placeholder={keywordPlaceholder}
                 />
                 <input
                     className="rounded-xl border border-outline-variant/15 bg-surface px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
                     inputMode="numeric"
-                    value={values.budgetMin}
-                    onChange={(event) => update({ budgetMin: event.target.value })}
-                    placeholder="最低預算"
+                    value={values.priceMin}
+                    onChange={(e) => update({ priceMin: e.target.value })}
+                    placeholder={pricePlaceholderMin}
                 />
                 <input
                     className="rounded-xl border border-outline-variant/15 bg-surface px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
                     inputMode="numeric"
-                    value={values.budgetMax}
-                    onChange={(event) => update({ budgetMax: event.target.value })}
-                    placeholder="最高預算"
+                    value={values.priceMax}
+                    onChange={(e) => update({ priceMax: e.target.value })}
+                    placeholder={pricePlaceholderMax}
                 />
                 <button
                     type="button"
@@ -66,7 +72,7 @@ export default function RentalSearchFilters({
                 <button
                     type="button"
                     onClick={onReset}
-                    className="rounded-xl border border-outline-variant/25 bg-transparent px-5 py-3 text-sm font-bold text-on-surface"
+                    className="rounded-xl border border-outline-variant/25 bg-transparent px-5 py-3 text-sm font-bold text-on-surface hover:bg-surface-container-low transition-colors"
                 >
                     清除
                 </button>
