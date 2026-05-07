@@ -72,7 +72,7 @@ func (s *Service) Create(propertyID int64, wallet string, req CreateSaleListingR
 func (s *Service) ListPublic() ([]*model.SaleListing, error) {
 	sls, err := s.repo.ListPublic()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sale_listing: ListPublic: %w", err)
 	}
 	for _, sl := range sls {
 		prop, _ := s.propertyRepo.FindByID(sl.PropertyID)
@@ -84,7 +84,7 @@ func (s *Service) ListPublic() ([]*model.SaleListing, error) {
 func (s *Service) GetByID(id int64) (*model.SaleListing, error) {
 	sl, err := s.repo.FindByID(id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("sale_listing: GetByID: %w", err)
 	}
 	if sl == nil {
 		return nil, ErrNotFound
