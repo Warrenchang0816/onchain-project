@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { getRentalListings, type RentalListing } from "../api/rentalListingApi";
-import SiteLayout from "../layouts/SiteLayout";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getTaiwanDistricts, type TaiwanDistrictOption } from "@/api/listingApi";
+import { getRentalListings, type RentalListing } from "@/api/rentalListingApi";
+import ListingSearchFilters, { type ListingSearchFilterValues } from "@/components/search/ListingSearchFilters";
+import { districtOptionToSelection, encodeDistrictToken, type DistrictSelection } from "@/components/location/districtSelection";
+import SiteLayout from "@/layouts/SiteLayout";
 
 const BUILDING_TYPE_LABEL: Record<string, string> = {
     APARTMENT: "公寓", BUILDING: "大樓", TOWNHOUSE: "透天", STUDIO: "套房",
@@ -17,18 +20,101 @@ function formatLayout(rl: RentalListing): string {
     return parts.join("");
 }
 
+function readSelectedDistricts(options: TaiwanDistrictOption[], tokens: string[]): DistrictSelection[] {
+    const optionMap = new Map(options.map((o) => [encodeDistrictToken(o), o]));
+    return tokens
+        .map((t) => optionMap.get(t))
+        .filter((o): o is TaiwanDistrictOption => Boolean(o))
+        .map(districtOptionToSelection);
+}
+
+function matchesRent(
+    item: RentalListing,
+    districts: DistrictSelection[],
+    keyword: string,
+    priceMin: string,
+    priceMax: string,
+): boolean {
+    const addr = item.property?.address?.toLowerCase() ?? "";
+    const title = item.property?.title?.toLowerCase() ?? "";
+    if (keyword.trim()) {
+        const kw = keyword.toLowerCase().trim();
+        if (!addr.includes(kw) && !title.includes(kw)) return false;
+    }
+    if (districts.length > 0) {
+        const hit = districts.some((d) => addr.includes(d.district) || addr.includes(d.county));
+        if (!hit) return false;
+    }
+    const min = Number(priceMin);
+    const max = Number(priceMax);
+    if (priceMin && Number.isFinite(min) && item.monthly_rent < min) return false;
+    if (priceMax && Number.isFinite(max) && item.monthly_rent > max) return false;
+    return true;
+}
+
 export default function RentListPage() {
     const navigate = useNavigate();
-    const [items, setItems] = useState<RentalListing[]>([]);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [districtOptions, setDistrictOptions] = useState<TaiwanDistrictOption[]>([]);
+    const [allItems, setAllItems] = useState<RentalListing[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const selectedDistricts = useMemo(
+        () => readSelectedDistricts(districtOptions, searchParams.getAll("district")),
+        [districtOptions, searchParams],
+    );
+    const keyword = searchParams.get("keyword") ?? "";
+    const priceMin = searchParams.get("priceMin") ?? "";
+    const priceMax = searchParams.get("priceMax") ?? "";
+
+    const [filters, setFilters] = useState<ListingSearchFilterValues>(() => ({
+        districts: [],
+        keyword: searchParams.get("keyword") ?? "",
+        priceMin: searchParams.get("priceMin") ?? "",
+        priceMax: searchParams.get("priceMax") ?? "",
+    }));
+
+    useEffect(() => {
+        const loadDistricts = async () => {
+            try {
+                const options = await getTaiwanDistricts();
+                setDistrictOptions(options);
+                const tokens = searchParams.getAll("district");
+                setFilters((prev) => ({
+                    ...prev,
+                    districts: readSelectedDistricts(options, tokens),
+                }));
+            } catch {
+                setDistrictOptions([]);
+            }
+        };
+        void loadDistricts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     useEffect(() => {
         getRentalListings()
-            .then(setItems)
+            .then(setAllItems)
             .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取租屋列表失敗"))
             .finally(() => setLoading(false));
     }, []);
+
+    const items = useMemo(
+        () => allItems.filter((item) => matchesRent(item, selectedDistricts, keyword, priceMin, priceMax)),
+        [allItems, selectedDistricts, keyword, priceMin, priceMax],
+    );
+
+    const applyFilters = () => {
+        const next = new URLSearchParams();
+        filters.districts.forEach((d) => next.append("district", encodeDistrictToken(d)));
+        if (filters.keyword.trim()) next.set("keyword", filters.keyword.trim());
+        if (filters.priceMin.trim()) next.set("priceMin", filters.priceMin.trim());
+        if (filters.priceMax.trim()) next.set("priceMax", filters.priceMax.trim());
+        setSearchParams(next);
+    };
+
+    const resetFilters = () => setSearchParams(new URLSearchParams());
 
     return (
         <SiteLayout>
@@ -43,6 +129,20 @@ export default function RentListPage() {
 
             <section className="w-full bg-surface py-12">
                 <div className="mx-auto max-w-[1440px] px-6 md:px-12">
+                    <div className="mb-6 grid gap-3">
+                        <ListingSearchFilters
+                            districtOptions={districtOptions}
+                            values={filters}
+                            submitLabel="搜尋出租"
+                            keywordPlaceholder="地址、社區、捷運站"
+                            pricePlaceholderMin="最低月租"
+                            pricePlaceholderMax="最高月租"
+                            onChange={setFilters}
+                            onSubmit={applyFilters}
+                            onReset={resetFilters}
+                        />
+                    </div>
+
                     {loading ? (
                         <div className="flex items-center justify-center py-32">
                             <span className="animate-pulse text-sm text-on-surface-variant">讀取租屋中...</span>
@@ -51,7 +151,8 @@ export default function RentListPage() {
                         <div className="rounded-xl border border-error/20 bg-error-container p-8 text-sm text-on-error-container">{error}</div>
                     ) : items.length === 0 ? (
                         <div className="rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-10 text-center">
-                            <h2 className="text-2xl font-bold text-on-surface">目前沒有公開的租屋物件</h2>
+                            <h2 className="text-2xl font-bold text-on-surface">目前沒有符合條件的租屋物件</h2>
+                            <p className="mt-2 text-sm text-on-surface-variant">請調整搜尋條件，或稍後再回來查看。</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-5">
