@@ -164,3 +164,31 @@ Superpowers plugin is installed and enabled. Before responding to ANY request �
 - Do not add state management (Zustand, Redux) to the frontend
 - Do not create per-component CSS files
 - Do not commit `.env` files
+
+# Compact instructions
+When the /compact command is used:
+
+**Preserve:**
+1. The next task in the active implementation plan (or the explicit next step if no formal plan).
+2. Any uncommitted code changes or unresolved terminal errors.
+3. Current git state: active branch, worktree path (if any), and commits not yet merged to main.
+
+**Discard:**
+- Verbose logs, long command outputs, reasoning paths, and conversational filler.
+
+# Context management
+
+## When to /compact
+- Mid-task: there are uncommitted changes, an active plan task, or an unresolved error.
+- Context is large but work is ongoing and continuity matters.
+
+## When to /clear
+- The current task is fully done (committed, verified, merged).
+- Starting an unrelated new topic where accumulated context adds no value.
+
+## Claude's responsibility
+At natural breakpoints, proactively suggest /compact or /clear to the user:
+- Task just completed → suggest /clear before the next topic.
+- Context growing large mid-task → suggest /compact.
+
+**Always ask for user confirmation before executing /compact or /clear — never trigger them automatically.**
