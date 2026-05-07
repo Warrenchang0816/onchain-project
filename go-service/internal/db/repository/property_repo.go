@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"go-service/internal/db/model"
-	propertymod "go-service/internal/modules/property"
+	customermod "go-service/internal/modules/customer"
 )
 
 type CustomerRepository struct {
@@ -92,7 +92,7 @@ func (r *CustomerRepository) FindBySourceCredentialSubmission(submissionID int64
 	return p, nil
 }
 
-func (r *CustomerRepository) CreateDraftFromOwnerCredential(ownerUserID, submissionID int64, built propertymod.BuiltPropertyDraft) (int64, error) {
+func (r *CustomerRepository) CreateDraftFromOwnerCredential(ownerUserID, submissionID int64, built customermod.BuiltPropertyDraft) (int64, error) {
 	var id int64
 	err := r.db.QueryRow(`
 		INSERT INTO customer (
@@ -109,7 +109,7 @@ func (r *CustomerRepository) CreateDraftFromOwnerCredential(ownerUserID, submiss
 	return id, nil
 }
 
-func (r *CustomerRepository) UpdateDisclosure(id int64, built propertymod.BuiltDisclosureSnapshot) error {
+func (r *CustomerRepository) UpdateDisclosure(id int64, built customermod.BuiltDisclosureSnapshot) error {
 	_, err := r.db.Exec(`
 		UPDATE customer
 		SET address=$1,

@@ -1,4 +1,4 @@
-package property
+package customer
 
 import "encoding/json"
 
@@ -10,7 +10,7 @@ type UpdateDisclosureRequest struct {
 	AttachmentSummaries []AttachmentSummary `json:"attachment_summaries"`
 }
 
-type PropertyResponse struct {
+type CustomerResponse struct {
 	ID                           int64            `json:"id"`
 	OwnerUserID                  int64            `json:"owner_user_id"`
 	SourceCredentialSubmissionID *int64           `json:"source_credential_submission_id,omitempty"`

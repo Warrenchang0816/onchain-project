@@ -11,7 +11,7 @@ import (
 
 	"go-service/internal/db/model"
 	"go-service/internal/db/repository"
-	propertymod "go-service/internal/modules/property"
+	customermod "go-service/internal/modules/customer"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/ocr"
 	"go-service/internal/platform/storage"
@@ -26,7 +26,7 @@ type OwnerDraftBootstrapper interface {
 }
 
 type OwnerPropertyBootstrapper interface {
-	BootstrapOwnerCredentialProperty(in propertymod.DisclosureInput) (int64, error)
+	BootstrapOwnerCredentialProperty(in customermod.DisclosureInput) (int64, error)
 }
 
 type Service struct {
@@ -486,7 +486,7 @@ func (s *Service) ActivateSubmission(ctx context.Context, wallet, credentialType
 		ownershipDocNo := strings.TrimSpace(formPayload["ownershipDocNo"])
 		propertyID := int64(0)
 		if s.ownerPropertyBootstrap != nil {
-			propertyID, err = s.ownerPropertyBootstrap.BootstrapOwnerCredentialProperty(propertymod.DisclosureInput{
+			propertyID, err = s.ownerPropertyBootstrap.BootstrapOwnerCredentialProperty(customermod.DisclosureInput{
 				OwnerUserID:                  user.ID,
 				SourceCredentialSubmissionID: sub.ID,
 				PropertyAddress:              propertyAddress,

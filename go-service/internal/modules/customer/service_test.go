@@ -1,4 +1,4 @@
-package property
+package customer
 
 import (
 	"database/sql"

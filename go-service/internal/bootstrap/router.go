@@ -11,7 +11,7 @@ import (
 	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
-	propertymod "go-service/internal/modules/property"
+	customermod "go-service/internal/modules/customer"
 	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	platformauth "go-service/internal/platform/auth"
@@ -34,7 +34,7 @@ func SetupRouter(
 	sessionRepo *repository.SessionRepository,
 	agentHandler *agentmod.Handler,
 	tenantHandler *tenantmod.Handler,
-	propertyHandler *propertymod.Handler,
+	propertyHandler *customermod.Handler,
 	locationHandler *locationmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()

@@ -12,7 +12,7 @@ import (
 	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
-	propertymod "go-service/internal/modules/property"
+	customermod "go-service/internal/modules/customer"
 	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/blockchain"
@@ -214,8 +214,8 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	adminHandler := usermod.NewAdminHandler(userSvc, blockchainConfig.GodModeWalletAddress)
 
 	// ── 13. Listing and credential modules ────────────────────────────────────────
-	propertySvc := propertymod.NewService(propertyRepo, userRepo)
-	propertyHandler := propertymod.NewHandler(propertySvc)
+	customerSvc := customermod.NewService(propertyRepo, userRepo)
+	customerHandler := customermod.NewHandler(customerSvc)
 	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
@@ -227,7 +227,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		minioClient,
 		visionClient,
 		chainSyncer,
-		propertySvc,
+		customerSvc,
 		listingSvc,
 	)
 	credentialHandler := credentialmod.NewHandler(credentialSvc)
@@ -264,7 +264,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		sessionRepo,
 		agentHandler,
 		tenantHandler,
-		propertyHandler,
+		customerHandler,
 		locationHandler,
 	)
 

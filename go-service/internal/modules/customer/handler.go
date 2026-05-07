@@ -1,4 +1,4 @@
-package property
+package customer
 
 import (
 	"encoding/json"
@@ -32,8 +32,8 @@ func walletFromContext(c *gin.Context) string {
 	return s
 }
 
-func toPropertyResponse(p *model.Customer) PropertyResponse {
-	resp := PropertyResponse{
+func toCustomerResponse(p *model.Customer) CustomerResponse {
+	resp := CustomerResponse{
 		ID:                 p.ID,
 		OwnerUserID:        p.OwnerUserID,
 		Address:            p.Address,
@@ -83,9 +83,9 @@ func (h *Handler) ListMyProperties(c *gin.Context) {
 		handlePropertyError(c, err)
 		return
 	}
-	resp := make([]PropertyResponse, 0, len(properties))
+	resp := make([]CustomerResponse, 0, len(properties))
 	for _, p := range properties {
-		resp = append(resp, toPropertyResponse(p))
+		resp = append(resp, toCustomerResponse(p))
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": resp})
 }
@@ -101,7 +101,7 @@ func (h *Handler) GetProperty(c *gin.Context) {
 		handlePropertyError(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"success": true, "data": toPropertyResponse(p)})
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": toCustomerResponse(p)})
 }
 
 func (h *Handler) UpdateDisclosure(c *gin.Context) {

@@ -30,7 +30,7 @@ type Service struct {
 	listingRepo  ListingStore
 	apptRepo     AppointmentStore
 	userRepo     UserStore
-	propertyRepo PropertyReader
+	customerRepo CustomerReader
 }
 
 type ListingStore interface {
@@ -67,7 +67,7 @@ type UserStore interface {
 	FindByWallet(walletAddress string) (*model.User, error)
 }
 
-type PropertyReader interface {
+type CustomerReader interface {
 	FindByID(id int64) (*model.Customer, error)
 }
 
@@ -75,13 +75,13 @@ func NewService(
 	listingRepo ListingStore,
 	apptRepo AppointmentStore,
 	userRepo UserStore,
-	propertyRepo PropertyReader,
+	customerRepo CustomerReader,
 ) *Service {
 	return &Service{
 		listingRepo:  listingRepo,
 		apptRepo:     apptRepo,
 		userRepo:     userRepo,
-		propertyRepo: propertyRepo,
+		customerRepo: customerRepo,
 	}
 }
 
@@ -473,10 +473,10 @@ func (s *Service) Publish(listingID int64, walletAddress string, durationDays in
 }
 
 func (s *Service) propertyForListing(l *model.Listing) (*model.Customer, error) {
-	if l == nil || !l.PropertyID.Valid || s.propertyRepo == nil {
+	if l == nil || !l.PropertyID.Valid || s.customerRepo == nil {
 		return nil, nil
 	}
-	return s.propertyRepo.FindByID(l.PropertyID.Int64)
+	return s.customerRepo.FindByID(l.PropertyID.Int64)
 }
 
 func listingFromRentRequest(existing *model.Listing, req UpdateRentDetailsRequest) model.Listing {
