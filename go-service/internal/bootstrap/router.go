@@ -111,6 +111,8 @@ func SetupRouter(
 			protected.PUT("/sale-listing/:id", saleListingHandler.Update)
 			protected.POST("/sale-listing/:id/publish", saleListingHandler.Publish)
 			protected.POST("/sale-listing/:id/close", saleListingHandler.Close)
+			protected.GET("/property/:id/rental-listing", rentalListingHandler.GetForProperty)
+			protected.GET("/property/:id/sale-listing", saleListingHandler.GetForProperty)
 
 			// Appointment management
 			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)

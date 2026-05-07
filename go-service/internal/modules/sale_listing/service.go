@@ -17,6 +17,7 @@ var (
 type Store interface {
 	Create(propertyID int64, totalPrice float64, durationDays int) (int64, error)
 	FindByID(id int64) (*model.SaleListing, error)
+	FindActiveByProperty(propertyID int64) (*model.SaleListing, error)
 	ListPublic() ([]*model.SaleListing, error)
 	Update(sl *model.SaleListing) error
 	SetStatus(id int64, status string) error
@@ -90,6 +91,17 @@ func (s *Service) GetByID(id int64) (*model.SaleListing, error) {
 	}
 	prop, _ := s.propertyRepo.FindByID(sl.PropertyID)
 	sl.Property = prop
+	return sl, nil
+}
+
+func (s *Service) GetActiveByProperty(propertyID int64, wallet string) (*model.SaleListing, error) {
+	if err := s.assertOwnsProperty(wallet, propertyID); err != nil {
+		return nil, err
+	}
+	sl, err := s.repo.FindActiveByProperty(propertyID)
+	if err != nil {
+		return nil, fmt.Errorf("sale_listing: GetActiveByProperty: %w", err)
+	}
 	return sl, nil
 }
 
