@@ -9,6 +9,7 @@ import (
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	listingmod "go-service/internal/modules/listing"
+	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
 	propertymod "go-service/internal/modules/property"
@@ -65,6 +66,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
 	agentProfileRepo := repository.NewAgentProfileRepository(postgresDB)
+	locationRepo := repository.NewLocationRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -234,6 +236,8 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	// ── 14. Agent directory module ────────────────────────────
 	agentSvc := agentmod.NewService(credentialRepo, agentProfileRepo, userRepo)
 	agentHandler := agentmod.NewHandler(agentSvc)
+	locationSvc := locationmod.NewService(locationRepo)
+	locationHandler := locationmod.NewHandler(locationSvc)
 
 	// ── 15. Tenant module ─────────────────────────────────────
 	tenantSvc := tenantmod.NewService(
@@ -261,6 +265,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		agentHandler,
 		tenantHandler,
 		propertyHandler,
+		locationHandler,
 	)
 
 	return r, cleanupFn, nil

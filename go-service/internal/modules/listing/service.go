@@ -112,10 +112,10 @@ func (s *Service) requireUser(wallet string) (*model.User, error) {
 // ── Listing CRUD ──────────────────────────────────────────────────────────────
 
 // ListPublic returns all ACTIVE listings with optional filters.
-func (s *Service) ListPublic(listType, district string) ([]*model.Listing, error) {
+func (s *Service) ListPublic(listType string, districts []string) ([]*model.Listing, error) {
 	listings, err := s.listingRepo.FindAll(repository.ListingFilter{
-		ListType: listType,
-		District: district,
+		ListType:  listType,
+		Districts: normalizeListingDistrictFilters(districts),
 	})
 	if err != nil {
 		return nil, err
@@ -126,6 +126,31 @@ func (s *Service) ListPublic(listType, district string) ([]*model.Listing, error
 		}
 	}
 	return listings, nil
+}
+
+func normalizeListingDistrictFilters(values []string) []string {
+	seen := map[string]bool{}
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		candidate := strings.TrimSpace(value)
+		if candidate == "" {
+			continue
+		}
+		parts := strings.Split(candidate, ":")
+		if len(parts) >= 2 {
+			if strings.TrimSpace(parts[1]) == "全區" {
+				candidate = strings.TrimSpace(parts[0])
+			} else {
+				candidate = strings.TrimSpace(parts[1])
+			}
+		}
+		if candidate == "" || seen[candidate] {
+			continue
+		}
+		seen[candidate] = true
+		result = append(result, candidate)
+	}
+	return result
 }
 
 // ListByOwner returns all listings owned by the given wallet (all statuses).
