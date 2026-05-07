@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { getRentalListings, type RentalListing } from "../api/rentalListingApi";
 import SiteLayout from "../layouts/SiteLayout";
 
+const BUILDING_TYPE_LABEL: Record<string, string> = {
+    APARTMENT: "公寓", BUILDING: "大樓", TOWNHOUSE: "透天", STUDIO: "套房",
+};
+
 function formatLayout(rl: RentalListing): string {
     const p = rl.property;
     if (!p) return "";
@@ -62,7 +66,7 @@ export default function RentListPage() {
                                             <div className="mb-2 flex flex-wrap gap-2">
                                                 {item.property?.building_type ? (
                                                     <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-on-surface-variant">
-                                                        {item.property.building_type}
+                                                        {BUILDING_TYPE_LABEL[item.property.building_type] ?? item.property.building_type}
                                                     </span>
                                                 ) : null}
                                                 {formatLayout(item) ? (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
     closeSaleListing,
@@ -68,7 +68,7 @@ export default function SaleListingPage() {
     const [saving, setSaving] = useState(false);
     const [msg, setMsg] = useState({ ok: "", err: "" });
 
-    const reload = async () => {
+    const reload = useCallback(async () => {
         setLoading(true);
         try {
             const [prop, sl] = await Promise.all([
@@ -83,10 +83,9 @@ export default function SaleListingPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [propertyId]);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { if (!isNaN(propertyId)) void reload(); }, [propertyId]);
+    useEffect(() => { if (!isNaN(propertyId)) void reload(); }, [propertyId, reload]);
 
     const setField = <K extends keyof FormState>(key: K, val: FormState[K]) =>
         setForm((f) => ({ ...f, [key]: val }));

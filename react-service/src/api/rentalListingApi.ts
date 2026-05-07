@@ -2,7 +2,7 @@ const API = import.meta.env.VITE_API_GO_SERVICE_URL || "http://localhost:8081/ap
 
 export type RentalListingStatus = "DRAFT" | "ACTIVE" | "NEGOTIATING" | "LOCKED" | "CLOSED" | "EXPIRED";
 export type ManagementFeePayer = "TENANT" | "OWNER" | "SPLIT";
-export type GenderRestriction = "MALE" | "FEMALE" | "ANY";
+export type GenderRestriction = "MALE" | "FEMALE" | "NONE";
 
 export type PropertySummary = {
     id: number;

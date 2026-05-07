@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { getSaleListings, type SaleListing } from "../api/saleListingApi";
 import SiteLayout from "../layouts/SiteLayout";
 
+const BUILDING_TYPE_LABEL: Record<string, string> = {
+    APARTMENT: "公寓", BUILDING: "大樓", TOWNHOUSE: "透天", STUDIO: "套房",
+};
+
 function formatLayout(sl: SaleListing): string {
     const p = sl.property;
     if (!p) return "";
@@ -61,7 +65,7 @@ export default function SaleListPage() {
                                         <div className="flex-1">
                                             <div className="mb-2 flex flex-wrap gap-2">
                                                 {item.property?.building_type ? (
-                                                    <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-on-surface-variant">{item.property.building_type}</span>
+                                                    <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-on-surface-variant">{BUILDING_TYPE_LABEL[item.property.building_type] ?? item.property.building_type}</span>
                                                 ) : null}
                                                 {formatLayout(item) ? (
                                                     <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-on-surface-variant">{formatLayout(item)}</span>

@@ -38,6 +38,7 @@ const router = createBrowserRouter([
     },
     { path: "/listings", element: <Navigate to="/sale" replace /> },
     { path: "/my/listings/new", element: <Navigate to="/my/properties/new" replace /> },
+    // Old listing IDs are from a different table and cannot be mapped to sale/rent IDs; redirect to list
     { path: "/listings/:id", element: <Navigate to="/sale" replace /> },
     {
         path: "/my/listings/:id",
