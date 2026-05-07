@@ -203,10 +203,11 @@ async function parseResponse<T>(res: Response): Promise<T> {
 
 // ── Listing queries ──────────────────────────────────────────────────────────
 
-export async function getListings(params?: { type?: Exclude<ListingType, "UNSET">; district?: string }): Promise<Listing[]> {
+export async function getListings(params?: { type?: Exclude<ListingType, "UNSET">; district?: string; districts?: string[] }): Promise<Listing[]> {
     const qs = new URLSearchParams();
     if (params?.type) qs.set("type", params.type);
     if (params?.district) qs.set("district", params.district);
+    params?.districts?.forEach((district) => qs.append("district", district));
     const url = `${API_BASE_URL}/listings${qs.toString() ? `?${qs}` : ""}`;
     const res = await fetch(url, { credentials: "include" });
     const data = await parseResponse<{ data: Listing[] }>(res);

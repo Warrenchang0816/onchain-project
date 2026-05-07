@@ -194,13 +194,27 @@ func (s *Service) CreateRequirement(wallet string, req CreateRequirementRequest)
 		return nil, err
 	}
 	r := &model.TenantRequirement{
-		UserID:            user.ID,
-		TargetDistrict:    strings.TrimSpace(req.TargetDistrict),
-		BudgetMin:         req.BudgetMin,
-		BudgetMax:         req.BudgetMax,
-		LayoutNote:        strings.TrimSpace(req.LayoutNote),
-		PetFriendlyNeeded: req.PetFriendlyNeeded,
-		ParkingNeeded:     req.ParkingNeeded,
+		UserID:                     user.ID,
+		TargetDistrict:             strings.TrimSpace(req.TargetDistrict),
+		BudgetMin:                  req.BudgetMin,
+		BudgetMax:                  req.BudgetMax,
+		LayoutNote:                 strings.TrimSpace(req.LayoutNote),
+		PetFriendlyNeeded:          req.PetFriendlyNeeded,
+		ParkingNeeded:              req.ParkingNeeded,
+		AreaMinPing:                nullFloat(req.AreaMinPing),
+		AreaMaxPing:                nullFloat(req.AreaMaxPing),
+		RoomMin:                    req.RoomMin,
+		BathroomMin:                req.BathroomMin,
+		MoveInTimeline:             strings.TrimSpace(req.MoveInTimeline),
+		MinimumLeaseMonths:         req.MinimumLeaseMonths,
+		CanCookNeeded:              req.CanCookNeeded,
+		CanRegisterHouseholdNeeded: req.CanRegisterHouseholdNeeded,
+		LifestyleNote:              strings.TrimSpace(req.LifestyleNote),
+		MustHaveNote:               strings.TrimSpace(req.MustHaveNote),
+		Districts:                  requirementDistrictsFromRequest(req.Districts),
+	}
+	if r.TargetDistrict == "" {
+		r.TargetDistrict = RequirementDistrictSummary(r.Districts)
 	}
 	if req.MoveInDate != nil && strings.TrimSpace(*req.MoveInDate) != "" {
 		t, err := time.Parse("2006-01-02", strings.TrimSpace(*req.MoveInDate))
@@ -240,11 +254,27 @@ func (s *Service) UpdateRequirement(wallet string, id int64, req UpdateRequireme
 	existing.LayoutNote = strings.TrimSpace(req.LayoutNote)
 	existing.PetFriendlyNeeded = req.PetFriendlyNeeded
 	existing.ParkingNeeded = req.ParkingNeeded
+	existing.AreaMinPing = nullFloat(req.AreaMinPing)
+	existing.AreaMaxPing = nullFloat(req.AreaMaxPing)
+	existing.RoomMin = req.RoomMin
+	existing.BathroomMin = req.BathroomMin
+	existing.MoveInTimeline = strings.TrimSpace(req.MoveInTimeline)
+	existing.MinimumLeaseMonths = req.MinimumLeaseMonths
+	existing.CanCookNeeded = req.CanCookNeeded
+	existing.CanRegisterHouseholdNeeded = req.CanRegisterHouseholdNeeded
+	existing.LifestyleNote = strings.TrimSpace(req.LifestyleNote)
+	existing.MustHaveNote = strings.TrimSpace(req.MustHaveNote)
+	existing.Districts = requirementDistrictsFromRequest(req.Districts)
+	if existing.TargetDistrict == "" {
+		existing.TargetDistrict = RequirementDistrictSummary(existing.Districts)
+	}
 	if req.MoveInDate != nil && strings.TrimSpace(*req.MoveInDate) != "" {
 		t, err := time.Parse("2006-01-02", strings.TrimSpace(*req.MoveInDate))
 		if err == nil {
 			existing.MoveInDate = sql.NullTime{Time: t, Valid: true}
 		}
+	} else {
+		existing.MoveInDate = sql.NullTime{}
 	}
 	if err := s.requirementRepo.Update(existing); err != nil {
 		return nil, err
@@ -284,8 +314,11 @@ func (s *Service) ListVisibleRequirements(wallet string, f RequirementFilter) ([
 		return nil, err
 	}
 	reqs, err := s.requirementRepo.FindVisible(repository.RequirementFilter{
-		District: f.District,
-		Status:   f.Status,
+		District:  f.District,
+		Districts: f.Districts,
+		County:    f.County,
+		Status:    f.Status,
+		Keyword:   f.Keyword,
 	})
 	if err != nil {
 		return nil, err
@@ -339,26 +372,38 @@ func buildProfileResponse(profile *model.TenantProfile, docs []*model.TenantProf
 
 func buildRequirementResponse(r *model.TenantRequirement, hasAdv bool, profile *model.TenantProfile) TenantRequirementResponse {
 	resp := TenantRequirementResponse{
-		ID:                r.ID,
-		TargetDistrict:    r.TargetDistrict,
-		BudgetMin:         r.BudgetMin,
-		BudgetMax:         r.BudgetMax,
-		LayoutNote:        r.LayoutNote,
-		PetFriendlyNeeded: r.PetFriendlyNeeded,
-		ParkingNeeded:     r.ParkingNeeded,
-		Status:            r.Status,
-		HasAdvancedData:   hasAdv,
-		CreatedAt:         r.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
-		UpdatedAt:         r.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		ID:                         r.ID,
+		TargetDistrict:             r.TargetDistrict,
+		Districts:                  buildRequirementDistrictResponses(r.Districts),
+		BudgetMin:                  r.BudgetMin,
+		BudgetMax:                  r.BudgetMax,
+		AreaMinPing:                floatPtrFromNull(r.AreaMinPing),
+		AreaMaxPing:                floatPtrFromNull(r.AreaMaxPing),
+		RoomMin:                    r.RoomMin,
+		BathroomMin:                r.BathroomMin,
+		LayoutNote:                 r.LayoutNote,
+		MinimumLeaseMonths:         r.MinimumLeaseMonths,
+		PetFriendlyNeeded:          r.PetFriendlyNeeded,
+		ParkingNeeded:              r.ParkingNeeded,
+		CanCookNeeded:              r.CanCookNeeded,
+		CanRegisterHouseholdNeeded: r.CanRegisterHouseholdNeeded,
+		LifestyleNote:              r.LifestyleNote,
+		MustHaveNote:               r.MustHaveNote,
+		Status:                     r.Status,
+		HasAdvancedData:            hasAdv,
+		CreatedAt:                  r.CreatedAt.UTC().Format("2006-01-02T15:04:05Z"),
+		UpdatedAt:                  r.UpdatedAt.UTC().Format("2006-01-02T15:04:05Z"),
 	}
 	if r.MoveInDate.Valid {
 		s := r.MoveInDate.Time.Format("2006-01-02")
 		resp.MoveInDate = &s
 	}
+	if strings.TrimSpace(r.MoveInTimeline) != "" {
+		resp.MoveInTimeline = strPtr(r.MoveInTimeline)
+	}
 	if hasAdv && profile != nil {
 		resp.OccupationType = strPtr(profile.OccupationType)
 		resp.IncomeRange = strPtr(profile.IncomeRange)
-		resp.MoveInTimeline = strPtr(profile.MoveInTimeline)
 	}
 	return resp
 }
@@ -384,4 +429,51 @@ func strPtr(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+func nullFloat(value *float64) sql.NullFloat64 {
+	if value == nil {
+		return sql.NullFloat64{}
+	}
+	return sql.NullFloat64{Float64: *value, Valid: true}
+}
+
+func floatPtrFromNull(value sql.NullFloat64) *float64 {
+	if !value.Valid {
+		return nil
+	}
+	return &value.Float64
+}
+
+func requirementDistrictsFromRequest(items []RequirementDistrictRequest) []*model.TenantRequirementDistrict {
+	result := make([]*model.TenantRequirementDistrict, 0, len(items))
+	seen := map[string]bool{}
+	for _, item := range items {
+		county := strings.TrimSpace(item.County)
+		district := strings.TrimSpace(item.District)
+		zipCode := strings.TrimSpace(item.ZipCode)
+		token := RequirementDistrictToken(county, district, zipCode)
+		if county == "" || district == "" || zipCode == "" || seen[token] {
+			continue
+		}
+		seen[token] = true
+		result = append(result, &model.TenantRequirementDistrict{
+			County:   county,
+			District: district,
+			ZipCode:  zipCode,
+		})
+	}
+	return result
+}
+
+func buildRequirementDistrictResponses(items []*model.TenantRequirementDistrict) []RequirementDistrictResponse {
+	result := make([]RequirementDistrictResponse, 0, len(items))
+	for _, item := range items {
+		result = append(result, RequirementDistrictResponse{
+			County:   item.County,
+			District: item.District,
+			ZipCode:  item.ZipCode,
+		})
+	}
+	return result
 }

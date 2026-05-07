@@ -47,34 +47,69 @@ export type TenantProfile = {
     documents: TenantProfileDocument[];
 };
 
+export type RequirementDistrict = {
+    county: string;
+    district: string;
+    zipCode: string;
+};
+
+export type MatchSummary = {
+    score: number;
+    level: "GOOD" | "PARTIAL" | "LOW";
+    matchedReasons: string[];
+    missingReasons: string[];
+};
+
 export type TenantRequirement = {
     id: number;
     targetDistrict: string;
+    districts: RequirementDistrict[];
     budgetMin: number;
     budgetMax: number;
+    areaMinPing?: number;
+    areaMaxPing?: number;
+    roomMin: number;
+    bathroomMin: number;
     layoutNote: string;
     moveInDate?: string;
+    moveInTimeline?: string;
+    minimumLeaseMonths: number;
     petFriendlyNeeded: boolean;
     parkingNeeded: boolean;
+    canCookNeeded: boolean;
+    canRegisterHouseholdNeeded: boolean;
+    lifestyleNote: string;
+    mustHaveNote: string;
     status: TenantRequirementStatus;
     hasAdvancedData: boolean;
     occupationType?: string;
     incomeRange?: string;
-    moveInTimeline?: string;
     createdAt: string;
     updatedAt: string;
+    match?: MatchSummary;
 };
 
 export type TenantProfilePayload = Omit<TenantProfile, "advancedDataStatus" | "documents">;
 
 export type TenantRequirementPayload = {
     targetDistrict: string;
+    districts: RequirementDistrict[];
     budgetMin: number;
     budgetMax: number;
+    areaMinPing?: number;
+    areaMaxPing?: number;
+    roomMin: number;
+    bathroomMin: number;
     layoutNote: string;
     moveInDate?: string | null;
+    moveInTimeline: string;
+    minimumLeaseMonths: number;
     petFriendlyNeeded: boolean;
     parkingNeeded: boolean;
+    canCookNeeded: boolean;
+    canRegisterHouseholdNeeded: boolean;
+    lifestyleNote: string;
+    mustHaveNote: string;
 };
 
 export async function getMyTenantProfile(): Promise<TenantProfile> {
@@ -147,10 +182,19 @@ export async function updateRequirementStatus(id: number, status: TenantRequirem
     await unwrap<unknown>(res);
 }
 
-export async function getRequirementList(filters?: { district?: string; status?: TenantRequirementStatus }): Promise<TenantRequirement[]> {
+export async function getRequirementList(filters?: {
+    district?: string;
+    districts?: string[];
+    county?: string;
+    status?: TenantRequirementStatus;
+    keyword?: string;
+}): Promise<TenantRequirement[]> {
     const qs = new URLSearchParams();
     if (filters?.district) qs.set("district", filters.district);
+    filters?.districts?.forEach((district) => qs.append("district", district));
+    if (filters?.county) qs.set("county", filters.county);
     if (filters?.status) qs.set("status", filters.status);
+    if (filters?.keyword) qs.set("keyword", filters.keyword);
 
     const res = await fetch(`${API_BASE_URL}/requirements${qs.toString() ? `?${qs}` : ""}`, {
         method: "GET",

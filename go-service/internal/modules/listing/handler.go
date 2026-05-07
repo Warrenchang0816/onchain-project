@@ -194,9 +194,9 @@ func handleSvcError(c *gin.Context, err error) {
 // GET /api/listings  (optional auth — caller wallet used for isOwner flag)
 func (h *Handler) ListListings(c *gin.Context) {
 	listType := c.Query("type")
-	district := c.Query("district")
+	districts := c.QueryArray("district")
 
-	listings, err := h.svc.ListPublic(listType, district)
+	listings, err := h.svc.ListPublic(listType, districts)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
