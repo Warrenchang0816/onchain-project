@@ -44,6 +44,18 @@ func (r *SaleListingRepository) FindByID(id int64) (*model.SaleListing, error) {
 	return sl, nil
 }
 
+func (r *SaleListingRepository) FindActiveByProperty(propertyID int64) (*model.SaleListing, error) {
+	row := r.db.QueryRow(`SELECT `+saleListingCols+` FROM sale_listing WHERE property_id = $1 AND status NOT IN ('CLOSED', 'EXPIRED') ORDER BY created_at DESC LIMIT 1`, propertyID)
+	sl, err := scanSaleListing(row)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("sale_listing_repo: FindActiveByProperty: %w", err)
+	}
+	return sl, nil
+}
+
 func (r *SaleListingRepository) ListPublic() ([]*model.SaleListing, error) {
 	rows, err := r.db.Query(`SELECT ` + saleListingCols + ` FROM sale_listing WHERE status='ACTIVE' ORDER BY published_at DESC`)
 	if err != nil {

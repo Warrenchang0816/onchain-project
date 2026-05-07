@@ -87,6 +87,17 @@ func (s *Service) GetByID(id int64) (*model.RentalListing, error) {
 	return rl, nil
 }
 
+func (s *Service) GetActiveByProperty(propertyID int64, wallet string) (*model.RentalListing, error) {
+	if err := s.assertOwnsProperty(wallet, propertyID); err != nil {
+		return nil, err
+	}
+	rl, err := s.repo.FindActiveByProperty(propertyID)
+	if err != nil {
+		return nil, fmt.Errorf("rental_listing: GetActiveByProperty: %w", err)
+	}
+	return rl, nil
+}
+
 func (s *Service) Update(id int64, wallet string, req UpdateRentalListingRequest) error {
 	rl, err := s.repo.FindByID(id)
 	if err != nil || rl == nil {

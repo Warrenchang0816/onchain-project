@@ -7,11 +7,11 @@ import (
 	agentmod "go-service/internal/modules/agent"
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
+	customermod "go-service/internal/modules/customer"
 	listingmod "go-service/internal/modules/listing"
 	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
-	customermod "go-service/internal/modules/customer"
 	propertymod "go-service/internal/modules/property"
 	rentallistingmod "go-service/internal/modules/rental_listing"
 	salelistingmod "go-service/internal/modules/sale_listing"
@@ -111,6 +111,8 @@ func SetupRouter(
 			protected.PUT("/sale-listing/:id", saleListingHandler.Update)
 			protected.POST("/sale-listing/:id/publish", saleListingHandler.Publish)
 			protected.POST("/sale-listing/:id/close", saleListingHandler.Close)
+			protected.GET("/property/:id/rental-listing", rentalListingHandler.GetForProperty)
+			protected.GET("/property/:id/sale-listing", saleListingHandler.GetForProperty)
 
 			// Appointment management
 			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)

@@ -58,6 +58,7 @@ func (r *RentalListingRepository) FindActiveByProperty(propertyID int64) (*model
 		       gender_restriction, notes, published_at, expires_at,
 		       created_at, updated_at
 		FROM rental_listing WHERE property_id = $1
+		AND status NOT IN ('CLOSED', 'EXPIRED')
 		ORDER BY created_at DESC LIMIT 1`, propertyID)
 	rl, err := scanRentalListing(row)
 	if err == sql.ErrNoRows {

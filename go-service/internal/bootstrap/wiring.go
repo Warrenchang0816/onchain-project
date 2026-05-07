@@ -8,11 +8,11 @@ import (
 	agentmod "go-service/internal/modules/agent"
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
+	customermod "go-service/internal/modules/customer"
 	listingmod "go-service/internal/modules/listing"
 	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
-	customermod "go-service/internal/modules/customer"
 	propertymod "go-service/internal/modules/property"
 	rentallistingmod "go-service/internal/modules/rental_listing"
 	salelistingmod "go-service/internal/modules/sale_listing"
@@ -70,9 +70,9 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
 	agentProfileRepo := repository.NewAgentProfileRepository(postgresDB)
 	locationRepo := repository.NewLocationRepository(postgresDB)
-	newPropertyRepo   := repository.NewPropertyRepository(postgresDB)
+	newPropertyRepo := repository.NewPropertyRepository(postgresDB)
 	rentalListingRepo := repository.NewRentalListingRepository(postgresDB)
-	saleListingRepo   := repository.NewSaleListingRepository(postgresDB)
+	saleListingRepo := repository.NewSaleListingRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -246,13 +246,13 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	locationHandler := locationmod.NewHandler(locationSvc)
 
 	// ── 15. New property + listing modules ───────────────────────────────────
-	newPropertySvc      := propertymod.NewService(newPropertyRepo, userRepo)
-	newPropertyHandler  := propertymod.NewHandler(newPropertySvc)
+	newPropertySvc := propertymod.NewService(newPropertyRepo, userRepo)
+	newPropertyHandler := propertymod.NewHandler(newPropertySvc)
 
-	rentalListingSvc     := rentallistingmod.NewService(rentalListingRepo, newPropertyRepo, userRepo)
+	rentalListingSvc := rentallistingmod.NewService(rentalListingRepo, newPropertyRepo, userRepo)
 	rentalListingHandler := rentallistingmod.NewHandler(rentalListingSvc)
 
-	saleListingSvc     := salelistingmod.NewService(saleListingRepo, newPropertyRepo, userRepo)
+	saleListingSvc := salelistingmod.NewService(saleListingRepo, newPropertyRepo, userRepo)
 	saleListingHandler := salelistingmod.NewHandler(saleListingSvc)
 
 	// ── 16. Tenant module ─────────────────────────────────────

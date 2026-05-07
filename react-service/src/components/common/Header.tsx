@@ -109,7 +109,8 @@ export default function Header() {
 
                 <nav className="hidden items-center gap-8 md:flex">
                     <NavLink to="/" end className={navLinkCls}>首頁</NavLink>
-                    <NavLink to="/listings" className={navLinkCls}>房源列表</NavLink>
+                    <NavLink to="/sale" className={navLinkCls}>出售物件</NavLink>
+                    <NavLink to="/rent" className={navLinkCls}>出租物件</NavLink>
                     {canBrowseRequirements ? <NavLink to="/requirements" className={navLinkCls}>租屋需求</NavLink> : null}
                     <NavLink to="/agents" className={navLinkCls}>仲介列表</NavLink>
                 </nav>

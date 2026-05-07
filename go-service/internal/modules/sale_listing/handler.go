@@ -15,6 +15,7 @@ type APIService interface {
 	Create(propertyID int64, wallet string, req CreateSaleListingRequest) (int64, error)
 	ListPublic() ([]*model.SaleListing, error)
 	GetByID(id int64) (*model.SaleListing, error)
+	GetActiveByProperty(propertyID int64, wallet string) (*model.SaleListing, error)
 	Update(id int64, wallet string, req UpdateSaleListingRequest) error
 	Publish(id int64, wallet string, durationDays int) error
 	Close(id int64, wallet string) error
@@ -152,7 +153,80 @@ func toResponse(sl *model.SaleListing) SaleListingResponse {
 	if sl.ExpiresAt.Valid {
 		resp.ExpiresAt = &sl.ExpiresAt.Time
 	}
+	if sl.Property != nil {
+		p := sl.Property
+		pResp := PropertySummaryResponse{
+			ID: p.ID, Title: p.Title, Address: p.Address,
+			BuildingType: p.BuildingType, IsCornerUnit: p.IsCornerUnit,
+			ParkingType: p.ParkingType, SecurityType: p.SecurityType,
+		}
+		if p.Floor.Valid {
+			v := p.Floor.Int32
+			pResp.Floor = &v
+		}
+		if p.TotalFloors.Valid {
+			v := p.TotalFloors.Int32
+			pResp.TotalFloors = &v
+		}
+		if p.MainArea.Valid {
+			v := p.MainArea.Float64
+			pResp.MainArea = &v
+		}
+		if p.AuxiliaryArea.Valid {
+			v := p.AuxiliaryArea.Float64
+			pResp.AuxiliaryArea = &v
+		}
+		if p.BalconyArea.Valid {
+			v := p.BalconyArea.Float64
+			pResp.BalconyArea = &v
+		}
+		if p.Rooms.Valid {
+			v := p.Rooms.Int32
+			pResp.Rooms = &v
+		}
+		if p.LivingRooms.Valid {
+			v := p.LivingRooms.Int32
+			pResp.LivingRooms = &v
+		}
+		if p.Bathrooms.Valid {
+			v := p.Bathrooms.Int32
+			pResp.Bathrooms = &v
+		}
+		if p.BuildingAge.Valid {
+			v := p.BuildingAge.Int32
+			pResp.BuildingAge = &v
+		}
+		if p.ManagementFee.Valid {
+			v := p.ManagementFee.Float64
+			pResp.ManagementFee = &v
+		}
+		if p.BuildingOrientation.Valid {
+			pResp.BuildingOrientation = &p.BuildingOrientation.String
+		}
+		if p.WindowOrientation.Valid {
+			pResp.WindowOrientation = &p.WindowOrientation.String
+		}
+		resp.Property = &pResp
+	}
 	return resp
+}
+
+func (h *Handler) GetForProperty(c *gin.Context) {
+	propID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid property id"})
+		return
+	}
+	sl, err := h.svc.GetActiveByProperty(propID, walletFrom(c))
+	if err != nil {
+		handleErr(c, err)
+		return
+	}
+	if sl == nil {
+		c.JSON(http.StatusOK, gin.H{"success": true, "data": nil})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true, "data": toResponse(sl)})
 }
 
 func handleErr(c *gin.Context, err error) {
