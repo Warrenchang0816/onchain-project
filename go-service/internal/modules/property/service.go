@@ -1,0 +1,241 @@
+package property
+
+import (
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	"go-service/internal/db/model"
+)
+
+var (
+	ErrNotFound  = errors.New("property not found")
+	ErrForbidden = errors.New("only the property owner can perform this action")
+	ErrNotOwner  = errors.New("KYC verified owner credential required")
+)
+
+type Store interface {
+	Create(ownerUserID int64, title, address string) (int64, error)
+	FindByID(id int64) (*model.Property, error)
+	ListByOwner(ownerUserID int64) ([]*model.Property, error)
+	Update(p *model.Property) error
+	SetSetupStatus(id int64, status string, updatedAt time.Time) error
+	AddAttachment(propertyID int64, attachType, url string) (int64, error)
+	DeleteAttachment(propertyID, attachmentID int64) error
+	ListAttachments(propertyID int64) ([]*model.PropertyAttachment, error)
+}
+
+type UserStore interface {
+	FindByWallet(wallet string) (*model.User, error)
+}
+
+type Service struct {
+	repo     Store
+	userRepo UserStore
+}
+
+func NewService(repo Store, userRepo UserStore) *Service {
+	return &Service{repo: repo, userRepo: userRepo}
+}
+
+func (s *Service) Create(wallet, title, address string) (int64, error) {
+	user, err := s.requireOwner(wallet)
+	if err != nil {
+		return 0, err
+	}
+	id, err := s.repo.Create(user.ID, title, address)
+	if err != nil {
+		return 0, fmt.Errorf("property: Create: %w", err)
+	}
+	return id, nil
+}
+
+func (s *Service) ListMine(wallet string) ([]*model.Property, error) {
+	user, err := s.requireOwner(wallet)
+	if err != nil {
+		return nil, err
+	}
+	props, err := s.repo.ListByOwner(user.ID)
+	if err != nil {
+		return nil, fmt.Errorf("property: ListMine: %w", err)
+	}
+	for _, p := range props {
+		atts, _ := s.repo.ListAttachments(p.ID)
+		p.Attachments = atts
+	}
+	return props, nil
+}
+
+func (s *Service) GetForOwner(id int64, wallet string) (*model.Property, error) {
+	p, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, fmt.Errorf("property: GetForOwner: %w", err)
+	}
+	if p == nil {
+		return nil, ErrNotFound
+	}
+	user, err := s.requireOwner(wallet)
+	if err != nil {
+		return nil, err
+	}
+	if p.OwnerUserID != user.ID {
+		return nil, ErrForbidden
+	}
+	atts, _ := s.repo.ListAttachments(p.ID)
+	p.Attachments = atts
+	return p, nil
+}
+
+func (s *Service) Update(id int64, wallet string, req UpdatePropertyRequest) error {
+	p, err := s.GetForOwner(id, wallet)
+	if err != nil {
+		return err
+	}
+	applyUpdate(p, req)
+	p.SetupStatus = computeSetupStatus(p)
+	p.UpdatedAt = time.Now()
+	if err := s.repo.Update(p); err != nil {
+		return fmt.Errorf("property: Update: %w", err)
+	}
+	return nil
+}
+
+func (s *Service) AddAttachment(propertyID int64, wallet, attachType, url string) (int64, error) {
+	if _, err := s.GetForOwner(propertyID, wallet); err != nil {
+		return 0, err
+	}
+	id, err := s.repo.AddAttachment(propertyID, attachType, url)
+	if err != nil {
+		return 0, fmt.Errorf("property: AddAttachment: %w", err)
+	}
+	p, _ := s.repo.FindByID(propertyID)
+	if p != nil {
+		atts, _ := s.repo.ListAttachments(propertyID)
+		p.Attachments = atts
+		newStatus := computeSetupStatus(p)
+		if newStatus != p.SetupStatus {
+			_ = s.repo.SetSetupStatus(propertyID, newStatus, time.Now())
+		}
+	}
+	return id, nil
+}
+
+func (s *Service) DeleteAttachment(propertyID, attachmentID int64, wallet string) error {
+	if _, err := s.GetForOwner(propertyID, wallet); err != nil {
+		return err
+	}
+	return s.repo.DeleteAttachment(propertyID, attachmentID)
+}
+
+func computeSetupStatus(p *model.Property) string {
+	if p.Title == "" || p.Address == "" || p.BuildingType == "" {
+		return model.PropertySetupDraft
+	}
+	hasPhoto := false
+	for _, a := range p.Attachments {
+		if a.Type == model.AttachmentTypePhoto {
+			hasPhoto = true
+			break
+		}
+	}
+	if !hasPhoto {
+		return model.PropertySetupDraft
+	}
+	return model.PropertySetupReady
+}
+
+func applyUpdate(p *model.Property, req UpdatePropertyRequest) {
+	if req.Title != "" {
+		p.Title = req.Title
+	}
+	if req.Address != "" {
+		p.Address = req.Address
+	}
+	if req.BuildingType != "" {
+		p.BuildingType = req.BuildingType
+	}
+	if req.Floor != nil {
+		p.Floor = sql.NullInt32{Int32: *req.Floor, Valid: true}
+	}
+	if req.TotalFloors != nil {
+		p.TotalFloors = sql.NullInt32{Int32: *req.TotalFloors, Valid: true}
+	}
+	if req.MainArea != nil {
+		p.MainArea = sql.NullFloat64{Float64: *req.MainArea, Valid: true}
+	}
+	if req.AuxiliaryArea != nil {
+		p.AuxiliaryArea = sql.NullFloat64{Float64: *req.AuxiliaryArea, Valid: true}
+	}
+	if req.BalconyArea != nil {
+		p.BalconyArea = sql.NullFloat64{Float64: *req.BalconyArea, Valid: true}
+	}
+	if req.SharedArea != nil {
+		p.SharedArea = sql.NullFloat64{Float64: *req.SharedArea, Valid: true}
+	}
+	if req.AwningArea != nil {
+		p.AwningArea = sql.NullFloat64{Float64: *req.AwningArea, Valid: true}
+	}
+	if req.LandArea != nil {
+		p.LandArea = sql.NullFloat64{Float64: *req.LandArea, Valid: true}
+	}
+	if req.Rooms != nil {
+		p.Rooms = sql.NullInt32{Int32: *req.Rooms, Valid: true}
+	}
+	if req.LivingRooms != nil {
+		p.LivingRooms = sql.NullInt32{Int32: *req.LivingRooms, Valid: true}
+	}
+	if req.Bathrooms != nil {
+		p.Bathrooms = sql.NullInt32{Int32: *req.Bathrooms, Valid: true}
+	}
+	if req.IsCornerUnit != nil {
+		p.IsCornerUnit = *req.IsCornerUnit
+	}
+	if req.HasDarkRoom != nil {
+		p.HasDarkRoom = *req.HasDarkRoom
+	}
+	if req.BuildingAge != nil {
+		p.BuildingAge = sql.NullInt32{Int32: *req.BuildingAge, Valid: true}
+	}
+	if req.BuildingStructure != nil {
+		p.BuildingStructure = sql.NullString{String: *req.BuildingStructure, Valid: true}
+	}
+	if req.ExteriorMaterial != nil {
+		p.ExteriorMaterial = sql.NullString{String: *req.ExteriorMaterial, Valid: true}
+	}
+	if req.BuildingUsage != nil {
+		p.BuildingUsage = sql.NullString{String: *req.BuildingUsage, Valid: true}
+	}
+	if req.Zoning != nil {
+		p.Zoning = sql.NullString{String: *req.Zoning, Valid: true}
+	}
+	if req.UnitsOnFloor != nil {
+		p.UnitsOnFloor = sql.NullInt32{Int32: *req.UnitsOnFloor, Valid: true}
+	}
+	if req.BuildingOrientation != nil {
+		p.BuildingOrientation = sql.NullString{String: *req.BuildingOrientation, Valid: true}
+	}
+	if req.WindowOrientation != nil {
+		p.WindowOrientation = sql.NullString{String: *req.WindowOrientation, Valid: true}
+	}
+	if req.ParkingType != nil {
+		p.ParkingType = *req.ParkingType
+	}
+	if req.ManagementFee != nil {
+		p.ManagementFee = sql.NullFloat64{Float64: *req.ManagementFee, Valid: true}
+	}
+	if req.SecurityType != nil {
+		p.SecurityType = *req.SecurityType
+	}
+}
+
+func (s *Service) requireOwner(wallet string) (*model.User, error) {
+	user, err := s.userRepo.FindByWallet(wallet)
+	if err != nil {
+		return nil, fmt.Errorf("property: lookup user: %w", err)
+	}
+	if user == nil {
+		return nil, ErrNotOwner
+	}
+	return user, nil
+}
