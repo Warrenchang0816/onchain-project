@@ -20,6 +20,18 @@ BEGIN
     END IF;
 END $$`,
 
+		`
+CREATE TABLE IF NOT EXISTS taiwan_districts (
+    id BIGSERIAL PRIMARY KEY,
+    county VARCHAR(20) NOT NULL,
+    district VARCHAR(30) NOT NULL,
+    postal_code CHAR(3) NOT NULL,
+    sort_order INT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_taiwan_districts UNIQUE (county, district, postal_code)
+)`,
+
 		`CREATE TABLE IF NOT EXISTS property (
     id                   BIGSERIAL    PRIMARY KEY,
     owner_user_id        BIGINT       NOT NULL REFERENCES users(id),
@@ -173,17 +185,6 @@ CREATE TABLE IF NOT EXISTS listing_sale_details (
     updated_at                 TIMESTAMPTZ   NOT NULL DEFAULT NOW()
 )`,
 		`CREATE INDEX IF NOT EXISTS idx_listing_sale_details_listing_id ON listing_sale_details (listing_id)`,
-		`
-CREATE TABLE IF NOT EXISTS taiwan_districts (
-    id BIGSERIAL PRIMARY KEY,
-    county VARCHAR(20) NOT NULL,
-    district VARCHAR(30) NOT NULL,
-    postal_code CHAR(3) NOT NULL,
-    sort_order INT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_taiwan_districts UNIQUE (county, district, postal_code)
-)`,
 		`CREATE INDEX IF NOT EXISTS idx_taiwan_districts_county_sort ON taiwan_districts (county, sort_order)`,
 		`DELETE FROM taiwan_districts WHERE county = '新北市' AND postal_code IN ('209', '210', '211', '212')`,
 		`ALTER TABLE tenant_requirements
