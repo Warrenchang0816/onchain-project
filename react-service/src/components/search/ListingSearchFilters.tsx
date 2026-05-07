@@ -72,7 +72,7 @@ export default function ListingSearchFilters({
                 <button
                     type="button"
                     onClick={onReset}
-                    className="rounded-xl border border-outline-variant/25 bg-transparent px-5 py-3 text-sm font-bold text-on-surface"
+                    className="rounded-xl border border-outline-variant/25 bg-transparent px-5 py-3 text-sm font-bold text-on-surface hover:bg-surface-container-low transition-colors"
                 >
                     清除
                 </button>
