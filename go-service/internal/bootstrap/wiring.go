@@ -61,7 +61,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	credentialRepo := repository.NewUserCredentialRepository(postgresDB)
 	credentialSubmissionRepo := repository.NewCredentialSubmissionRepository(postgresDB)
 	listingRepo := repository.NewListingRepository(postgresDB)
-	propertyRepo := repository.NewPropertyRepository(postgresDB)
+	propertyRepo := repository.NewCustomerRepository(postgresDB)
 	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
 	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
