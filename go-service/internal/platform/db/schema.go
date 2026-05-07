@@ -110,7 +110,7 @@ END $$`,
 		`CREATE INDEX IF NOT EXISTS idx_sale_listing_status   ON sale_listing (status)`,
 
 		`
-CREATE TABLE IF NOT EXISTS properties (
+CREATE TABLE IF NOT EXISTS customer (
     id                              BIGSERIAL PRIMARY KEY,
     owner_user_id                   BIGINT       NOT NULL REFERENCES users(id),
     source_credential_submission_id BIGINT       UNIQUE REFERENCES credential_submissions(id),
@@ -135,7 +135,7 @@ CREATE TABLE IF NOT EXISTS properties (
     ADD CONSTRAINT listings_list_type_check
     CHECK (list_type IN ('UNSET', 'RENT', 'SALE'))`,
 		`ALTER TABLE listings ALTER COLUMN list_type SET DEFAULT 'UNSET'`,
-		`ALTER TABLE listings ADD COLUMN IF NOT EXISTS property_id BIGINT REFERENCES properties(id)`,
+		`ALTER TABLE listings ADD COLUMN IF NOT EXISTS property_id BIGINT REFERENCES customer(id)`,
 		`CREATE INDEX IF NOT EXISTS idx_listings_property_id ON listings (property_id)`,
 		`DROP INDEX IF EXISTS idx_listings_source_credential_submission_id`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_listings_source_credential_submission_id
