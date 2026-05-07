@@ -35,12 +35,6 @@ export default function DistrictMultiSelect({
     const label = value.length === 0 ? emptyLabel : getDistrictSelectionSummary(value);
 
     useEffect(() => {
-        if (!activeCounty && selectedCounty) {
-            setActiveCounty(selectedCounty);
-        }
-    }, [activeCounty, selectedCounty]);
-
-    useEffect(() => {
         const handlePointerDown = (event: PointerEvent) => {
             if (!rootRef.current?.contains(event.target as Node)) {
                 setIsOpen(false);

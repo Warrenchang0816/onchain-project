@@ -18,12 +18,19 @@ export default function RequirementDetailPage() {
             return;
         }
 
-        setLoading(true);
-        setError("");
-        getRequirementDetail(requirementId)
-            .then(setItem)
-            .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取租屋需求失敗"))
-            .finally(() => setLoading(false));
+        const load = async () => {
+            setLoading(true);
+            setError("");
+            try {
+                const data = await getRequirementDetail(requirementId);
+                setItem(data);
+            } catch (err: unknown) {
+                setError(err instanceof Error ? err.message : "讀取租屋需求失敗");
+            } finally {
+                setLoading(false);
+            }
+        };
+        void load();
     }, [hasValidId, requirementId]);
 
     return (
