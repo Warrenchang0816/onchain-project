@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { getTaiwanDistricts, type TaiwanDistrictOption } from "@/api/listingApi";
 import {
     createRequirement,
@@ -139,6 +140,12 @@ export default function MyRequirementsPage() {
         <SiteLayout>
             <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-8 px-6 py-12 md:px-12">
                 <header className="space-y-3">
+                    <Link
+                        to="/member"
+                        className="mb-2 inline-flex items-center gap-1 text-sm text-on-surface-variant hover:text-on-surface"
+                    >
+                        ← 身分工作台
+                    </Link>
                     <h1 className="text-4xl font-extrabold text-on-surface">我的租屋需求</h1>
                     <p className="max-w-3xl text-sm leading-[1.8] text-on-surface-variant">
                         建立可媒合的租屋需求，讓房東與仲介能用地區、租金、坪數、房型與必要條件判斷是否合適。
