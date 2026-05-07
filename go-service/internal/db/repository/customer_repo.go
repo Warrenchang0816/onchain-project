@@ -66,7 +66,7 @@ func (r *CustomerRepository) FindByID(id int64) (*model.Customer, error) {
 	row := r.db.QueryRow(propertySelectCols+` WHERE id = $1`, id)
 	p, err := scanProperty(row)
 	if err != nil {
-		return nil, fmt.Errorf("property_repo: FindByID: %w", err)
+		return nil, fmt.Errorf("customer_repo: FindByID: %w", err)
 	}
 	return p, nil
 }
@@ -74,11 +74,11 @@ func (r *CustomerRepository) FindByID(id int64) (*model.Customer, error) {
 func (r *CustomerRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Customer, error) {
 	rows, err := r.db.Query(propertySelectCols+` WHERE owner_user_id = $1 ORDER BY updated_at DESC, id DESC`, ownerUserID)
 	if err != nil {
-		return nil, fmt.Errorf("property_repo: ListByOwnerUserID: %w", err)
+		return nil, fmt.Errorf("customer_repo: ListByOwnerUserID: %w", err)
 	}
 	properties, err := scanProperties(rows)
 	if err != nil {
-		return nil, fmt.Errorf("property_repo: ListByOwnerUserID scan: %w", err)
+		return nil, fmt.Errorf("customer_repo: ListByOwnerUserID scan: %w", err)
 	}
 	return properties, nil
 }
@@ -87,7 +87,7 @@ func (r *CustomerRepository) FindBySourceCredentialSubmission(submissionID int64
 	row := r.db.QueryRow(propertySelectCols+` WHERE source_credential_submission_id = $1 LIMIT 1`, submissionID)
 	p, err := scanProperty(row)
 	if err != nil {
-		return nil, fmt.Errorf("property_repo: FindBySourceCredentialSubmission: %w", err)
+		return nil, fmt.Errorf("customer_repo: FindBySourceCredentialSubmission: %w", err)
 	}
 	return p, nil
 }
@@ -104,7 +104,7 @@ func (r *CustomerRepository) CreateDraftFromOwnerCredential(ownerUserID, submiss
 		model.CustomerVerificationDraft, model.CustomerCompletenessDisclosureRequired,
 	).Scan(&id)
 	if err != nil {
-		return 0, fmt.Errorf("property_repo: CreateDraftFromOwnerCredential: %w", err)
+		return 0, fmt.Errorf("customer_repo: CreateDraftFromOwnerCredential: %w", err)
 	}
 	return id, nil
 }
@@ -133,7 +133,7 @@ func (r *CustomerRepository) UpdateDisclosure(id int64, built customermod.BuiltD
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("property_repo: UpdateDisclosure: %w", err)
+		return fmt.Errorf("customer_repo: UpdateDisclosure: %w", err)
 	}
 	return nil
 }
@@ -150,7 +150,7 @@ func (r *CustomerRepository) MarkReadyForListing(id int64) error {
 		id,
 	)
 	if err != nil {
-		return fmt.Errorf("property_repo: MarkReadyForListing: %w", err)
+		return fmt.Errorf("customer_repo: MarkReadyForListing: %w", err)
 	}
 	return nil
 }

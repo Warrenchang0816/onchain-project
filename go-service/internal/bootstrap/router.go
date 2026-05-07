@@ -34,7 +34,7 @@ func SetupRouter(
 	sessionRepo *repository.SessionRepository,
 	agentHandler *agentmod.Handler,
 	tenantHandler *tenantmod.Handler,
-	propertyHandler *customermod.Handler,
+	customerHandler *customermod.Handler,
 	locationHandler *locationmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
@@ -77,10 +77,10 @@ func SetupRouter(
 			protected.PUT("/listings/:id/unlock", listingHandler.UnlockNegotiation)
 
 			// Property management (owner)
-			protected.GET("/properties/mine", propertyHandler.ListMyProperties)
-			protected.GET("/properties/:id", propertyHandler.GetProperty)
-			protected.PUT("/properties/:id/disclosure", propertyHandler.UpdateDisclosure)
-			protected.POST("/properties/:id/disclosure/confirm", propertyHandler.ConfirmDisclosure)
+			protected.GET("/properties/mine", customerHandler.ListMyProperties)
+			protected.GET("/properties/:id", customerHandler.GetProperty)
+			protected.PUT("/properties/:id/disclosure", customerHandler.UpdateDisclosure)
+			protected.POST("/properties/:id/disclosure/confirm", customerHandler.ConfirmDisclosure)
 
 			// Appointment management
 			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)
