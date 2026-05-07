@@ -13,6 +13,102 @@ type schemaExecutor interface {
 // Docker volumes that do not re-run infra/init SQL after the first boot.
 func EnsureSchema(db schemaExecutor) error {
 	statements := []string{
+		`DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = 'properties') THEN
+        ALTER TABLE properties RENAME TO customer;
+    END IF;
+END $$`,
+
+		`CREATE TABLE IF NOT EXISTS property (
+    id                   BIGSERIAL    PRIMARY KEY,
+    owner_user_id        BIGINT       NOT NULL REFERENCES users(id),
+    title                TEXT         NOT NULL DEFAULT '',
+    address              TEXT         NOT NULL DEFAULT '',
+    district_id          BIGINT       REFERENCES taiwan_districts(id),
+    building_type        VARCHAR(20)  NOT NULL DEFAULT 'APARTMENT',
+    floor                SMALLINT,
+    total_floors         SMALLINT,
+    main_area            NUMERIC(6,2),
+    auxiliary_area       NUMERIC(6,2),
+    balcony_area         NUMERIC(6,2),
+    shared_area          NUMERIC(6,2),
+    awning_area          NUMERIC(6,2),
+    land_area            NUMERIC(8,2),
+    rooms                SMALLINT,
+    living_rooms         SMALLINT,
+    bathrooms            SMALLINT,
+    is_corner_unit       BOOLEAN      NOT NULL DEFAULT FALSE,
+    has_dark_room        BOOLEAN      NOT NULL DEFAULT FALSE,
+    building_age         SMALLINT,
+    building_structure   VARCHAR(50),
+    exterior_material    VARCHAR(100),
+    building_usage       TEXT,
+    zoning               TEXT,
+    units_on_floor       SMALLINT,
+    building_orientation VARCHAR(10),
+    window_orientation   VARCHAR(10),
+    parking_type         VARCHAR(20)  NOT NULL DEFAULT 'NONE',
+    management_fee       NUMERIC(10,2),
+    security_type        VARCHAR(20)  NOT NULL DEFAULT 'NONE',
+    setup_status         VARCHAR(20)  NOT NULL DEFAULT 'DRAFT',
+    created_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ  NOT NULL DEFAULT NOW()
+)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_property_owner ON property (owner_user_id)`,
+
+		`CREATE TABLE IF NOT EXISTS property_attachment (
+    id          BIGSERIAL   PRIMARY KEY,
+    property_id BIGINT      NOT NULL REFERENCES property(id) ON DELETE CASCADE,
+    type        VARCHAR(20) NOT NULL,
+    url         TEXT        NOT NULL,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_property_attachment_property ON property_attachment (property_id)`,
+
+		`CREATE TABLE IF NOT EXISTS rental_listing (
+    id                   BIGSERIAL     PRIMARY KEY,
+    property_id          BIGINT        NOT NULL REFERENCES property(id),
+    status               VARCHAR(20)   NOT NULL DEFAULT 'DRAFT',
+    duration_days        INT           NOT NULL DEFAULT 30,
+    monthly_rent         NUMERIC(14,2) NOT NULL DEFAULT 0,
+    deposit_months       NUMERIC(4,1)  NOT NULL DEFAULT 0,
+    management_fee_payer VARCHAR(20)   NOT NULL DEFAULT 'TENANT',
+    min_lease_months     INT           NOT NULL DEFAULT 0,
+    allow_pets           BOOLEAN       NOT NULL DEFAULT FALSE,
+    allow_cooking        BOOLEAN       NOT NULL DEFAULT FALSE,
+    gender_restriction   VARCHAR(20),
+    notes                TEXT,
+    published_at         TIMESTAMPTZ,
+    expires_at           TIMESTAMPTZ,
+    created_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at           TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_rental_listing_property ON rental_listing (property_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_rental_listing_status   ON rental_listing (status)`,
+
+		`CREATE TABLE IF NOT EXISTS sale_listing (
+    id                  BIGSERIAL     PRIMARY KEY,
+    property_id         BIGINT        NOT NULL REFERENCES property(id),
+    status              VARCHAR(20)   NOT NULL DEFAULT 'DRAFT',
+    duration_days       INT           NOT NULL DEFAULT 30,
+    total_price         NUMERIC(14,2) NOT NULL DEFAULT 0,
+    unit_price_per_ping NUMERIC(14,2),
+    parking_type        VARCHAR(50),
+    parking_price       NUMERIC(14,2),
+    notes               TEXT,
+    published_at        TIMESTAMPTZ,
+    expires_at          TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_sale_listing_property ON sale_listing (property_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_sale_listing_status   ON sale_listing (status)`,
+
 		`
 CREATE TABLE IF NOT EXISTS properties (
     id                              BIGSERIAL PRIMARY KEY,
