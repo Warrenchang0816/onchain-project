@@ -12,6 +12,9 @@ import (
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
 	customermod "go-service/internal/modules/customer"
+	propertymod "go-service/internal/modules/property"
+	rentallistingmod "go-service/internal/modules/rental_listing"
+	salelistingmod "go-service/internal/modules/sale_listing"
 	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	platformauth "go-service/internal/platform/auth"
@@ -36,6 +39,9 @@ func SetupRouter(
 	tenantHandler *tenantmod.Handler,
 	customerHandler *customermod.Handler,
 	locationHandler *locationmod.Handler,
+	newPropertyHandler *propertymod.Handler,
+	rentalListingHandler *rentallistingmod.Handler,
+	saleListingHandler *salelistingmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -57,6 +63,10 @@ func SetupRouter(
 			publicRoutes.GET("/listings", listingHandler.ListListings)
 			publicRoutes.GET("/listings/:id", listingHandler.GetListing)
 			publicRoutes.GET("/kyc/me", userHandler.GetKYCStatus)
+			publicRoutes.GET("/rental-listing", rentalListingHandler.ListPublic)
+			publicRoutes.GET("/rental-listing/:id", rentalListingHandler.Get)
+			publicRoutes.GET("/sale-listing", saleListingHandler.ListPublic)
+			publicRoutes.GET("/sale-listing/:id", saleListingHandler.Get)
 		}
 
 		// ── Protected routes (auth required) ─────────────────────
@@ -81,6 +91,26 @@ func SetupRouter(
 			protected.GET("/properties/:id", customerHandler.GetProperty)
 			protected.PUT("/properties/:id/disclosure", customerHandler.UpdateDisclosure)
 			protected.POST("/properties/:id/disclosure/confirm", customerHandler.ConfirmDisclosure)
+
+			// New property module (owner)
+			protected.POST("/property", newPropertyHandler.Create)
+			protected.GET("/property", newPropertyHandler.ListMine)
+			protected.GET("/property/:id", newPropertyHandler.Get)
+			protected.PUT("/property/:id", newPropertyHandler.Update)
+			protected.POST("/property/:id/attachment", newPropertyHandler.AddAttachment)
+			protected.DELETE("/property/:id/attachment/:aid", newPropertyHandler.DeleteAttachment)
+
+			// Rental listing (owner)
+			protected.POST("/property/:id/rental-listing", rentalListingHandler.Create)
+			protected.PUT("/rental-listing/:id", rentalListingHandler.Update)
+			protected.POST("/rental-listing/:id/publish", rentalListingHandler.Publish)
+			protected.POST("/rental-listing/:id/close", rentalListingHandler.Close)
+
+			// Sale listing (owner)
+			protected.POST("/property/:id/sale-listing", saleListingHandler.Create)
+			protected.PUT("/sale-listing/:id", saleListingHandler.Update)
+			protected.POST("/sale-listing/:id/publish", saleListingHandler.Publish)
+			protected.POST("/sale-listing/:id/close", saleListingHandler.Close)
 
 			// Appointment management
 			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)

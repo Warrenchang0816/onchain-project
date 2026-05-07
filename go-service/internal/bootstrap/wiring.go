@@ -13,6 +13,9 @@ import (
 	logsmod "go-service/internal/modules/logs"
 	onboardingmod "go-service/internal/modules/onboarding"
 	customermod "go-service/internal/modules/customer"
+	propertymod "go-service/internal/modules/property"
+	rentallistingmod "go-service/internal/modules/rental_listing"
+	salelistingmod "go-service/internal/modules/sale_listing"
 	tenantmod "go-service/internal/modules/tenant"
 	usermod "go-service/internal/modules/user"
 	"go-service/internal/platform/blockchain"
@@ -67,6 +70,9 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
 	agentProfileRepo := repository.NewAgentProfileRepository(postgresDB)
 	locationRepo := repository.NewLocationRepository(postgresDB)
+	newPropertyRepo   := repository.NewPropertyRepository(postgresDB)
+	rentalListingRepo := repository.NewRentalListingRepository(postgresDB)
+	saleListingRepo   := repository.NewSaleListingRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -239,7 +245,17 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	locationSvc := locationmod.NewService(locationRepo)
 	locationHandler := locationmod.NewHandler(locationSvc)
 
-	// ── 15. Tenant module ─────────────────────────────────────
+	// ── 15. New property + listing modules ───────────────────────────────────
+	newPropertySvc      := propertymod.NewService(newPropertyRepo, userRepo)
+	newPropertyHandler  := propertymod.NewHandler(newPropertySvc)
+
+	rentalListingSvc     := rentallistingmod.NewService(rentalListingRepo, newPropertyRepo, userRepo)
+	rentalListingHandler := rentallistingmod.NewHandler(rentalListingSvc)
+
+	saleListingSvc     := salelistingmod.NewService(saleListingRepo, newPropertyRepo, userRepo)
+	saleListingHandler := salelistingmod.NewHandler(saleListingSvc)
+
+	// ── 16. Tenant module ─────────────────────────────────────
 	tenantSvc := tenantmod.NewService(
 		userRepo,
 		credentialRepo,
@@ -266,6 +282,9 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		tenantHandler,
 		customerHandler,
 		locationHandler,
+		newPropertyHandler,
+		rentalListingHandler,
+		saleListingHandler,
 	)
 
 	return r, cleanupFn, nil
