@@ -1,8 +1,6 @@
-﻿import { createBrowserRouter } from "react-router-dom";
+﻿import { createBrowserRouter, Navigate } from "react-router-dom";
 import HomePage from "../pages/HomePage";
-import ListingListPage from "../pages/ListingListPage";
 import ListingDetailPage from "../pages/ListingDetailPage";
-import ListingCreatePage from "../pages/ListingCreatePage";
 import BlockchainLogsPage from "../pages/BlockchainLogsPage";
 import OnboardingPage from "../pages/OnboardingPage";
 import IdentityCenterPage from "../pages/IdentityCenterPage";
@@ -16,7 +14,6 @@ import AgentCredentialPage from "../pages/AgentCredentialPage";
 import RequireCredential from "../components/common/RequireCredential";
 import AgentListPage from "../pages/AgentListPage";
 import AgentDetailPage from "../pages/AgentDetailPage";
-import MyListingsPage from "../pages/MyListingsPage";
 import ListingPrintPage from "../pages/ListingPrintPage";
 import TenantProfilePage from "../pages/TenantProfilePage";
 import MyRequirementsPage from "../pages/MyRequirementsPage";
@@ -24,32 +21,24 @@ import RequirementsPage from "../pages/RequirementsPage";
 import RequirementDetailPage from "../pages/RequirementDetailPage";
 import MyAgentProfilePage from "../pages/MyAgentProfilePage";
 import FavoritesPage from "../pages/FavoritesPage";
+import MyPropertiesPage from "../pages/MyPropertiesPage";
+import PropertyCreatePage from "../pages/PropertyCreatePage";
+import PropertyEditPage from "../pages/PropertyEditPage";
+import RentalListingPage from "../pages/RentalListingPage";
+import SaleListingPage from "../pages/SaleListingPage";
+import RentListPage from "../pages/RentListPage";
+import RentDetailPage from "../pages/RentDetailPage";
+import SaleListPage from "../pages/SaleListPage";
+import SaleDetailPage from "../pages/SaleDetailPage";
 
 const router = createBrowserRouter([
     {
         path: "/",
         element: <HomePage />,
     },
-    {
-        path: "/listings",
-        element: <ListingListPage />,
-    },
-    {
-        path: "/my/listings/new",
-        element: (
-            <RequireCredential requiredRole="OWNER">
-                <ListingCreatePage />
-            </RequireCredential>
-        ),
-    },
-    {
-        path: "/listings/:id",
-        element: (
-            <RequireCredential anyOf={["OWNER", "TENANT", "AGENT"]}>
-                <ListingDetailPage />
-            </RequireCredential>
-        ),
-    },
+    { path: "/listings", element: <Navigate to="/sale" replace /> },
+    { path: "/my/listings/new", element: <Navigate to="/my/properties/new" replace /> },
+    { path: "/listings/:id", element: <Navigate to="/sale" replace /> },
     {
         path: "/my/listings/:id",
         element: (
@@ -78,14 +67,7 @@ const router = createBrowserRouter([
         path: "/member",
         element: <IdentityCenterPage />,
     },
-    {
-        path: "/my/listings",
-        element: (
-            <RequireCredential requiredRole="OWNER">
-                <MyListingsPage />
-            </RequireCredential>
-        ),
-    },
+    { path: "/my/listings", element: <Navigate to="/my/properties" replace /> },
     {
         path: "/my/tenant-profile",
         element: (
@@ -165,6 +147,52 @@ const router = createBrowserRouter([
     {
         path: "/agents/:wallet",
         element: <AgentDetailPage />,
+    },
+    // Public — sale & rent
+    { path: "/sale", element: <SaleListPage /> },
+    { path: "/sale/:id", element: <SaleDetailPage /> },
+    { path: "/rent", element: <RentListPage /> },
+    { path: "/rent/:id", element: <RentDetailPage /> },
+    // Owner — properties
+    {
+        path: "/my/properties",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <MyPropertiesPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/properties/new",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <PropertyCreatePage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/properties/:id",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <PropertyEditPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/properties/:id/rent",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <RentalListingPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/properties/:id/sale",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <SaleListingPage />
+            </RequireCredential>
+        ),
     },
 ]);
 
