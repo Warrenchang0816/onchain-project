@@ -68,29 +68,22 @@ export default function RentListPage() {
     const priceMin = searchParams.get("priceMin") ?? "";
     const priceMax = searchParams.get("priceMax") ?? "";
 
-    const [filters, setFilters] = useState<ListingSearchFilterValues>(() => ({
-        districts: [],
-        keyword: searchParams.get("keyword") ?? "",
-        priceMin: searchParams.get("priceMin") ?? "",
-        priceMax: searchParams.get("priceMax") ?? "",
-    }));
+    const [filters, setFilters] = useState<ListingSearchFilterValues>({
+        districts: [], keyword: "", priceMin: "", priceMax: "",
+    });
+
+    useEffect(() => {
+        const update = async () => {
+            setFilters({ districts: selectedDistricts, keyword, priceMin, priceMax });
+        };
+        void update();
+    }, [selectedDistricts, keyword, priceMin, priceMax]);
 
     useEffect(() => {
         const loadDistricts = async () => {
-            try {
-                const options = await getTaiwanDistricts();
-                setDistrictOptions(options);
-                const tokens = searchParams.getAll("district");
-                setFilters((prev) => ({
-                    ...prev,
-                    districts: readSelectedDistricts(options, tokens),
-                }));
-            } catch {
-                setDistrictOptions([]);
-            }
+            try { setDistrictOptions(await getTaiwanDistricts()); } catch { setDistrictOptions([]); }
         };
         void loadDistricts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
