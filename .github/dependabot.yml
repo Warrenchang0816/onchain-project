@@ -1,41 +1,6 @@
 version: 2
-updates:
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: monday
-    commit-message:
-      prefix: chore
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: gomod
-    directory: "/go-service"
-    schedule:
-      interval: weekly
-      day: monday
-    commit-message:
-      prefix: chore
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: npm
-    directory: "/react-service"
-    schedule:
-      interval: weekly
-      day: monday
-    commit-message:
-      prefix: chore
-    ignore:
-      - dependency-name: "typescript"
-        update-types:
-          - "version-update:semver-major"
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: npm
-    directory: "/task-reward-vault"
-    schedule:
-      interval: weekly
-      day: monday
-    commit-message:
-      prefix: chore
-    open-pull-requests-limit: 5
+# Version updates are disabled. Only Dependabot security updates are active.
+# Security updates are triggered automatically by GitHub vulnerability alerts
+# and do not require entries here.
+# Re-enable version updates when intentionally upgrading dependencies.
+updates: []
