@@ -23,7 +23,7 @@ const propertySelectCols = `
 	       created_at, updated_at
 	FROM customer`
 
-func scanProperty(row *sql.Row) (*model.Customer, error) {
+func scanCustomer(row *sql.Row) (*model.Customer, error) {
 	p := &model.Customer{}
 	err := row.Scan(
 		&p.ID, &p.OwnerUserID, &p.SourceCredentialSubmissionID,
@@ -40,7 +40,7 @@ func scanProperty(row *sql.Row) (*model.Customer, error) {
 	return p, nil
 }
 
-func scanProperties(rows *sql.Rows) ([]*model.Customer, error) {
+func scanCustomers(rows *sql.Rows) ([]*model.Customer, error) {
 	defer rows.Close()
 
 	properties := []*model.Customer{}
@@ -64,7 +64,7 @@ func scanProperties(rows *sql.Rows) ([]*model.Customer, error) {
 
 func (r *CustomerRepository) FindByID(id int64) (*model.Customer, error) {
 	row := r.db.QueryRow(propertySelectCols+` WHERE id = $1`, id)
-	p, err := scanProperty(row)
+	p, err := scanCustomer(row)
 	if err != nil {
 		return nil, fmt.Errorf("customer_repo: FindByID: %w", err)
 	}
@@ -76,7 +76,7 @@ func (r *CustomerRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Cust
 	if err != nil {
 		return nil, fmt.Errorf("customer_repo: ListByOwnerUserID: %w", err)
 	}
-	properties, err := scanProperties(rows)
+	properties, err := scanCustomers(rows)
 	if err != nil {
 		return nil, fmt.Errorf("customer_repo: ListByOwnerUserID scan: %w", err)
 	}
@@ -85,7 +85,7 @@ func (r *CustomerRepository) ListByOwnerUserID(ownerUserID int64) ([]*model.Cust
 
 func (r *CustomerRepository) FindBySourceCredentialSubmission(submissionID int64) (*model.Customer, error) {
 	row := r.db.QueryRow(propertySelectCols+` WHERE source_credential_submission_id = $1 LIMIT 1`, submissionID)
-	p, err := scanProperty(row)
+	p, err := scanCustomer(row)
 	if err != nil {
 		return nil, fmt.Errorf("customer_repo: FindBySourceCredentialSubmission: %w", err)
 	}
