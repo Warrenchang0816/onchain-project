@@ -45,11 +45,11 @@ type AttachmentResponse struct {
 }
 
 type PropertyResponse struct {
-	ID          int64  `json:"id"`
-	OwnerUserID int64  `json:"owner_user_id"`
-	Title       string `json:"title"`
-	Address     string `json:"address"`
-	DistrictID  *int64 `json:"district_id,omitempty"`
+	ID           int64  `json:"id"`
+	OwnerUserID  int64  `json:"owner_user_id"`
+	Title        string `json:"title"`
+	Address      string `json:"address"`
+	DistrictID   *int64 `json:"district_id,omitempty"`
 	BuildingType string `json:"building_type"`
 
 	Floor       *int32 `json:"floor,omitempty"`

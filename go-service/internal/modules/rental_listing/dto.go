@@ -3,25 +3,25 @@ package rental_listing
 import "time"
 
 type PropertySummaryResponse struct {
-	ID           int64    `json:"id"`
-	Title        string   `json:"title"`
-	Address      string   `json:"address"`
-	BuildingType string   `json:"building_type"`
-	Floor        *int32   `json:"floor,omitempty"`
-	TotalFloors  *int32   `json:"total_floors,omitempty"`
-	MainArea     *float64 `json:"main_area,omitempty"`
-	AuxiliaryArea *float64 `json:"auxiliary_area,omitempty"`
-	BalconyArea  *float64 `json:"balcony_area,omitempty"`
-	Rooms        *int32   `json:"rooms,omitempty"`
-	LivingRooms  *int32   `json:"living_rooms,omitempty"`
-	Bathrooms    *int32   `json:"bathrooms,omitempty"`
-	BuildingAge  *int32   `json:"building_age,omitempty"`
-	ParkingType  string   `json:"parking_type"`
-	ManagementFee *float64 `json:"management_fee,omitempty"`
-	IsCornerUnit bool     `json:"is_corner_unit"`
-	SecurityType string   `json:"security_type"`
-	BuildingOrientation *string `json:"building_orientation,omitempty"`
-	WindowOrientation   *string `json:"window_orientation,omitempty"`
+	ID                  int64    `json:"id"`
+	Title               string   `json:"title"`
+	Address             string   `json:"address"`
+	BuildingType        string   `json:"building_type"`
+	Floor               *int32   `json:"floor,omitempty"`
+	TotalFloors         *int32   `json:"total_floors,omitempty"`
+	MainArea            *float64 `json:"main_area,omitempty"`
+	AuxiliaryArea       *float64 `json:"auxiliary_area,omitempty"`
+	BalconyArea         *float64 `json:"balcony_area,omitempty"`
+	Rooms               *int32   `json:"rooms,omitempty"`
+	LivingRooms         *int32   `json:"living_rooms,omitempty"`
+	Bathrooms           *int32   `json:"bathrooms,omitempty"`
+	BuildingAge         *int32   `json:"building_age,omitempty"`
+	ParkingType         string   `json:"parking_type"`
+	ManagementFee       *float64 `json:"management_fee,omitempty"`
+	IsCornerUnit        bool     `json:"is_corner_unit"`
+	SecurityType        string   `json:"security_type"`
+	BuildingOrientation *string  `json:"building_orientation,omitempty"`
+	WindowOrientation   *string  `json:"window_orientation,omitempty"`
 }
 
 type CreateRentalListingRequest struct {

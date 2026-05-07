@@ -156,18 +156,52 @@ func toResponse(rl *model.RentalListing) RentalListingResponse {
 			BuildingType: p.BuildingType, IsCornerUnit: p.IsCornerUnit,
 			ParkingType: p.ParkingType, SecurityType: p.SecurityType,
 		}
-		if p.Floor.Valid        { v := p.Floor.Int32;        pResp.Floor = &v }
-		if p.TotalFloors.Valid  { v := p.TotalFloors.Int32;  pResp.TotalFloors = &v }
-		if p.MainArea.Valid     { v := p.MainArea.Float64;   pResp.MainArea = &v }
-		if p.AuxiliaryArea.Valid { v := p.AuxiliaryArea.Float64; pResp.AuxiliaryArea = &v }
-		if p.BalconyArea.Valid  { v := p.BalconyArea.Float64; pResp.BalconyArea = &v }
-		if p.Rooms.Valid        { v := p.Rooms.Int32;        pResp.Rooms = &v }
-		if p.LivingRooms.Valid  { v := p.LivingRooms.Int32;  pResp.LivingRooms = &v }
-		if p.Bathrooms.Valid    { v := p.Bathrooms.Int32;    pResp.Bathrooms = &v }
-		if p.BuildingAge.Valid  { v := p.BuildingAge.Int32;  pResp.BuildingAge = &v }
-		if p.ManagementFee.Valid { v := p.ManagementFee.Float64; pResp.ManagementFee = &v }
-		if p.BuildingOrientation.Valid { pResp.BuildingOrientation = &p.BuildingOrientation.String }
-		if p.WindowOrientation.Valid   { pResp.WindowOrientation = &p.WindowOrientation.String }
+		if p.Floor.Valid {
+			v := p.Floor.Int32
+			pResp.Floor = &v
+		}
+		if p.TotalFloors.Valid {
+			v := p.TotalFloors.Int32
+			pResp.TotalFloors = &v
+		}
+		if p.MainArea.Valid {
+			v := p.MainArea.Float64
+			pResp.MainArea = &v
+		}
+		if p.AuxiliaryArea.Valid {
+			v := p.AuxiliaryArea.Float64
+			pResp.AuxiliaryArea = &v
+		}
+		if p.BalconyArea.Valid {
+			v := p.BalconyArea.Float64
+			pResp.BalconyArea = &v
+		}
+		if p.Rooms.Valid {
+			v := p.Rooms.Int32
+			pResp.Rooms = &v
+		}
+		if p.LivingRooms.Valid {
+			v := p.LivingRooms.Int32
+			pResp.LivingRooms = &v
+		}
+		if p.Bathrooms.Valid {
+			v := p.Bathrooms.Int32
+			pResp.Bathrooms = &v
+		}
+		if p.BuildingAge.Valid {
+			v := p.BuildingAge.Int32
+			pResp.BuildingAge = &v
+		}
+		if p.ManagementFee.Valid {
+			v := p.ManagementFee.Float64
+			pResp.ManagementFee = &v
+		}
+		if p.BuildingOrientation.Valid {
+			pResp.BuildingOrientation = &p.BuildingOrientation.String
+		}
+		if p.WindowOrientation.Valid {
+			pResp.WindowOrientation = &p.WindowOrientation.String
+		}
 		resp.Property = &pResp
 	}
 	return resp
