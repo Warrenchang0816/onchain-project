@@ -5,13 +5,13 @@ run-name: Contracts CI / ${{ github.event_name }} / ${{ github.ref_name }}
 on:
   pull_request:
     paths:
-      - "task-reward-vault/**"
+      - "contract-service/**"
       - ".github/workflows/contracts-ci.yml"
   push:
     branches:
       - main
     paths:
-      - "task-reward-vault/**"
+      - "contract-service/**"
       - ".github/workflows/contracts-ci.yml"
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 15
     defaults:
       run:
-        working-directory: task-reward-vault
+        working-directory: contract-service
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: task-reward-vault/package-lock.json
+          cache-dependency-path: contract-service/package-lock.json
 
       - name: Install dependencies
         run: npm ci
