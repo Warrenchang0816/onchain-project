@@ -207,9 +207,7 @@ export default function SaleDetailPage() {
                         <dl className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                             <InfoRow label="建物結構" value={p!.building_structure} />
                             <InfoRow label="外牆建材" value={p!.exterior_material} />
-                            {p!.units_on_floor != null && (
-                                <InfoRow label="該層戶數" value={`${p!.units_on_floor} 戶`} />
-                            )}
+                            <InfoRow label="該層戶數" value={p!.units_on_floor != null ? `${p!.units_on_floor} 戶` : null} />
                             <InfoRow label="謄本用途" value={p!.building_usage} />
                             <InfoRow label="使用分區" value={p!.zoning} />
                         </dl>
