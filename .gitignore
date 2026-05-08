@@ -53,5 +53,13 @@ __pycache__/
 
 # Project-local ignored data
 /data/
-/docs/refs/
 .worktrees/
+
+# Superpowers plugin brainstorm artifacts (created at project root by plugin)
+/.superpowers/
+
+# docs/ — only keep the 3 core architecture documents
+/docs/*
+!/docs/架構設計書.md
+!/docs/開發規劃書.md
+!/docs/第六階段架構定稿：可信房屋媒合平台.md
