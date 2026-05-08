@@ -38,7 +38,10 @@ func (r *RentalListingRepository) FindByID(id int64) (*model.RentalListing, erro
 		       monthly_rent, deposit_months, management_fee_payer,
 		       min_lease_months, allow_pets, allow_cooking,
 		       gender_restriction, notes, published_at, expires_at,
-		       created_at, updated_at
+		       created_at, updated_at,
+		       has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+		       has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+		       near_school, near_supermarket, near_convenience_store, near_park
 		FROM rental_listing WHERE id = $1`, id)
 	rl, err := scanRentalListing(row)
 	if err == sql.ErrNoRows {
@@ -56,7 +59,10 @@ func (r *RentalListingRepository) FindActiveByProperty(propertyID int64) (*model
 		       monthly_rent, deposit_months, management_fee_payer,
 		       min_lease_months, allow_pets, allow_cooking,
 		       gender_restriction, notes, published_at, expires_at,
-		       created_at, updated_at
+		       created_at, updated_at,
+		       has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+		       has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+		       near_school, near_supermarket, near_convenience_store, near_park
 		FROM rental_listing WHERE property_id = $1
 		AND status NOT IN ('CLOSED', 'EXPIRED')
 		ORDER BY created_at DESC LIMIT 1`, propertyID)
@@ -76,7 +82,10 @@ func (r *RentalListingRepository) ListPublic() ([]*model.RentalListing, error) {
 		       monthly_rent, deposit_months, management_fee_payer,
 		       min_lease_months, allow_pets, allow_cooking,
 		       gender_restriction, notes, published_at, expires_at,
-		       created_at, updated_at
+		       created_at, updated_at,
+		       has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+		       has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+		       near_school, near_supermarket, near_convenience_store, near_park
 		FROM rental_listing
 		WHERE status = 'ACTIVE'
 		ORDER BY published_at DESC`)
@@ -135,6 +144,9 @@ func scanRentalListing(row *sql.Row) (*model.RentalListing, error) {
 		&rl.MinLeaseMonths, &rl.AllowPets, &rl.AllowCooking,
 		&rl.GenderRestriction, &rl.Notes, &rl.PublishedAt, &rl.ExpiresAt,
 		&rl.CreatedAt, &rl.UpdatedAt,
+		&rl.HasSofa, &rl.HasBed, &rl.HasWardrobe, &rl.HasTV, &rl.HasFridge,
+		&rl.HasAC, &rl.HasWasher, &rl.HasWaterHeater, &rl.HasGas, &rl.HasInternet, &rl.HasCableTV,
+		&rl.NearSchool, &rl.NearSupermarket, &rl.NearConvenienceStore, &rl.NearPark,
 	)
 }
 
@@ -148,6 +160,9 @@ func scanRentalListings(rows *sql.Rows) ([]*model.RentalListing, error) {
 			&rl.MinLeaseMonths, &rl.AllowPets, &rl.AllowCooking,
 			&rl.GenderRestriction, &rl.Notes, &rl.PublishedAt, &rl.ExpiresAt,
 			&rl.CreatedAt, &rl.UpdatedAt,
+			&rl.HasSofa, &rl.HasBed, &rl.HasWardrobe, &rl.HasTV, &rl.HasFridge,
+			&rl.HasAC, &rl.HasWasher, &rl.HasWaterHeater, &rl.HasGas, &rl.HasInternet, &rl.HasCableTV,
+			&rl.NearSchool, &rl.NearSupermarket, &rl.NearConvenienceStore, &rl.NearPark,
 		); err != nil {
 			return nil, fmt.Errorf("scan rental_listing: %w", err)
 		}
