@@ -1,5 +1,5 @@
 {
-    "name": "task-reward-vault",
+    "name": "contract-service",
     "private": true,
     "scripts": {
         "build": "hardhat compile",

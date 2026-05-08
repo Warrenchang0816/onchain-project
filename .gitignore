@@ -44,12 +44,12 @@ __pycache__/
 /go-service/server.exe
 
 # Hardhat / contracts
-/task-reward-vault/node_modules/
-/task-reward-vault/artifacts/
-/task-reward-vault/cache/
-/task-reward-vault/typechain-types/
-/task-reward-vault/coverage/
-/task-reward-vault/coverage.json
+/contract-service/node_modules/
+/contract-service/artifacts/
+/contract-service/cache/
+/contract-service/typechain-types/
+/contract-service/coverage/
+/contract-service/coverage.json
 
 # Project-local ignored data
 /data/
