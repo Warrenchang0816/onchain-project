@@ -143,9 +143,6 @@ export default function SaleDetailPage() {
                     <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
                         <h2 className="mb-6 text-xl font-bold text-on-surface">基本資料</h2>
                         <dl className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {listing.unit_price_per_ping != null && (
-                                <InfoRow label="建坪單價" value={`${(listing.unit_price_per_ping / 10000).toFixed(1)} 萬/坪`} />
-                            )}
                             {totalArea > 0 && <InfoRow label="建坪（登記）" value={`${totalArea.toFixed(1)} 坪`} />}
                             <InfoRow label="地坪" value={p.land_area != null ? `${p.land_area} 坪` : null} />
 
@@ -201,15 +198,15 @@ export default function SaleDetailPage() {
                 )}
 
                 {/* ── 建物詳情 ── */}
-                {hasBuildingDetail && (
+                {p && hasBuildingDetail && (
                     <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
                         <h2 className="mb-6 text-xl font-bold text-on-surface">建物詳情</h2>
                         <dl className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            <InfoRow label="建物結構" value={p!.building_structure} />
-                            <InfoRow label="外牆建材" value={p!.exterior_material} />
-                            <InfoRow label="該層戶數" value={p!.units_on_floor != null ? `${p!.units_on_floor} 戶` : null} />
-                            <InfoRow label="謄本用途" value={p!.building_usage} />
-                            <InfoRow label="使用分區" value={p!.zoning} />
+                            <InfoRow label="建物結構" value={p.building_structure} />
+                            <InfoRow label="外牆建材" value={p.exterior_material} />
+                            <InfoRow label="該層戶數" value={p.units_on_floor != null ? `${p.units_on_floor} 戶` : null} />
+                            <InfoRow label="謄本用途" value={p.building_usage} />
+                            <InfoRow label="使用分區" value={p.zoning} />
                         </dl>
                     </section>
                 )}
