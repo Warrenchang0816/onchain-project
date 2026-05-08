@@ -22,6 +22,15 @@ export type PropertySummary = {
     security_type: string;
     building_orientation?: string;
     window_orientation?: string;
+    has_dark_room: boolean;
+    shared_area?: number;
+    awning_area?: number;
+    land_area?: number;
+    building_structure?: string;
+    exterior_material?: string;
+    building_usage?: string;
+    zoning?: string;
+    units_on_floor?: number;
 };
 
 export type SaleListing = {
