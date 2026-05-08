@@ -206,6 +206,35 @@ func toResponse(sl *model.SaleListing) SaleListingResponse {
 		if p.WindowOrientation.Valid {
 			pResp.WindowOrientation = &p.WindowOrientation.String
 		}
+		pResp.HasDarkRoom = p.HasDarkRoom
+		if p.SharedArea.Valid {
+			v := p.SharedArea.Float64
+			pResp.SharedArea = &v
+		}
+		if p.AwningArea.Valid {
+			v := p.AwningArea.Float64
+			pResp.AwningArea = &v
+		}
+		if p.LandArea.Valid {
+			v := p.LandArea.Float64
+			pResp.LandArea = &v
+		}
+		if p.BuildingStructure.Valid {
+			pResp.BuildingStructure = &p.BuildingStructure.String
+		}
+		if p.ExteriorMaterial.Valid {
+			pResp.ExteriorMaterial = &p.ExteriorMaterial.String
+		}
+		if p.BuildingUsage.Valid {
+			pResp.BuildingUsage = &p.BuildingUsage.String
+		}
+		if p.Zoning.Valid {
+			pResp.Zoning = &p.Zoning.String
+		}
+		if p.UnitsOnFloor.Valid {
+			v := p.UnitsOnFloor.Int32
+			pResp.UnitsOnFloor = &v
+		}
 		resp.Property = &pResp
 	}
 	return resp

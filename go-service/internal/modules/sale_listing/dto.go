@@ -12,6 +12,9 @@ type PropertySummaryResponse struct {
 	MainArea            *float64 `json:"main_area,omitempty"`
 	AuxiliaryArea       *float64 `json:"auxiliary_area,omitempty"`
 	BalconyArea         *float64 `json:"balcony_area,omitempty"`
+	SharedArea          *float64 `json:"shared_area,omitempty"`
+	AwningArea          *float64 `json:"awning_area,omitempty"`
+	LandArea            *float64 `json:"land_area,omitempty"`
 	Rooms               *int32   `json:"rooms,omitempty"`
 	LivingRooms         *int32   `json:"living_rooms,omitempty"`
 	Bathrooms           *int32   `json:"bathrooms,omitempty"`
@@ -19,9 +22,15 @@ type PropertySummaryResponse struct {
 	ParkingType         string   `json:"parking_type"`
 	ManagementFee       *float64 `json:"management_fee,omitempty"`
 	IsCornerUnit        bool     `json:"is_corner_unit"`
+	HasDarkRoom         bool     `json:"has_dark_room"`
 	SecurityType        string   `json:"security_type"`
 	BuildingOrientation *string  `json:"building_orientation,omitempty"`
 	WindowOrientation   *string  `json:"window_orientation,omitempty"`
+	BuildingStructure   *string  `json:"building_structure,omitempty"`
+	ExteriorMaterial    *string  `json:"exterior_material,omitempty"`
+	BuildingUsage       *string  `json:"building_usage,omitempty"`
+	Zoning              *string  `json:"zoning,omitempty"`
+	UnitsOnFloor        *int32   `json:"units_on_floor,omitempty"`
 }
 
 type CreateSaleListingRequest struct {

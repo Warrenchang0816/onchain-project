@@ -12,6 +12,9 @@ export type PropertySummary = {
     main_area?: number;
     auxiliary_area?: number;
     balcony_area?: number;
+    shared_area?: number;
+    awning_area?: number;
+    land_area?: number;
     rooms?: number;
     living_rooms?: number;
     bathrooms?: number;
@@ -19,9 +22,15 @@ export type PropertySummary = {
     parking_type: string;
     management_fee?: number;
     is_corner_unit: boolean;
+    has_dark_room: boolean;
     security_type: string;
     building_orientation?: string;
     window_orientation?: string;
+    building_structure?: string;
+    exterior_material?: string;
+    building_usage?: string;
+    zoning?: string;
+    units_on_floor?: number;
 };
 
 export type SaleListing = {

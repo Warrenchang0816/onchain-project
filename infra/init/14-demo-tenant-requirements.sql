@@ -46,7 +46,7 @@ ON CONFLICT (user_id) DO UPDATE SET
 DO $$
 DECLARE
     tenant_id BIGINT;
-    requirement_id BIGINT;
+    v_req_id BIGINT;
 BEGIN
     SELECT id INTO tenant_id
     FROM users
@@ -57,7 +57,9 @@ BEGIN
       AND layout_note IN (
           '希望兩房以上，有對外窗與陽台。',
           '單人租住，接受小坪數套房。',
-          '需要可養大型犬與平面車位。'
+          '需要可養大型犬與平面車位。',
+          '近科技園區，兩房，有電梯停車。',
+          '台中換屋族，找兩房，作息規律不擾鄰。'
       );
 
     INSERT INTO tenant_requirements (
@@ -72,12 +74,12 @@ BEGIN
         12, 28, 2, 1, '一個月內',
         12, TRUE, TRUE,
         '兩人同住，作息穩定，不抽菸。', '近捷運，可開伙，可設籍。'
-    ) RETURNING id INTO requirement_id;
+    ) RETURNING id INTO v_req_id;
 
     INSERT INTO tenant_requirement_districts (requirement_id, county, district, zip_code)
     VALUES
-        (requirement_id, '台北市', '大安區', '106'),
-        (requirement_id, '台北市', '信義區', '110')
+        (v_req_id, '台北市', '大安區', '106'),
+        (v_req_id, '台北市', '信義區', '110')
     ON CONFLICT (requirement_id, county, district, zip_code) DO NOTHING;
 
     INSERT INTO tenant_requirements (
@@ -92,10 +94,10 @@ BEGIN
         8, 16, 1, 1, '兩個月內',
         6, FALSE, FALSE,
         '單人上班族，平日晚上在家。', '近公車站或捷運站。'
-    ) RETURNING id INTO requirement_id;
+    ) RETURNING id INTO v_req_id;
 
     INSERT INTO tenant_requirement_districts (requirement_id, county, district, zip_code)
-    VALUES (requirement_id, '台北市', '中山區', '104')
+    VALUES (v_req_id, '台北市', '中山區', '104')
     ON CONFLICT (requirement_id, county, district, zip_code) DO NOTHING;
 
     INSERT INTO tenant_requirements (
@@ -110,9 +112,47 @@ BEGIN
         20, 36, 2, 1, '三個月內',
         12, TRUE, FALSE,
         '有一隻大型犬，需要安靜社區。', '需車位，需寵物友善。'
-    ) RETURNING id INTO requirement_id;
+    ) RETURNING id INTO v_req_id;
 
     INSERT INTO tenant_requirement_districts (requirement_id, county, district, zip_code)
-    VALUES (requirement_id, '新北市', '板橋區', '220')
+    VALUES (v_req_id, '新北市', '板橋區', '220')
+    ON CONFLICT (requirement_id, county, district, zip_code) DO NOTHING;
+
+    INSERT INTO tenant_requirements (
+        user_id, target_district, budget_min, budget_max, layout_note,
+        move_in_date, pet_friendly_needed, parking_needed, status,
+        area_min_ping, area_max_ping, room_min, bathroom_min, move_in_timeline,
+        minimum_lease_months, can_cook_needed, can_register_household_needed,
+        lifestyle_note, must_have_note
+    ) VALUES (
+        tenant_id, '台北市 內湖區', 22000, 30000, '近科技園區，兩房，有電梯停車。',
+        CURRENT_DATE + INTERVAL '30 days', FALSE, TRUE, 'OPEN',
+        18, 26, 2, 1, '一個月內',
+        12, TRUE, FALSE,
+        '科技業上班族，工作繁忙，需安靜環境。', '近內湖科技園區，含停車位。'
+    ) RETURNING id INTO v_req_id;
+
+    INSERT INTO tenant_requirement_districts (requirement_id, county, district, zip_code)
+    VALUES (v_req_id, '台北市', '內湖區', '114')
+    ON CONFLICT (requirement_id, county, district, zip_code) DO NOTHING;
+
+    INSERT INTO tenant_requirements (
+        user_id, target_district, budget_min, budget_max, layout_note,
+        move_in_date, pet_friendly_needed, parking_needed, status,
+        area_min_ping, area_max_ping, room_min, bathroom_min, move_in_timeline,
+        minimum_lease_months, can_cook_needed, can_register_household_needed,
+        lifestyle_note, must_have_note
+    ) VALUES (
+        tenant_id, '台中市 西屯區', 15000, 22000, '台中換屋族，找兩房，作息規律不擾鄰。',
+        CURRENT_DATE + INTERVAL '60 days', FALSE, FALSE, 'OPEN',
+        20, 30, 2, 1, '三個月內',
+        12, TRUE, FALSE,
+        '兩人同住，作息規律，不抽菸不飲酒。', '近捷運或公車，可開伙。'
+    ) RETURNING id INTO v_req_id;
+
+    INSERT INTO tenant_requirement_districts (requirement_id, county, district, zip_code)
+    VALUES
+        (v_req_id, '台中市', '西屯區', '407'),
+        (v_req_id, '台中市', '北屯區', '406')
     ON CONFLICT (requirement_id, county, district, zip_code) DO NOTHING;
 END $$;
