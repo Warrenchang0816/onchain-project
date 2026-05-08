@@ -135,6 +135,12 @@ func toResponse(rl *model.RentalListing) RentalListingResponse {
 		MonthlyRent: rl.MonthlyRent, DepositMonths: rl.DepositMonths,
 		ManagementFeePayer: rl.ManagementFeePayer, MinLeaseMonths: rl.MinLeaseMonths,
 		AllowPets: rl.AllowPets, AllowCooking: rl.AllowCooking,
+		HasSofa: rl.HasSofa, HasBed: rl.HasBed, HasWardrobe: rl.HasWardrobe,
+		HasTV: rl.HasTV, HasFridge: rl.HasFridge, HasAC: rl.HasAC,
+		HasWasher: rl.HasWasher, HasWaterHeater: rl.HasWaterHeater, HasGas: rl.HasGas,
+		HasInternet: rl.HasInternet, HasCableTV: rl.HasCableTV,
+		NearSchool: rl.NearSchool, NearSupermarket: rl.NearSupermarket,
+		NearConvenienceStore: rl.NearConvenienceStore, NearPark: rl.NearPark,
 		CreatedAt: rl.CreatedAt, UpdatedAt: rl.UpdatedAt,
 	}
 	if rl.GenderRestriction.Valid {
