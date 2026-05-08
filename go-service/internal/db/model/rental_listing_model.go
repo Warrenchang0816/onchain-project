@@ -38,6 +38,23 @@ type RentalListing struct {
 	GenderRestriction  sql.NullString
 	Notes              sql.NullString
 
+	HasSofa        bool
+	HasBed         bool
+	HasWardrobe    bool
+	HasTV          bool
+	HasFridge      bool
+	HasAC          bool
+	HasWasher      bool
+	HasWaterHeater bool
+	HasGas         bool
+	HasInternet    bool
+	HasCableTV     bool
+
+	NearSchool           bool
+	NearSupermarket      bool
+	NearConvenienceStore bool
+	NearPark             bool
+
 	PublishedAt sql.NullTime
 	ExpiresAt   sql.NullTime
 	CreatedAt   time.Time

@@ -101,13 +101,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 35000, 2,
         'TENANT', 12, TRUE, TRUE,
         '近捷運科技大樓站，採光明亮，可開伙與設籍。',
         NOW() - INTERVAL '9 days', NOW() + INTERVAL '81 days',
-        NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days'
+        NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days',
+        TRUE, TRUE, TRUE, TRUE, TRUE,
+        TRUE, TRUE, TRUE, FALSE, TRUE, FALSE,
+        FALSE, TRUE, TRUE, FALSE
     );
 
     INSERT INTO property (
@@ -133,13 +139,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 52000, 2,
         'TENANT', 12, FALSE, TRUE,
         '社區管理完善，近世貿中心，機械停車位含租金。',
         NOW() - INTERVAL '8 days', NOW() + INTERVAL '82 days',
-        NOW() - INTERVAL '9 days', NOW() - INTERVAL '8 days'
+        NOW() - INTERVAL '9 days', NOW() - INTERVAL '8 days',
+        TRUE, TRUE, TRUE, TRUE, TRUE,
+        TRUE, TRUE, TRUE, TRUE, TRUE, TRUE,
+        FALSE, TRUE, TRUE, FALSE
     );
 
     INSERT INTO property (
@@ -165,13 +177,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 16000, 2,
         'TENANT', 6, FALSE, FALSE,
         '近中山國小捷運站，生活機能成熟，適合單身上班族。',
         NOW() - INTERVAL '7 days', NOW() + INTERVAL '83 days',
-        NOW() - INTERVAL '8 days', NOW() - INTERVAL '7 days'
+        NOW() - INTERVAL '8 days', NOW() - INTERVAL '7 days',
+        FALSE, FALSE, FALSE, TRUE, TRUE,
+        TRUE, FALSE, TRUE, FALSE, TRUE, TRUE,
+        FALSE, TRUE, TRUE, FALSE
     );
 
     INSERT INTO property (
@@ -197,13 +215,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 28000, 2,
         'TENANT', 12, FALSE, TRUE,
         '步行至內湖科技園區，含機車停車位，有電梯。',
         NOW() - INTERVAL '6 days', NOW() + INTERVAL '84 days',
-        NOW() - INTERVAL '7 days', NOW() - INTERVAL '6 days'
+        NOW() - INTERVAL '7 days', NOW() - INTERVAL '6 days',
+        FALSE, TRUE, TRUE, FALSE, TRUE,
+        TRUE, TRUE, TRUE, FALSE, TRUE, FALSE,
+        FALSE, TRUE, TRUE, FALSE
     );
 
     INSERT INTO property (
@@ -229,13 +253,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 32000, 2,
         'OWNER', 12, TRUE, TRUE,
         '近木柵捷運站，前後陽台，適合家庭入住，可養寵物。',
         NOW() - INTERVAL '5 days', NOW() + INTERVAL '85 days',
-        NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days'
+        NOW() - INTERVAL '6 days', NOW() - INTERVAL '5 days',
+        TRUE, TRUE, TRUE, TRUE, TRUE,
+        TRUE, TRUE, TRUE, TRUE, TRUE, FALSE,
+        TRUE, TRUE, TRUE, TRUE
     );
 
     INSERT INTO property (
@@ -261,13 +291,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 38000, 2,
         'TENANT', 12, TRUE, TRUE,
         '步行至府中捷運站，含坡道停車位，屋況良好。',
         NOW() - INTERVAL '4 days', NOW() + INTERVAL '86 days',
-        NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days'
+        NOW() - INTERVAL '5 days', NOW() - INTERVAL '4 days',
+        TRUE, TRUE, TRUE, FALSE, TRUE,
+        TRUE, TRUE, TRUE, TRUE, FALSE, TRUE,
+        TRUE, TRUE, TRUE, FALSE
     );
 
     INSERT INTO property (
@@ -293,13 +329,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 24000, 2,
         'TENANT', 12, FALSE, TRUE,
         '高樓層景觀，近中和環路，社區有管理員，機械停車。',
         NOW() - INTERVAL '3 days', NOW() + INTERVAL '87 days',
-        NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days'
+        NOW() - INTERVAL '4 days', NOW() - INTERVAL '3 days',
+        FALSE, FALSE, TRUE, TRUE, TRUE,
+        TRUE, FALSE, TRUE, FALSE, TRUE, FALSE,
+        FALSE, TRUE, TRUE, TRUE
     );
 
     INSERT INTO property (
@@ -325,13 +367,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 26000, 2,
         'OWNER', 12, TRUE, TRUE,
         '近碧潭風景區，環境優美，步行至新店捷運站，可設籍。',
         NOW() - INTERVAL '2 days', NOW() + INTERVAL '88 days',
-        NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days'
+        NOW() - INTERVAL '3 days', NOW() - INTERVAL '2 days',
+        TRUE, TRUE, TRUE, FALSE, TRUE,
+        TRUE, TRUE, TRUE, FALSE, TRUE, FALSE,
+        TRUE, FALSE, TRUE, TRUE
     );
 
     INSERT INTO property (
@@ -357,13 +405,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 22000, 2,
         'TENANT', 12, FALSE, TRUE,
         '台中七期核心地段，高樓層視野開闊，社區設施完善。',
         NOW() - INTERVAL '1 day', NOW() + INTERVAL '89 days',
-        NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'
+        NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day',
+        TRUE, TRUE, TRUE, TRUE, TRUE,
+        TRUE, TRUE, TRUE, TRUE, TRUE, TRUE,
+        FALSE, TRUE, TRUE, FALSE
     );
 
     INSERT INTO property (
@@ -389,13 +443,19 @@ BEGIN
     INSERT INTO rental_listing (
         property_id, status, duration_days, monthly_rent, deposit_months,
         management_fee_payer, min_lease_months, allow_pets, allow_cooking,
-        notes, published_at, expires_at, created_at, updated_at
+        notes, published_at, expires_at, created_at, updated_at,
+        has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+        has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+        near_school, near_supermarket, near_convenience_store, near_park
     ) VALUES (
         prop_id, 'ACTIVE', 90, 20000, 2,
         'TENANT', 12, TRUE, TRUE,
         '鄰近北屯運動公園，適合親子家庭，含坡道停車位。',
         NOW() - INTERVAL '12 hours', NOW() + INTERVAL '89 days' + INTERVAL '12 hours',
-        NOW() - INTERVAL '1 day', NOW() - INTERVAL '12 hours'
+        NOW() - INTERVAL '1 day', NOW() - INTERVAL '12 hours',
+        TRUE, TRUE, TRUE, TRUE, TRUE,
+        TRUE, TRUE, TRUE, FALSE, TRUE, FALSE,
+        TRUE, FALSE, TRUE, TRUE
     );
 
     -- ============================================================

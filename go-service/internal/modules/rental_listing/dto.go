@@ -64,6 +64,23 @@ type RentalListingResponse struct {
 	GenderRestriction  *string `json:"gender_restriction,omitempty"`
 	Notes              *string `json:"notes,omitempty"`
 
+	HasSofa        bool `json:"has_sofa"`
+	HasBed         bool `json:"has_bed"`
+	HasWardrobe    bool `json:"has_wardrobe"`
+	HasTV          bool `json:"has_tv"`
+	HasFridge      bool `json:"has_fridge"`
+	HasAC          bool `json:"has_ac"`
+	HasWasher      bool `json:"has_washer"`
+	HasWaterHeater bool `json:"has_water_heater"`
+	HasGas         bool `json:"has_gas"`
+	HasInternet    bool `json:"has_internet"`
+	HasCableTV     bool `json:"has_cable_tv"`
+
+	NearSchool           bool `json:"near_school"`
+	NearSupermarket      bool `json:"near_supermarket"`
+	NearConvenienceStore bool `json:"near_convenience_store"`
+	NearPark             bool `json:"near_park"`
+
 	PublishedAt *time.Time `json:"published_at,omitempty"`
 	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
 	CreatedAt   time.Time  `json:"created_at"`
