@@ -81,16 +81,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '大安路精裝兩房採光宅', '台北市大安區大安路一段168號',
         'BUILDING', 6, 12, 21.5, 3.2, 1.8,
+        5.2, 1.5, NULL,
         2, 1, 1,
         FALSE, FALSE, 'NONE', 'PARTTIME', 'READY',
         5, 1500, '南', '東南',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第三種住宅區', 6,
         NOW() - INTERVAL '10 days', NOW() - INTERVAL '10 days'
     ) RETURNING id INTO prop_id;
 
@@ -109,16 +113,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '信義世貿三房', '台北市信義區松仁路88號',
         'BUILDING', 8, 25, 32.0, 5.0, 2.5,
+        8.5, NULL, NULL,
         3, 2, 2,
         TRUE, FALSE, 'MECHANICAL', 'FULLTIME', 'READY',
         3, 3500, '西南', '南',
+        '鋼骨鋼筋混凝土', '石材', '集合住宅', '第三種住宅區', 8,
         NOW() - INTERVAL '9 days', NOW() - INTERVAL '9 days'
     ) RETURNING id INTO prop_id;
 
@@ -137,16 +145,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, building_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '中山捷運套房', '台北市中山區林森北路186號',
         'STUDIO', 5, 12, 12.0, 1.5,
+        NULL, 1.2, NULL,
         1, 0, 1,
         FALSE, FALSE, 'NONE', 'NONE', 'READY',
         15, '東',
+        '加強磚造', '磁磚', '集合住宅', '第二種住宅區', 4,
         NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days'
     ) RETURNING id INTO prop_id;
 
@@ -165,16 +177,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '內湖科技兩房', '台北市內湖區瑞光路568號',
         'BUILDING', 7, 15, 22.0, 3.5, 2.0,
+        4.8, NULL, NULL,
         2, 1, 1,
         FALSE, FALSE, 'RAMP', 'PARTTIME', 'READY',
         8, 2000, '南', '東南',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第二種住宅區', 5,
         NOW() - INTERVAL '7 days', NOW() - INTERVAL '7 days'
     ) RETURNING id INTO prop_id;
 
@@ -193,16 +209,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '木柵捷運三房', '台北市文山區木柵路四段200號',
         'APARTMENT', 3, 5, 38.0, 6.0, 3.5,
+        NULL, 2.0, NULL,
         3, 2, 2,
         TRUE, FALSE, 'NONE', 'NONE', 'READY',
         20, 1200, '東南', '東',
+        '加強磚造', '磁磚（整建）', '集合住宅', '第二種住宅區', 3,
         NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days'
     ) RETURNING id INTO prop_id;
 
@@ -221,16 +241,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '板橋府中三房', '新北市板橋區府中路30號',
         'APARTMENT', 4, 8, 34.0, 5.5, 3.0,
+        NULL, 2.5, NULL,
         3, 2, 2,
         FALSE, FALSE, 'RAMP', 'NONE', 'READY',
         18, 1500, '南', '南',
+        '磚造', NULL, '集合住宅', '第三種住宅區', 4,
         NOW() - INTERVAL '5 days', NOW() - INTERVAL '5 days'
     ) RETURNING id INTO prop_id;
 
@@ -249,16 +273,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '中和景觀兩房', '新北市中和區景平路688號',
         'BUILDING', 12, 20, 20.0, 3.0, 1.5,
+        4.0, NULL, NULL,
         2, 1, 1,
         FALSE, FALSE, 'MECHANICAL', 'FULLTIME', 'READY',
         6, 2500, '北', '北',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第三種住宅區', 6,
         NOW() - INTERVAL '4 days', NOW() - INTERVAL '4 days'
     ) RETURNING id INTO prop_id;
 
@@ -277,16 +305,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '新店碧潭兩房', '新北市新店區中正路138號',
         'BUILDING', 6, 14, 25.0, 4.0, 2.0,
+        4.5, 1.8, NULL,
         2, 1, 1,
         TRUE, FALSE, 'NONE', 'NONE', 'READY',
         10, 1800, '東', '東南',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第三種住宅區', 5,
         NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'
     ) RETURNING id INTO prop_id;
 
@@ -305,16 +337,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '七期精裝兩房', '台中市西屯區市政北七路200號',
         'BUILDING', 15, 30, 26.0, 4.2, 2.2,
+        5.5, NULL, NULL,
         2, 1, 2,
         FALSE, FALSE, 'MECHANICAL', 'FULLTIME', 'READY',
         4, 3200, '南', '西南',
+        '鋼骨鋼筋混凝土', '玻璃帷幕', '集合住宅', '第三種住宅區', 4,
         NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days'
     ) RETURNING id INTO prop_id;
 
@@ -333,16 +369,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '北屯親子三房', '台中市北屯區北屯路399號',
         'APARTMENT', 2, 7, 35.0, 5.5, 3.0,
+        NULL, NULL, NULL,
         3, 2, 2,
         FALSE, FALSE, 'RAMP', 'NONE', 'READY',
         12, 1000, '東南', '東',
+        '加強磚造', '磁磚', '集合住宅', '第二種住宅區', 3,
         NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day'
     ) RETURNING id INTO prop_id;
 
@@ -365,16 +405,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '大安精品三房', '台北市大安區仁愛路四段380號',
         'BUILDING', 8, 16, 42.0, 7.0, 3.2,
+        8.2, NULL, NULL,
         3, 2, 2,
         TRUE, FALSE, 'MECHANICAL', 'FULLTIME', 'READY',
         2, 4500, '南', '東南',
+        '鋼筋混凝土', '石材', '集合住宅', '第三種住宅區', 4,
         NOW() - INTERVAL '15 days', NOW() - INTERVAL '15 days'
     ) RETURNING id INTO prop_id;
 
@@ -391,16 +435,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '信義高樓景觀宅', '台北市信義區信義路五段168號',
         'BUILDING', 22, 35, 50.0, 8.5, 4.0,
+        12.0, NULL, NULL,
         3, 2, 2,
         FALSE, FALSE, 'TOWER', 'FULLTIME', 'READY',
         5, 5500, '西南', '西南',
+        '鋼骨鋼筋混凝土', '玻璃帷幕', '集合住宅', '第三種住宅區', 5,
         NOW() - INTERVAL '14 days', NOW() - INTERVAL '14 days'
     ) RETURNING id INTO prop_id;
 
@@ -417,16 +465,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '中山雙捷兩房', '台北市中山區中山北路二段48號',
         'APARTMENT', 4, 12, 28.0, 4.5, 2.0,
+        NULL, 2.2, NULL,
         2, 1, 1,
         FALSE, FALSE, 'NONE', 'NONE', 'READY',
         25, 1200, '東', '東',
+        '加強磚造', '磁磚（整建）', '集合住宅', '第二種住宅區', 4,
         NOW() - INTERVAL '13 days', NOW() - INTERVAL '13 days'
     ) RETURNING id INTO prop_id;
 
@@ -443,16 +495,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '北投溫泉透天', '台北市北投區中山路66號',
         'TOWNHOUSE', 1, 3, 65.0, 10.0, 5.0,
+        NULL, 1.5, 30.0,
         4, 3, 3,
         TRUE, FALSE, 'RAMP', 'NONE', 'READY',
         30, '南', '南',
+        '磚造', '洗石子', '透天住宅', '第一種住宅區', NULL,
         NOW() - INTERVAL '12 days', NOW() - INTERVAL '12 days'
     ) RETURNING id INTO prop_id;
 
@@ -469,16 +525,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '板橋車站兩房', '新北市板橋區縣民大道二段68號',
         'BUILDING', 9, 22, 30.0, 5.0, 2.5,
+        6.0, NULL, NULL,
         2, 1, 2,
         FALSE, FALSE, 'TOWER', 'PARTTIME', 'READY',
         8, 2800, '東南', '東',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第三種住宅區', 6,
         NOW() - INTERVAL '11 days', NOW() - INTERVAL '11 days'
     ) RETURNING id INTO prop_id;
 
@@ -495,16 +555,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '新莊副都心兩房', '新北市新莊區新泰路386號',
         'BUILDING', 5, 18, 24.0, 4.0, 2.0,
+        4.5, NULL, NULL,
         2, 1, 1,
         FALSE, FALSE, 'MECHANICAL', 'NONE', 'READY',
         4, 2200, '南', '西南',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第三種住宅區', 5,
         NOW() - INTERVAL '10 days', NOW() - INTERVAL '10 days'
     ) RETURNING id INTO prop_id;
 
@@ -521,16 +585,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '七期高層三房', '台中市西屯區惠中路三段68號',
         'BUILDING', 18, 28, 54.0, 9.0, 4.0,
+        14.0, NULL, NULL,
         3, 2, 2,
         FALSE, FALSE, 'MECHANICAL', 'FULLTIME', 'READY',
         6, 5000, '西', '西南',
+        '鋼骨鋼筋混凝土', '玻璃帷幕', '集合住宅', '第三種住宅區', 4,
         NOW() - INTERVAL '9 days', NOW() - INTERVAL '9 days'
     ) RETURNING id INTO prop_id;
 
@@ -547,16 +615,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '南屯透天別墅', '台中市南屯區文心南路二段186號',
         'TOWNHOUSE', 1, 4, 58.0, 9.5, 4.5,
+        NULL, NULL, 25.0,
         4, 3, 3,
         TRUE, FALSE, 'RAMP', 'NONE', 'READY',
         10, '東南', '東',
+        '鋼骨造', '磁磚', '透天住宅', '第二種住宅區', NULL,
         NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days'
     ) RETURNING id INTO prop_id;
 
@@ -573,16 +645,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '竹科生活圈兩房', '新竹市東區光復路二段168號',
         'BUILDING', 6, 15, 26.0, 4.2, 2.0,
+        5.0, NULL, NULL,
         2, 1, 1,
         FALSE, FALSE, 'RAMP', 'NONE', 'READY',
         3, 2000, '南', '東南',
+        '鋼筋混凝土', '磁磚', '集合住宅', '第二種住宅區', 5,
         NOW() - INTERVAL '7 days', NOW() - INTERVAL '7 days'
     ) RETURNING id INTO prop_id;
 
@@ -599,16 +675,20 @@ BEGIN
     INSERT INTO property (
         owner_user_id, title, address, building_type,
         floor, total_floors, main_area, auxiliary_area, balcony_area,
+        shared_area, awning_area, land_area,
         rooms, living_rooms, bathrooms,
         is_corner_unit, has_dark_room, parking_type, security_type, setup_status,
         building_age, management_fee, building_orientation, window_orientation,
+        building_structure, exterior_material, building_usage, zoning, units_on_floor,
         created_at, updated_at
     ) VALUES (
         owner_id, '竹北高端三房', '新竹縣竹北市縣政九路168號',
         'BUILDING', 10, 24, 38.0, 6.5, 3.0,
+        8.0, NULL, NULL,
         3, 2, 2,
         FALSE, FALSE, 'MECHANICAL', 'FULLTIME', 'READY',
         1, 3800, '南', '西南',
+        '鋼骨鋼筋混凝土', '石材', '集合住宅', '第一種住宅區', 4,
         NOW() - INTERVAL '6 days', NOW() - INTERVAL '6 days'
     ) RETURNING id INTO prop_id;
 
