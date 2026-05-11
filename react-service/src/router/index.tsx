@@ -89,17 +89,17 @@ const router = createBrowserRouter([
     {
         path: "/requirements",
         element: (
-            <RequireCredential anyOf={["OWNER", "AGENT"]}>
+            <RequireAuth>
                 <RequirementsPage />
-            </RequireCredential>
+            </RequireAuth>
         ),
     },
     {
         path: "/requirements/:id",
         element: (
-            <RequireCredential anyOf={["OWNER", "AGENT"]}>
+            <RequireAuth>
                 <RequirementDetailPage />
-            </RequireCredential>
+            </RequireAuth>
         ),
     },
     {
