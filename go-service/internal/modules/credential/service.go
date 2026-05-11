@@ -723,6 +723,8 @@ func normalizeReviewRoute(route string) (string, error) {
 		return ReviewRouteManual, nil
 	case ReviewRouteProfile:
 		return ReviewRouteProfile, nil
+	case ReviewRouteDeclarations:
+		return ReviewRouteDeclarations, nil
 	default:
 		return "", fmt.Errorf("invalid review route %q", route)
 	}

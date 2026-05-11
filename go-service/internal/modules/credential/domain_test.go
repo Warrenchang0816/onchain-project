@@ -277,3 +277,13 @@ func TestEnsureActivatable(t *testing.T) {
 		}
 	})
 }
+
+func TestNormalizeReviewRouteDeclarations(t *testing.T) {
+	route, err := normalizeReviewRoute("DECLARATIONS")
+	if err != nil {
+		t.Fatalf("normalizeReviewRoute(DECLARATIONS) error = %v", err)
+	}
+	if route != ReviewRouteDeclarations {
+		t.Fatalf("normalizeReviewRoute(DECLARATIONS) = %q, want %q", route, ReviewRouteDeclarations)
+	}
+}
