@@ -42,7 +42,7 @@ function matchesRent(
         if (!addr.includes(kw) && !title.includes(kw)) return false;
     }
     if (districts.length > 0) {
-        const hit = districts.some((d) => addr.includes(d.district) || addr.includes(d.county));
+        const hit = districts.some((d) => addr.includes(d.district));
         if (!hit) return false;
     }
     const min = Number(priceMin);
