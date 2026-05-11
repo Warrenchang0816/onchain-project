@@ -279,6 +279,20 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 		}
 	}
 
+	if normalizedType == CredentialTypeOwner && route == ReviewRouteDeclarations {
+		if err := s.submissionRepo.SaveDecision(
+			submissionID,
+			CredentialReviewPassed,
+			ActivationStatusReady,
+			"",
+			"",
+			"{}",
+			"屋主已確認物件聲明，可自行決定是否啟用屋主 NFT",
+		); err != nil {
+			return nil, err
+		}
+	}
+
 	return &CreateSubmissionResponse{SubmissionID: submissionID}, nil
 }
 
