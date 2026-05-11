@@ -146,7 +146,7 @@ export default function CredentialApplicationShell(props: Props) {
                 notes,
             });
 
-            await uploadCredentialFiles(props.credentialType, created.submissionId, mainDoc, supportDoc ?? undefined);
+            await uploadCredentialFiles(props.credentialType, created.submissionId, mainDoc ?? undefined, supportDoc ?? undefined);
             await analyzeCredentialSubmission(props.credentialType, created.submissionId);
 
             setForceEditMode(false);
@@ -181,7 +181,7 @@ export default function CredentialApplicationShell(props: Props) {
                 notes,
             });
 
-            await uploadCredentialFiles(props.credentialType, created.submissionId, mainDoc, supportDoc ?? undefined);
+            await uploadCredentialFiles(props.credentialType, created.submissionId, mainDoc ?? undefined, supportDoc ?? undefined);
             await requestManualCredentialReview(props.credentialType, created.submissionId);
 
             setForceEditMode(false);
