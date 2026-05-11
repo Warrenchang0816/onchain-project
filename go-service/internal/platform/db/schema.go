@@ -252,6 +252,17 @@ CREATE TABLE IF NOT EXISTS listing_sale_details (
         SELECT 1 FROM tenant_requirement_districts existing
         WHERE existing.requirement_id = tr.id
       )`,
+
+		`CREATE TABLE IF NOT EXISTS user_favorites (
+    id           BIGSERIAL PRIMARY KEY,
+    wallet       VARCHAR(42) NOT NULL,
+    listing_type VARCHAR(10) NOT NULL CHECK (listing_type IN ('SALE', 'RENT')),
+    listing_id   BIGINT NOT NULL,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_user_favorites UNIQUE (wallet, listing_type, listing_id)
+)`,
+
+		`CREATE INDEX IF NOT EXISTS idx_user_favorites_wallet ON user_favorites (wallet, listing_type)`,
 	}
 
 	for _, statement := range statements {
