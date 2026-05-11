@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getSaleListing, type SaleListing } from "../api/saleListingApi";
+import { getAuthMe } from "@/api/authApi";
+import HeartButton from "@/components/common/HeartButton";
 import SiteLayout from "../layouts/SiteLayout";
 
 const BUILDING_TYPE_LABEL: Record<string, string> = {
@@ -43,6 +45,11 @@ export default function SaleDetailPage() {
     const [listing, setListing] = useState<SaleListing | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [authenticated, setAuthenticated] = useState(false);
+
+    useEffect(() => {
+        getAuthMe().then((r) => setAuthenticated(r.authenticated)).catch(() => undefined);
+    }, []);
 
     useEffect(() => {
         if (isNaN(listingId)) return;
@@ -72,7 +79,10 @@ export default function SaleDetailPage() {
 
                 {/* ── Hero ── */}
                 <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
-                    <h1 className="text-3xl font-extrabold text-on-surface">{p?.title ?? `出售 #${listing.id}`}</h1>
+                    <div className="flex items-start justify-between">
+                        <h1 className="text-3xl font-extrabold text-on-surface">{p?.title ?? `出售 #${listing.id}`}</h1>
+                        {listing && <HeartButton listingType="SALE" listingId={listing.id} authenticated={authenticated} />}
+                    </div>
                     <p className="mt-1 text-sm text-on-surface-variant">{p?.address ?? ""}</p>
 
                     <div className="mt-4">
