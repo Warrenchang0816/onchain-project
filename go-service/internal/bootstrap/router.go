@@ -8,6 +8,7 @@ import (
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	customermod "go-service/internal/modules/customer"
+	favoritesmod "go-service/internal/modules/favorites"
 	listingmod "go-service/internal/modules/listing"
 	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
@@ -42,6 +43,7 @@ func SetupRouter(
 	newPropertyHandler *propertymod.Handler,
 	rentalListingHandler *rentallistingmod.Handler,
 	saleListingHandler *salelistingmod.Handler,
+	favoritesHandler *favoritesmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -167,6 +169,12 @@ func SetupRouter(
 			protected.PUT("/tenant/requirements/:id/status", tenantHandler.UpdateRequirementStatus)
 			protected.GET("/requirements", tenantHandler.ListVisibleRequirements)
 			protected.GET("/requirements/:id", tenantHandler.GetVisibleRequirement)
+
+			// Favorites
+			protected.GET("/favorites", favoritesHandler.List)
+			protected.GET("/favorites/:type/:id/check", favoritesHandler.Check)
+			protected.POST("/favorites", favoritesHandler.Add)
+			protected.DELETE("/favorites/:type/:id", favoritesHandler.Remove)
 		}
 
 		// ── Blockchain logs (public) ──────────────────────────────

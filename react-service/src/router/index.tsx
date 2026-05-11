@@ -12,6 +12,7 @@ import OwnerCredentialPage from "../pages/OwnerCredentialPage";
 import TenantCredentialPage from "../pages/TenantCredentialPage";
 import AgentCredentialPage from "../pages/AgentCredentialPage";
 import RequireCredential from "../components/common/RequireCredential";
+import RequireAuth from "../components/common/RequireAuth";
 import AgentListPage from "../pages/AgentListPage";
 import AgentDetailPage from "../pages/AgentDetailPage";
 import ListingPrintPage from "../pages/ListingPrintPage";
@@ -88,17 +89,17 @@ const router = createBrowserRouter([
     {
         path: "/requirements",
         element: (
-            <RequireCredential anyOf={["OWNER", "AGENT"]}>
+            <RequireAuth>
                 <RequirementsPage />
-            </RequireCredential>
+            </RequireAuth>
         ),
     },
     {
         path: "/requirements/:id",
         element: (
-            <RequireCredential anyOf={["OWNER", "AGENT"]}>
+            <RequireAuth>
                 <RequirementDetailPage />
-            </RequireCredential>
+            </RequireAuth>
         ),
     },
     {
@@ -151,9 +152,9 @@ const router = createBrowserRouter([
     },
     // Public — sale & rent
     { path: "/sale", element: <SaleListPage /> },
-    { path: "/sale/:id", element: <SaleDetailPage /> },
+    { path: "/sale/:id", element: <RequireAuth><SaleDetailPage /></RequireAuth> },
     { path: "/rent", element: <RentListPage /> },
-    { path: "/rent/:id", element: <RentDetailPage /> },
+    { path: "/rent/:id", element: <RequireAuth><RentDetailPage /></RequireAuth> },
     // Owner — properties
     {
         path: "/my/properties",

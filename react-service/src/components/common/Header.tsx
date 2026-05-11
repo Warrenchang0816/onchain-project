@@ -15,10 +15,9 @@ async function revokeWalletPermissions() {
 }
 
 function deriveRole(kycStatus: KYCStatus, credentials: string[]): string {
-    if (credentials.includes("AGENT")) return "仲介";
-    if (credentials.includes("OWNER")) return "房東";
-    if (credentials.includes("TENANT")) return "租客";
-    if (kycStatus === "VERIFIED") return "已驗證";
+    if (kycStatus === "VERIFIED") {
+        return credentials.length > 0 ? "貴賓" : "尚未啟用身份";
+    }
     if (kycStatus === "PENDING") return "審核中";
     return "訪客";
 }
@@ -85,7 +84,7 @@ export default function Header() {
     };
 
     const role = deriveRole(state.kycStatus, state.credentials);
-    const canBrowseRequirements = state.authenticated && (state.credentials.includes("OWNER") || state.credentials.includes("AGENT"));
+    const canBrowseRequirements = state.authenticated;
 
     const navLinkCls = ({ isActive }: { isActive: boolean }) =>
         isActive
@@ -111,7 +110,7 @@ export default function Header() {
                     <NavLink to="/" end className={navLinkCls}>首頁</NavLink>
                     <NavLink to="/sale" className={navLinkCls}>出售物件</NavLink>
                     <NavLink to="/rent" className={navLinkCls}>出租物件</NavLink>
-                    {canBrowseRequirements ? <NavLink to="/requirements" className={navLinkCls}>租屋需求</NavLink> : null}
+                    {canBrowseRequirements ? <NavLink to="/requirements" className={navLinkCls}>需求列表</NavLink> : null}
                     <NavLink to="/agents" className={navLinkCls}>仲介列表</NavLink>
                 </nav>
 

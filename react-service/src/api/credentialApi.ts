@@ -82,11 +82,13 @@ export async function createCredentialSubmission(
 export async function uploadCredentialFiles(
     type: CredentialType,
     submissionId: number,
-    mainDoc: File,
+    mainDoc?: File,
     supportDoc?: File,
 ): Promise<void> {
     const form = new FormData();
-    form.append("main_doc", mainDoc);
+    if (mainDoc) {
+        form.append("main_doc", mainDoc);
+    }
     if (supportDoc) {
         form.append("support_doc", supportDoc);
     }

@@ -12,6 +12,8 @@ type Props = {
     title: string;
     description: string;
     primaryFields: Array<{ key: string; label: string; placeholder: string }>;
+    declarations?: Array<{ key: string; text: string }>;
+    mainDocRequired?: boolean;
 };
 
 type PageState = {
@@ -87,6 +89,8 @@ export default function CredentialRolePage(props: Props) {
                     title={props.title}
                     description={props.description}
                     primaryFields={props.primaryFields}
+                    declarations={props.declarations}
+                    mainDocRequired={props.mainDocRequired}
                     kycDisplayName={state.profile?.displayName}
                     currentItem={currentItem}
                     currentDetail={state.detail ?? undefined}
