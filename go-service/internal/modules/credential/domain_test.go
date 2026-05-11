@@ -279,11 +279,21 @@ func TestEnsureActivatable(t *testing.T) {
 }
 
 func TestNormalizeReviewRouteDeclarations(t *testing.T) {
-	route, err := normalizeReviewRoute("DECLARATIONS")
+	// Test uppercase
+	got, err := normalizeReviewRoute("DECLARATIONS")
 	if err != nil {
 		t.Fatalf("normalizeReviewRoute(DECLARATIONS) error = %v", err)
 	}
-	if route != ReviewRouteDeclarations {
-		t.Fatalf("normalizeReviewRoute(DECLARATIONS) = %q, want %q", route, ReviewRouteDeclarations)
+	if got != ReviewRouteDeclarations {
+		t.Fatalf("normalizeReviewRoute(DECLARATIONS) = %q, want %q", got, ReviewRouteDeclarations)
+	}
+
+	// Test lowercase (validates case-normalization)
+	got, err = normalizeReviewRoute("declarations")
+	if err != nil {
+		t.Fatalf("normalizeReviewRoute(declarations) error = %v", err)
+	}
+	if got != ReviewRouteDeclarations {
+		t.Fatalf("normalizeReviewRoute(declarations) = %q, want %q", got, ReviewRouteDeclarations)
 	}
 }
