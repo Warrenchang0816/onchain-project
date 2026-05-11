@@ -5,6 +5,8 @@ import { getRentalListings, type RentalListing } from "@/api/rentalListingApi";
 import ListingSearchFilters, { type ListingSearchFilterValues } from "@/components/search/ListingSearchFilters";
 import { districtOptionToSelection, encodeDistrictToken, type DistrictSelection } from "@/components/location/districtSelection";
 import SiteLayout from "@/layouts/SiteLayout";
+import { getAuthMe } from "@/api/authApi";
+import HeartButton from "@/components/common/HeartButton";
 
 const BUILDING_TYPE_LABEL: Record<string, string> = {
     APARTMENT: "公寓", BUILDING: "大樓", TOWNHOUSE: "透天", STUDIO: "套房",
@@ -59,6 +61,7 @@ export default function RentListPage() {
     const [allItems, setAllItems] = useState<RentalListing[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [authenticated, setAuthenticated] = useState(false);
 
     const selectedDistricts = useMemo(
         () => readSelectedDistricts(districtOptions, searchParams.getAll("district")),
@@ -91,6 +94,10 @@ export default function RentListPage() {
             .then(setAllItems)
             .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取租屋列表失敗"))
             .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        getAuthMe().then((r) => setAuthenticated(r.authenticated)).catch(() => undefined);
     }, []);
 
     const items = useMemo(
@@ -178,12 +185,15 @@ export default function RentListPage() {
                                                 <p className="mt-1 text-xs text-on-surface-variant">{item.property.main_area} 坪</p>
                                             ) : null}
                                         </div>
-                                        <div className="text-left md:text-right">
-                                            <p className="text-2xl font-extrabold text-on-surface">
-                                                NT$ {item.monthly_rent.toLocaleString()}
-                                                <span className="ml-1 text-base font-normal text-on-surface-variant">/ 月</span>
-                                            </p>
-                                            <p className="mt-1 text-xs text-on-surface-variant">押金 {item.deposit_months} 個月</p>
+                                        <div className="flex items-start gap-2 md:flex-col md:items-end">
+                                            <div className="text-left md:text-right">
+                                                <p className="text-2xl font-extrabold text-on-surface">
+                                                    NT$ {item.monthly_rent.toLocaleString()}
+                                                    <span className="ml-1 text-base font-normal text-on-surface-variant">/ 月</span>
+                                                </p>
+                                                <p className="mt-1 text-xs text-on-surface-variant">押金 {item.deposit_months} 個月</p>
+                                            </div>
+                                            <HeartButton listingType="RENT" listingId={item.id} authenticated={authenticated} />
                                         </div>
                                     </div>
                                 </article>

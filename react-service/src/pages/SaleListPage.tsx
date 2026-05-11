@@ -5,6 +5,8 @@ import { getSaleListings, type SaleListing } from "@/api/saleListingApi";
 import ListingSearchFilters, { type ListingSearchFilterValues } from "@/components/search/ListingSearchFilters";
 import { districtOptionToSelection, encodeDistrictToken, type DistrictSelection } from "@/components/location/districtSelection";
 import SiteLayout from "@/layouts/SiteLayout";
+import { getAuthMe } from "@/api/authApi";
+import HeartButton from "@/components/common/HeartButton";
 
 const BUILDING_TYPE_LABEL: Record<string, string> = {
     APARTMENT: "公寓", BUILDING: "大樓", TOWNHOUSE: "透天", STUDIO: "套房",
@@ -59,6 +61,7 @@ export default function SaleListPage() {
     const [allItems, setAllItems] = useState<SaleListing[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [authenticated, setAuthenticated] = useState(false);
 
     const selectedDistricts = useMemo(
         () => readSelectedDistricts(districtOptions, searchParams.getAll("district")),
@@ -91,6 +94,10 @@ export default function SaleListPage() {
             .then(setAllItems)
             .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取售屋列表失敗"))
             .finally(() => setLoading(false));
+    }, []);
+
+    useEffect(() => {
+        getAuthMe().then((r) => setAuthenticated(r.authenticated)).catch(() => undefined);
     }, []);
 
     const items = useMemo(
@@ -173,13 +180,16 @@ export default function SaleListPage() {
                                                 <p className="mt-1 text-xs text-on-surface-variant">{item.property.main_area} 坪</p>
                                             ) : null}
                                         </div>
-                                        <div className="text-left md:text-right">
-                                            <p className="text-2xl font-extrabold text-on-surface">
-                                                NT$ {item.total_price.toLocaleString()}
-                                            </p>
-                                            {item.unit_price_per_ping != null ? (
-                                                <p className="mt-1 text-xs text-on-surface-variant">單坪 NT$ {item.unit_price_per_ping.toLocaleString()}</p>
-                                            ) : null}
+                                        <div className="flex items-start gap-2 md:flex-col md:items-end">
+                                            <div className="text-left md:text-right">
+                                                <p className="text-2xl font-extrabold text-on-surface">
+                                                    NT$ {item.total_price.toLocaleString()}
+                                                </p>
+                                                {item.unit_price_per_ping != null ? (
+                                                    <p className="mt-1 text-xs text-on-surface-variant">單坪 NT$ {item.unit_price_per_ping.toLocaleString()}</p>
+                                                ) : null}
+                                            </div>
+                                            <HeartButton listingType="SALE" listingId={item.id} authenticated={authenticated} />
                                         </div>
                                     </div>
                                 </article>
