@@ -9,6 +9,7 @@ import (
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	customermod "go-service/internal/modules/customer"
+	favoritesmod "go-service/internal/modules/favorites"
 	listingmod "go-service/internal/modules/listing"
 	locationmod "go-service/internal/modules/location"
 	logsmod "go-service/internal/modules/logs"
@@ -73,6 +74,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	newPropertyRepo := repository.NewPropertyRepository(postgresDB)
 	rentalListingRepo := repository.NewRentalListingRepository(postgresDB)
 	saleListingRepo := repository.NewSaleListingRepository(postgresDB)
+	favoritesRepo := favoritesmod.NewRepository(postgresDB)
 
 	// ── 5. Logs module ────────────────────────────────────────
 	logHandler := logsmod.NewHandler(logRepo)
@@ -265,6 +267,9 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	)
 	tenantHandler := tenantmod.NewHandler(tenantSvc)
 
+	// ── 17. Favorites module ──────────────────────────────────
+	favoritesHandler := favoritesmod.NewHandler(favoritesRepo)
+
 	// ── 16. Router ────────────────────────────────────────────
 	r := SetupRouter(
 		listingHandler,
@@ -285,6 +290,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		newPropertyHandler,
 		rentalListingHandler,
 		saleListingHandler,
+		favoritesHandler,
 	)
 
 	return r, cleanupFn, nil
