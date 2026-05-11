@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import SiteLayout from "@/layouts/SiteLayout";
 import HeartButton from "@/components/common/HeartButton";
-import { getFavorites, type Favorite, type ListingType } from "@/api/favoritesApi";
+import { getFavorites, type Favorite } from "@/api/favoritesApi";
 import { getSaleListing, type SaleListing } from "@/api/saleListingApi";
 import { getRentalListing, type RentalListing } from "@/api/rentalListingApi";
 
@@ -143,10 +143,16 @@ export default function FavoritesPage() {
             ? "border-b-2 border-primary-container pb-2 text-sm font-bold text-primary-container"
             : "pb-2 text-sm font-medium text-on-surface-variant transition-colors hover:text-on-surface";
 
+    const handleTabChange = (newTab: Tab) => {
+        if (newTab === tab) return;
+        setFavorites([]);
+        setFavError(null);
+        setFavLoading(true);
+        setTab(newTab);
+    };
+
     useEffect(() => {
         let cancelled = false;
-        setFavLoading(true);
-        setFavError(null);
         getFavorites(tab)
             .then((data) => { if (!cancelled) setFavorites(data); })
             .catch((err: unknown) => {
@@ -174,10 +180,10 @@ export default function FavoritesPage() {
 
                 {/* Tabs */}
                 <div className="flex gap-6 border-b border-outline-variant/20">
-                    <button type="button" className={tabCls("SALE")} onClick={() => setTab("SALE")}>
+                    <button type="button" className={tabCls("SALE")} onClick={() => handleTabChange("SALE")}>
                         出售物件
                     </button>
-                    <button type="button" className={tabCls("RENT")} onClick={() => setTab("RENT")}>
+                    <button type="button" className={tabCls("RENT")} onClick={() => handleTabChange("RENT")}>
                         出租物件
                     </button>
                 </div>
