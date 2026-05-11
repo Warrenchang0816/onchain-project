@@ -32,6 +32,8 @@ type Props = {
     currentItem?: CredentialCenterItem;
     currentDetail?: CredentialSubmissionDetail;
     onRefresh: () => Promise<void>;
+    declarations?: Array<{ key: string; text: string }>;
+    mainDocRequired?: boolean;
 };
 
 type ConfirmAction = "SMART_SUBMIT" | "MANUAL_SUBMIT" | "STOP_REVIEW" | "ACTIVATE" | null;
@@ -51,6 +53,12 @@ export default function CredentialApplicationShell(props: Props) {
     const [success, setSuccess] = useState("");
     const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
     const [forceEditMode, setForceEditMode] = useState(false);
+    const [declarationValues, setDeclarationValues] = useState<Record<string, boolean>>({});
+
+    const allDeclarationsChecked =
+        !props.declarations ||
+        props.declarations.length === 0 ||
+        props.declarations.every((d) => declarationValues[d.key] === true);
 
     const detail = props.currentDetail;
     const currentStatus = detail?.displayStatus ?? props.currentItem?.displayStatus ?? "NOT_STARTED";
@@ -86,11 +94,12 @@ export default function CredentialApplicationShell(props: Props) {
                 return `請先填寫「${field.label}」`;
             }
         }
-
-        if (!mainDoc) {
+        if (!allDeclarationsChecked) {
+            return "請確認並勾選所有物件聲明";
+        }
+        if ((props.mainDocRequired !== false) && !mainDoc) {
             return "請先上傳主要文件";
         }
-
         return null;
     };
 
@@ -118,7 +127,7 @@ export default function CredentialApplicationShell(props: Props) {
 
     const doSmartSubmit = async () => {
         const validationError = validateDraft();
-        if (validationError || !mainDoc) {
+        if (validationError || ((props.mainDocRequired !== false) && !mainDoc)) {
             setError(validationError ?? "請先上傳主要文件");
             setSuccess("");
             setConfirmAction(null);
@@ -154,7 +163,7 @@ export default function CredentialApplicationShell(props: Props) {
 
     const doManualSubmit = async () => {
         const validationError = validateDraft();
-        if (validationError || !mainDoc) {
+        if (validationError || ((props.mainDocRequired !== false) && !mainDoc)) {
             setError(validationError ?? "請先上傳主要文件");
             setSuccess("");
             setConfirmAction(null);
@@ -448,15 +457,41 @@ export default function CredentialApplicationShell(props: Props) {
                             ))}
                         </div>
 
+                        {props.declarations && props.declarations.length > 0 ? (
+                            <div className="space-y-3 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-5">
+                                <p className="text-sm font-bold text-on-surface">物件聲明（必填）</p>
+                                <p className="text-xs text-on-surface-variant">以下三項均需勾選方可提交申請</p>
+                                <div className="space-y-2">
+                                    {props.declarations.map((d) => (
+                                        <label key={d.key} className="flex cursor-pointer items-start gap-3">
+                                            <input
+                                                type="checkbox"
+                                                checked={declarationValues[d.key] ?? false}
+                                                onChange={(e) =>
+                                                    setDeclarationValues((prev) => ({ ...prev, [d.key]: e.target.checked }))
+                                                }
+                                                className="mt-0.5 h-4 w-4 accent-primary-container"
+                                            />
+                                            <span className="text-sm text-on-surface">{d.text}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : null}
+
                         <CredentialDocumentUploader
-                            label="主要文件"
-                            helperText="請上傳本次身份申請最主要的證明文件。"
+                            label={props.mainDocRequired !== false ? "主要文件" : "附件（選填）"}
+                            helperText={
+                                props.mainDocRequired !== false
+                                    ? "請上傳本次身份申請最主要的證明文件。"
+                                    : "可上傳權狀或所有權證明；上傳後可送出智能審核比對物件資料。"
+                            }
                             file={mainDoc}
                             onChange={(file) => {
                                 setMainDoc(file);
                                 setError("");
                             }}
-                            required
+                            required={props.mainDocRequired !== false}
                         />
 
                         <CredentialDocumentUploader
