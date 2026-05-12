@@ -1,12 +1,17 @@
 package property
 
 import (
+	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"go-service/internal/db/model"
+	"go-service/internal/platform/storage"
 )
 
 var (
@@ -31,12 +36,14 @@ type UserStore interface {
 }
 
 type Service struct {
-	repo     Store
-	userRepo UserStore
+	repo       Store
+	userRepo   UserStore
+	storageSvc *storage.Client
+	apiBaseURL string
 }
 
-func NewService(repo Store, userRepo UserStore) *Service {
-	return &Service{repo: repo, userRepo: userRepo}
+func NewService(repo Store, userRepo UserStore, storageSvc *storage.Client, apiBaseURL string) *Service {
+	return &Service{repo: repo, userRepo: userRepo, storageSvc: storageSvc, apiBaseURL: apiBaseURL}
 }
 
 func (s *Service) Create(wallet, title, address string) (int64, error) {
@@ -238,4 +245,82 @@ func (s *Service) requireOwner(wallet string) (*model.User, error) {
 		return nil, ErrNotOwner
 	}
 	return user, nil
+}
+
+func newPhotoUUID() string {
+	b := make([]byte, 16)
+	_, _ = rand.Read(b)
+	return fmt.Sprintf("%x%x%x%x%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+func extFromContentType(ct string) string {
+	switch strings.ToLower(strings.SplitN(ct, ";", 2)[0]) {
+	case "image/png":
+		return "png"
+	case "image/gif":
+		return "gif"
+	case "image/webp":
+		return "webp"
+	default:
+		return "jpg"
+	}
+}
+
+func contentTypeFromFilename(filename string) string {
+	switch strings.ToLower(filepath.Ext(filename)) {
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	default:
+		return "image/jpeg"
+	}
+}
+
+func (s *Service) UploadPhoto(ctx context.Context, propertyID int64, wallet string, data []byte, contentType string) (attachID int64, proxyURL string, err error) {
+	if _, err := s.GetForOwner(propertyID, wallet); err != nil {
+		return 0, "", err
+	}
+	atts, err := s.repo.ListAttachments(propertyID)
+	if err != nil {
+		return 0, "", fmt.Errorf("property: UploadPhoto list: %w", err)
+	}
+	count := 0
+	for _, a := range atts {
+		if a.Type == model.AttachmentTypePhoto {
+			count++
+		}
+	}
+	if count >= 10 {
+		return 0, "", errors.New("已達照片上限（10 張）")
+	}
+	if s.storageSvc == nil {
+		return 0, "", errors.New("photo storage not configured")
+	}
+	uuid := newPhotoUUID()
+	ext := extFromContentType(contentType)
+	objectPath := fmt.Sprintf("property/%d/photos/%s.%s", propertyID, uuid, ext)
+	if err := s.storageSvc.Upload(ctx, objectPath, data, contentType); err != nil {
+		return 0, "", fmt.Errorf("property: UploadPhoto upload: %w", err)
+	}
+	proxyURL = fmt.Sprintf("%s/api/property/%d/photos/%s.%s", s.apiBaseURL, propertyID, uuid, ext)
+	id, err := s.AddAttachment(propertyID, wallet, model.AttachmentTypePhoto, proxyURL)
+	if err != nil {
+		return 0, "", fmt.Errorf("property: UploadPhoto add: %w", err)
+	}
+	return id, proxyURL, nil
+}
+
+func (s *Service) DownloadPhoto(ctx context.Context, propertyID int64, filename string) ([]byte, string, error) {
+	if s.storageSvc == nil {
+		return nil, "", errors.New("photo storage not configured")
+	}
+	objectPath := fmt.Sprintf("property/%d/photos/%s", propertyID, filename)
+	data, err := s.storageSvc.Download(ctx, objectPath)
+	if err != nil {
+		return nil, "", fmt.Errorf("property: DownloadPhoto: %w", err)
+	}
+	return data, contentTypeFromFilename(filename), nil
 }

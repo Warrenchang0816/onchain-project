@@ -1,7 +1,9 @@
 package property
 
 import (
+	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -18,6 +20,8 @@ type APIService interface {
 	Update(id int64, wallet string, req UpdatePropertyRequest) error
 	AddAttachment(propertyID int64, wallet, attachType, url string) (int64, error)
 	DeleteAttachment(propertyID, attachmentID int64, wallet string) error
+	UploadPhoto(ctx context.Context, propertyID int64, wallet string, data []byte, contentType string) (int64, string, error)
+	DownloadPhoto(ctx context.Context, propertyID int64, filename string) ([]byte, string, error)
 }
 
 type Handler struct {
@@ -249,4 +253,53 @@ func handleErr(c *gin.Context, err error) {
 
 func parseID(c *gin.Context) (int64, error) {
 	return strconv.ParseInt(c.Param("id"), 10, 64)
+}
+
+func (h *Handler) UploadPhoto(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid id"})
+		return
+	}
+	file, header, err := c.Request.FormFile("photo")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "photo field required"})
+		return
+	}
+	defer file.Close()
+	const maxSize = 10 << 20 // 10 MB
+	if header.Size > maxSize {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "file too large (max 10 MB)"})
+		return
+	}
+	data, err := io.ReadAll(file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "read failed"})
+		return
+	}
+	ct := header.Header.Get("Content-Type")
+	if ct == "" {
+		ct = "image/jpeg"
+	}
+	attachID, proxyURL, err := h.svc.UploadPhoto(c.Request.Context(), id, walletFrom(c), data, ct)
+	if err != nil {
+		handleErr(c, err)
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"id": attachID, "url": proxyURL}})
+}
+
+func (h *Handler) ServePhoto(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		return
+	}
+	filename := c.Param("filename")
+	data, ct, err := h.svc.DownloadPhoto(c.Request.Context(), id, filename)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		return
+	}
+	c.Data(http.StatusOK, ct, data)
 }

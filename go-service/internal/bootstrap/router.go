@@ -101,6 +101,7 @@ func SetupRouter(
 			protected.PUT("/property/:id", newPropertyHandler.Update)
 			protected.POST("/property/:id/attachment", newPropertyHandler.AddAttachment)
 			protected.DELETE("/property/:id/attachment/:aid", newPropertyHandler.DeleteAttachment)
+			protected.POST("/property/:id/attachment/photo", newPropertyHandler.UploadPhoto)
 
 			// Rental listing (owner)
 			protected.POST("/property/:id/rental-listing", rentalListingHandler.Create)
@@ -176,6 +177,9 @@ func SetupRouter(
 			protected.POST("/favorites", favoritesHandler.Add)
 			protected.DELETE("/favorites/:type/:id", favoritesHandler.Remove)
 		}
+
+		// ── Property photos (public) ─────────────────────────────
+		api.GET("/property/:id/photos/:filename", newPropertyHandler.ServePhoto)
 
 		// ── Blockchain logs (public) ──────────────────────────────
 		api.GET("/blockchain-logs", logHandler.GetLogs)

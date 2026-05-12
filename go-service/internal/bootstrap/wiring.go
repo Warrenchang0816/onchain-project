@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"context"
 	"log"
+	"os"
 
 	"go-service/internal/db/repository"
 	agentmod "go-service/internal/modules/agent"
@@ -248,7 +249,11 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	locationHandler := locationmod.NewHandler(locationSvc)
 
 	// ── 15. New property + listing modules ───────────────────────────────────
-	newPropertySvc := propertymod.NewService(newPropertyRepo, userRepo)
+	appPublicURL := os.Getenv("APP_PUBLIC_URL")
+	if appPublicURL == "" {
+		appPublicURL = "http://localhost:8081"
+	}
+	newPropertySvc := propertymod.NewService(newPropertyRepo, userRepo, minioClient, appPublicURL)
 	newPropertyHandler := propertymod.NewHandler(newPropertySvc)
 
 	rentalListingSvc := rentallistingmod.NewService(rentalListingRepo, newPropertyRepo, userRepo)
