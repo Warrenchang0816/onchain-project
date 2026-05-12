@@ -61,7 +61,10 @@ export default function PropertyPhotoUploader({ propertyId, photos, attachmentId
                             <button
                                 type="button"
                                 aria-label={`刪除照片 ${idx + 1}`}
-                                onClick={() => void handleDelete(attachmentIds[idx])}
+                                onClick={() => {
+                                    const id = attachmentIds[idx];
+                                    if (id !== undefined) void handleDelete(id);
+                                }}
                                 className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-error text-xs font-bold text-white"
                             >
                                 ✕
