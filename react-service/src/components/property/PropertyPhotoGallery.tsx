@@ -44,8 +44,9 @@ export default function PropertyPhotoGallery({ photos, className = "" }: Props) 
                         <button
                             key={idx}
                             type="button"
+                            aria-label={`選擇照片 ${idx + 1}`}
                             onClick={() => setSelectedIndex(idx)}
-                            className={`shrink-0 overflow-hidden rounded-lg border-2 transition-colors ${
+                            className={`shrink-0 overflow-hidden rounded-lg bg-surface-container-low border-2 transition-colors ${
                                 idx === safeIndex
                                     ? "border-primary-container"
                                     : "border-transparent hover:border-outline-variant/40"
