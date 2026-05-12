@@ -92,6 +92,21 @@ export default function MyPropertiesPage() {
                                 onClick={() => navigate(`/my/properties/${item.id}`)}
                             >
                                 <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                                    {/* Thumbnail */}
+                                    {(() => {
+                                        const firstPhoto = item.attachments.find((a) => a.type === "PHOTO");
+                                        return firstPhoto ? (
+                                            <img
+                                                src={firstPhoto.url}
+                                                alt="物件照片"
+                                                className="h-20 w-28 shrink-0 rounded-xl object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-20 w-28 shrink-0 items-center justify-center rounded-xl bg-surface-container-low">
+                                                <span className="material-symbols-outlined text-2xl text-on-surface-variant">photo_camera</span>
+                                            </div>
+                                        );
+                                    })()}
                                     <div>
                                         <div className="mb-3 flex flex-wrap gap-2">
                                             <span className="rounded-full bg-surface-container-low px-3 py-1 text-xs font-semibold text-on-surface-variant">#{item.id}</span>
