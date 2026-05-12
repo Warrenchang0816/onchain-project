@@ -81,7 +81,7 @@ export default function OwnerStep2Upload(props: Props) {
                     onChange={(file) => { setMainDoc(file); setError(""); }}
                 />
                 <CredentialDocumentUploader
-                    label="補充文件"
+                    label="補充文件（選填）"
                     helperText="如有補充證明、來源資料或補件說明，可一併附上。"
                     file={supportDoc}
                     onChange={(file) => { setSupportDoc(file); setError(""); }}
