@@ -62,7 +62,7 @@ func TestUploadPhoto_RejectsAtLimit(t *testing.T) {
 	}
 }
 
-func TestUploadPhoto_AllowsUnder10(t *testing.T) {
+func TestUploadPhoto_PassesCountCheckWith9Photos(t *testing.T) {
 	prop := &model.Property{
 		ID: 1, OwnerUserID: 1,
 		Title: "test", Address: "addr", BuildingType: "BUILDING",

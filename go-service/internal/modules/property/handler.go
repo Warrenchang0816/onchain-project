@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -292,13 +293,13 @@ func (h *Handler) UploadPhoto(c *gin.Context) {
 func (h *Handler) ServePhoto(c *gin.Context) {
 	id, err := parseID(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid id"})
 		return
 	}
-	filename := c.Param("filename")
+	filename := filepath.Base(c.Param("filename"))
 	data, ct, err := h.svc.DownloadPhoto(c.Request.Context(), id, filename)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "photo not found"})
+		handleErr(c, err)
 		return
 	}
 	c.Data(http.StatusOK, ct, data)

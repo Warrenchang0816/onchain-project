@@ -306,11 +306,21 @@ func (s *Service) UploadPhoto(ctx context.Context, propertyID int64, wallet stri
 		return 0, "", fmt.Errorf("property: UploadPhoto upload: %w", err)
 	}
 	proxyURL = fmt.Sprintf("%s/api/property/%d/photos/%s.%s", s.apiBaseURL, propertyID, uuid, ext)
-	id, err := s.AddAttachment(propertyID, wallet, model.AttachmentTypePhoto, proxyURL)
+	attachID, err = s.repo.AddAttachment(propertyID, model.AttachmentTypePhoto, proxyURL)
 	if err != nil {
 		return 0, "", fmt.Errorf("property: UploadPhoto add: %w", err)
 	}
-	return id, proxyURL, nil
+	// Update setup status without re-checking ownership.
+	p, _ := s.repo.FindByID(propertyID)
+	if p != nil {
+		updatedAtts, _ := s.repo.ListAttachments(propertyID)
+		p.Attachments = updatedAtts
+		newStatus := computeSetupStatus(p)
+		if newStatus != p.SetupStatus {
+			_ = s.repo.SetSetupStatus(propertyID, newStatus, time.Now())
+		}
+	}
+	return attachID, proxyURL, nil
 }
 
 func (s *Service) DownloadPhoto(ctx context.Context, propertyID int64, filename string) ([]byte, string, error) {
