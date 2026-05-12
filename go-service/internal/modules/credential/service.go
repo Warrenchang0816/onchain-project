@@ -305,6 +305,9 @@ func (s *Service) UploadFiles(ctx context.Context, wallet, credentialType string
 	if err != nil {
 		return err
 	}
+	if sub.ActivationStatus == ActivationStatusActivated {
+		return errors.New("此申請已完成啟用，無法重新上傳文件")
+	}
 	if s.storageSvc == nil {
 		return errors.New("文件儲存服務尚未啟用")
 	}
@@ -339,6 +342,9 @@ func (s *Service) AnalyzeSubmission(ctx context.Context, wallet, credentialType 
 	sub, err := s.requireOwnedSubmission(user.ID, credentialType, submissionID)
 	if err != nil {
 		return nil, err
+	}
+	if sub.ActivationStatus == ActivationStatusActivated {
+		return nil, errors.New("此申請已完成啟用，無法重新送出智能審核")
 	}
 	if sub.ReviewRoute == ReviewRouteManual {
 		return nil, errors.New("此申請已改為人工審核，無法再執行智能判定")
