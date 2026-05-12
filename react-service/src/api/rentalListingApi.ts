@@ -24,6 +24,7 @@ export type PropertySummary = {
     security_type: string;
     building_orientation?: string;
     window_orientation?: string;
+    photo_urls?: string[];
 };
 
 export type RentalListing = {

@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getSaleListing, type SaleListing } from "../api/saleListingApi";
 import { getAuthMe } from "@/api/authApi";
 import HeartButton from "@/components/common/HeartButton";
+import PropertyPhotoGallery from "@/components/property/PropertyPhotoGallery";
 import SiteLayout from "../layouts/SiteLayout";
 
 const BUILDING_TYPE_LABEL: Record<string, string> = {
@@ -76,6 +77,8 @@ export default function SaleDetailPage() {
         <SiteLayout>
             <main className="mx-auto flex w-full max-w-[960px] flex-col gap-8 px-6 py-12 md:px-12">
                 <Link to="/sale" className="text-sm text-on-surface-variant hover:text-primary">← 出售物件列表</Link>
+
+                <PropertyPhotoGallery photos={p?.photo_urls ?? []} />
 
                 {/* ── Hero ── */}
                 <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">

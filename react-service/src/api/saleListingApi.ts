@@ -31,6 +31,7 @@ export type PropertySummary = {
     building_usage?: string;
     zoning?: string;
     units_on_floor?: number;
+    photo_urls?: string[];
 };
 
 export type SaleListing = {
