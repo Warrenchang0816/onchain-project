@@ -104,7 +104,7 @@ export default function OwnerStep2Upload(props: Props) {
                                 type="button"
                                 disabled={!canSubmit}
                                 onClick={() => void handleManualReview()}
-                                className="mx-1 rounded-none bg-transparent p-0 font-semibold text-on-surface underline underline-offset-4 transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
+                                className="mx-1 rounded-none bg-surface-container-lowest p-0 font-semibold text-on-surface underline underline-offset-4 transition-opacity hover:opacity-80 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 [人工審核]
                             </button>
