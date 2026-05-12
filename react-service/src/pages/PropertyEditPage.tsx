@@ -10,6 +10,7 @@ import {
     type UpdatePropertyPayload,
 } from "../api/propertyApi";
 import SiteLayout from "../layouts/SiteLayout";
+import PropertyPhotoUploader from "@/components/property/PropertyPhotoUploader";
 
 const inputCls =
     "block w-full px-4 py-3 bg-surface-container-low text-on-surface rounded-lg border-0 " +
@@ -115,7 +116,7 @@ export default function PropertyEditPage() {
     const [saveError, setSaveError] = useState("");
     const [saveOk, setSaveOk] = useState(false);
 
-    const [attachType, setAttachType] = useState<AttachmentType>("PHOTO");
+    const [attachType, setAttachType] = useState<AttachmentType>("FLOOR_PLAN");
     const [attachUrl, setAttachUrl] = useState("");
     const [attaching, setAttaching] = useState(false);
     const [attachError, setAttachError] = useState("");
@@ -180,6 +181,10 @@ export default function PropertyEditPage() {
 
     const progress = computeProgress(property);
     const isReady = property.setup_status === "READY";
+
+    const photoAttachments = property.attachments.filter((a) => a.type === "PHOTO");
+    const photoUrls = photoAttachments.map((a) => a.url);
+    const photoAttachmentIds = photoAttachments.map((a) => a.id);
 
     return (
         <SiteLayout>
@@ -369,9 +374,21 @@ export default function PropertyEditPage() {
                     </div>
                 </section>
 
+                {/* Section C1 — 物件照片 */}
                 <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
-                    <h2 className="mb-4 text-lg font-bold text-on-surface">Section C — 可信附件</h2>
-                    <p className="mb-6 text-xs text-on-surface-variant">至少上傳一張照片後，物件才會變成 READY 狀態並可上架。</p>
+                    <h2 className="mb-1 text-lg font-bold text-on-surface">Section C1 — 物件照片</h2>
+                    <p className="mb-6 text-xs text-on-surface-variant">最多 10 張。至少上傳一張後物件才會進入 READY 狀態可上架。</p>
+                    <PropertyPhotoUploader
+                        propertyId={propertyId}
+                        photos={photoUrls}
+                        attachmentIds={photoAttachmentIds}
+                        onUploaded={reload}
+                    />
+                </section>
+
+                <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
+                    <h2 className="mb-4 text-lg font-bold text-on-surface">Section C2 — 其他附件</h2>
+                    <p className="mb-6 text-xs text-on-surface-variant">格局圖、謄本、揭露文件等非照片附件請在此新增（以 URL 形式）。</p>
 
                     {property.attachments.length > 0 ? (
                         <div className="mb-6 flex flex-col gap-3">
@@ -395,7 +412,6 @@ export default function PropertyEditPage() {
 
                     <div className="flex flex-col gap-3 md:flex-row">
                         <select value={attachType} onChange={(e) => setAttachType(e.target.value as AttachmentType)} className={`${selectCls} md:w-44`}>
-                            <option value="PHOTO">照片</option>
                             <option value="FLOOR_PLAN">格局圖</option>
                             <option value="DEED">謄本</option>
                             <option value="DISCLOSURE">揭露文件</option>
