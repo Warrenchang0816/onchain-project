@@ -279,6 +279,20 @@ func (s *Service) CreateSubmission(ctx context.Context, wallet, credentialType s
 		}
 	}
 
+	if normalizedType == CredentialTypeOwner && route == ReviewRouteDeclarations {
+		if err := s.submissionRepo.SaveDecision(
+			submissionID,
+			CredentialReviewPassed,
+			ActivationStatusReady,
+			"",
+			"",
+			"{}",
+			"屋主已確認物件聲明，可自行決定是否啟用屋主 NFT",
+		); err != nil {
+			return nil, err
+		}
+	}
+
 	return &CreateSubmissionResponse{SubmissionID: submissionID}, nil
 }
 
@@ -290,6 +304,9 @@ func (s *Service) UploadFiles(ctx context.Context, wallet, credentialType string
 	sub, err := s.requireOwnedSubmission(user.ID, credentialType, submissionID)
 	if err != nil {
 		return err
+	}
+	if sub.ActivationStatus == ActivationStatusActivated {
+		return errors.New("此申請已完成啟用，無法重新上傳文件")
 	}
 	if s.storageSvc == nil {
 		return errors.New("文件儲存服務尚未啟用")
@@ -325,6 +342,9 @@ func (s *Service) AnalyzeSubmission(ctx context.Context, wallet, credentialType 
 	sub, err := s.requireOwnedSubmission(user.ID, credentialType, submissionID)
 	if err != nil {
 		return nil, err
+	}
+	if sub.ActivationStatus == ActivationStatusActivated {
+		return nil, errors.New("此申請已完成啟用，無法重新送出智能審核")
 	}
 	if sub.ReviewRoute == ReviewRouteManual {
 		return nil, errors.New("此申請已改為人工審核，無法再執行智能判定")
@@ -723,6 +743,8 @@ func normalizeReviewRoute(route string) (string, error) {
 		return ReviewRouteManual, nil
 	case ReviewRouteProfile:
 		return ReviewRouteProfile, nil
+	case ReviewRouteDeclarations:
+		return ReviewRouteDeclarations, nil
 	default:
 		return "", fmt.Errorf("invalid review route %q", route)
 	}

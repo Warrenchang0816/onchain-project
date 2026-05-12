@@ -12,9 +12,10 @@ const (
 	CredentialTypeTenant = "TENANT"
 	CredentialTypeAgent  = "AGENT"
 
-	ReviewRouteSmart   = "SMART"
-	ReviewRouteManual  = "MANUAL"
-	ReviewRouteProfile = "PROFILE"
+	ReviewRouteSmart        = "SMART"
+	ReviewRouteManual       = "MANUAL"
+	ReviewRouteProfile      = "PROFILE"
+	ReviewRouteDeclarations = "DECLARATIONS"
 
 	CredentialReviewDraft           = "DRAFT"
 	CredentialReviewSmartReviewing  = "SMART_REVIEWING"
