@@ -143,3 +143,18 @@ export async function deleteAttachment(propertyId: number, attachmentId: number)
     });
     await parse<unknown>(res);
 }
+
+export async function uploadPropertyPhoto(
+    propertyId: number,
+    file: File,
+): Promise<{ id: number; url: string }> {
+    const form = new FormData();
+    form.append("photo", file);
+    const res = await fetch(`${API}/property/${propertyId}/attachment/photo`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
+    });
+    const data = await parse<{ data: { id: number; url: string } }>(res);
+    return data.data;
+}
