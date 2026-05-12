@@ -208,6 +208,12 @@ func toResponse(rl *model.RentalListing) RentalListingResponse {
 		if p.WindowOrientation.Valid {
 			pResp.WindowOrientation = &p.WindowOrientation.String
 		}
+		pResp.PhotoURLs = []string{}
+		for _, a := range p.Attachments {
+			if a.Type == model.AttachmentTypePhoto {
+				pResp.PhotoURLs = append(pResp.PhotoURLs, a.URL)
+			}
+		}
 		resp.Property = &pResp
 	}
 	return resp

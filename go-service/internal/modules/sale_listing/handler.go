@@ -235,6 +235,12 @@ func toResponse(sl *model.SaleListing) SaleListingResponse {
 			v := p.UnitsOnFloor.Int32
 			pResp.UnitsOnFloor = &v
 		}
+		pResp.PhotoURLs = []string{}
+		for _, a := range p.Attachments {
+			if a.Type == model.AttachmentTypePhoto {
+				pResp.PhotoURLs = append(pResp.PhotoURLs, a.URL)
+			}
+		}
 		resp.Property = &pResp
 	}
 	return resp

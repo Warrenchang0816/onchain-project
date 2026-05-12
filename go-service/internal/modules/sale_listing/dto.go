@@ -31,6 +31,7 @@ type PropertySummaryResponse struct {
 	BuildingUsage       *string  `json:"building_usage,omitempty"`
 	Zoning              *string  `json:"zoning,omitempty"`
 	UnitsOnFloor        *int32   `json:"units_on_floor,omitempty"`
+	PhotoURLs           []string `json:"photo_urls"`
 }
 
 type CreateSaleListingRequest struct {

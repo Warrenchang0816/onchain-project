@@ -26,6 +26,7 @@ type Store interface {
 
 type PropertyStore interface {
 	FindByID(id int64) (*model.Property, error)
+	ListAttachments(propertyID int64) ([]*model.PropertyAttachment, error)
 }
 
 type UserStore interface {
@@ -76,6 +77,10 @@ func (s *Service) ListPublic() ([]*model.SaleListing, error) {
 	}
 	for _, sl := range sls {
 		prop, _ := s.propertyRepo.FindByID(sl.PropertyID)
+		if prop != nil {
+			atts, _ := s.propertyRepo.ListAttachments(sl.PropertyID)
+			prop.Attachments = atts
+		}
 		sl.Property = prop
 	}
 	return sls, nil
@@ -90,6 +95,10 @@ func (s *Service) GetByID(id int64) (*model.SaleListing, error) {
 		return nil, ErrNotFound
 	}
 	prop, _ := s.propertyRepo.FindByID(sl.PropertyID)
+	if prop != nil {
+		atts, _ := s.propertyRepo.ListAttachments(sl.PropertyID)
+		prop.Attachments = atts
+	}
 	sl.Property = prop
 	return sl, nil
 }

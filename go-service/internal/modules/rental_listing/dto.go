@@ -22,6 +22,7 @@ type PropertySummaryResponse struct {
 	SecurityType        string   `json:"security_type"`
 	BuildingOrientation *string  `json:"building_orientation,omitempty"`
 	WindowOrientation   *string  `json:"window_orientation,omitempty"`
+	PhotoURLs           []string `json:"photo_urls"`
 }
 
 type CreateRentalListingRequest struct {
