@@ -16,10 +16,10 @@ type mockStore struct {
 }
 
 func (m *mockStore) Create(ownerUserID int64, title, address string) (int64, error) { return 0, nil }
-func (m *mockStore) FindByID(id int64) (*model.Property, error)                    { return m.property, nil }
-func (m *mockStore) ListByOwner(ownerUserID int64) ([]*model.Property, error)      { return nil, nil }
-func (m *mockStore) Update(p *model.Property) error                                { return nil }
-func (m *mockStore) SetSetupStatus(id int64, status string, _ time.Time) error     { return nil }
+func (m *mockStore) FindByID(id int64) (*model.Property, error)                     { return m.property, nil }
+func (m *mockStore) ListByOwner(ownerUserID int64) ([]*model.Property, error)       { return nil, nil }
+func (m *mockStore) Update(p *model.Property) error                                 { return nil }
+func (m *mockStore) SetSetupStatus(id int64, status string, _ time.Time) error      { return nil }
 func (m *mockStore) AddAttachment(propertyID int64, attachType, url string) (int64, error) {
 	m.nextID++
 	m.attachments = append(m.attachments, &model.PropertyAttachment{
