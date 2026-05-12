@@ -250,9 +250,7 @@ func (r *CredentialSubmissionRepository) scanAll(rows *sql.Rows) ([]*model.Crede
 
 func validateReviewRoute(reviewRoute string) error {
 	switch reviewRoute {
-	case reviewRouteSmart:
-		return nil
-	case reviewRouteManual:
+	case reviewRouteSmart, reviewRouteManual, reviewRouteProfile, reviewRouteDeclarations:
 		return nil
 	default:
 		return fmt.Errorf("invalid review route %q", reviewRoute)
@@ -275,6 +273,8 @@ func normalizeCredentialType(raw string) (string, error) {
 const (
 	reviewRouteSmart            = "SMART"
 	reviewRouteManual           = "MANUAL"
+	reviewRouteProfile          = "PROFILE"
+	reviewRouteDeclarations     = "DECLARATIONS"
 	reviewStatusDraft           = "DRAFT"
 	reviewStatusSmartReviewing  = "SMART_REVIEWING"
 	reviewStatusManualReviewing = "MANUAL_REVIEWING"
