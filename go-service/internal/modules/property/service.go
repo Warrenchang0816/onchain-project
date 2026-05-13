@@ -19,6 +19,7 @@ var (
 	ErrForbidden      = errors.New("only the property owner can perform this action")
 	ErrNotOwner       = errors.New("KYC verified owner credential required")
 	ErrPropertyListed = errors.New("物件上架中，無法移除")
+	ErrInvalidStatus  = errors.New("only DRAFT or READY properties can be removed")
 )
 
 type Store interface {
@@ -153,7 +154,7 @@ func (s *Service) RemoveProperty(ctx context.Context, propertyID int64, wallet s
 		return ErrForbidden
 	}
 	if prop.SetupStatus != model.PropertySetupDraft && prop.SetupStatus != model.PropertySetupReady {
-		return fmt.Errorf("only DRAFT or READY properties can be removed")
+		return ErrInvalidStatus
 	}
 	hasActive, err := s.repo.HasActiveListing(propertyID)
 	if err != nil {

@@ -263,6 +263,8 @@ func handleErr(c *gin.Context, err error) {
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": err.Error()})
 	case errors.Is(err, ErrPropertyListed):
 		c.JSON(http.StatusConflict, gin.H{"success": false, "message": err.Error()})
+	case errors.Is(err, ErrInvalidStatus):
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"success": false, "message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "internal error"})
 	}
