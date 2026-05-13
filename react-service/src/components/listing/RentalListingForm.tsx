@@ -141,7 +141,7 @@ export default function RentalListingForm({ propertyId, property }: Props) {
     return (
         <>
             <div className="flex flex-col gap-2">
-                <h1 className="text-4xl font-extrabold text-on-surface">出租條件</h1>
+                <h2 className="text-3xl font-extrabold text-on-surface">出租條件</h2>
                 <p className="text-sm text-on-surface-variant">{property.address}</p>
                 {listing ? (
                     <span className={`w-fit rounded-full px-3 py-1 text-xs font-bold ${listing.status === "ACTIVE" ? "bg-[#E8F5E9] text-[#2E7D32]" : "bg-surface-container-low text-on-surface-variant"}`}>

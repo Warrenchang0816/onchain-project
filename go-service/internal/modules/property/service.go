@@ -102,6 +102,9 @@ func (s *Service) Update(id int64, wallet string, req UpdatePropertyRequest) err
 	if err != nil {
 		return err
 	}
+	if p.SetupStatus == model.PropertySetupRemoved || p.SetupStatus == model.PropertySetupArchived {
+		return ErrInvalidStatus
+	}
 	applyUpdate(p, req)
 	p.SetupStatus = computeSetupStatus(p)
 	p.UpdatedAt = time.Now()
@@ -120,7 +123,7 @@ func (s *Service) AddAttachment(propertyID int64, wallet, attachType, url string
 		return 0, fmt.Errorf("property: AddAttachment: %w", err)
 	}
 	p, _ := s.repo.FindByID(propertyID)
-	if p != nil {
+	if p != nil && (p.SetupStatus == model.PropertySetupDraft || p.SetupStatus == model.PropertySetupReady) {
 		atts, _ := s.repo.ListAttachments(propertyID)
 		p.Attachments = atts
 		newStatus := computeSetupStatus(p)
@@ -343,7 +346,7 @@ func (s *Service) UploadPhoto(ctx context.Context, propertyID int64, wallet stri
 	}
 	// Update setup status without re-checking ownership.
 	p, _ := s.repo.FindByID(propertyID)
-	if p != nil {
+	if p != nil && (p.SetupStatus == model.PropertySetupDraft || p.SetupStatus == model.PropertySetupReady) {
 		updatedAtts, _ := s.repo.ListAttachments(propertyID)
 		p.Attachments = updatedAtts
 		newStatus := computeSetupStatus(p)

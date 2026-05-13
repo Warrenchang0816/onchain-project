@@ -23,6 +23,22 @@ export default function PropertyListingPage() {
         </SiteLayout>
     );
 
+    if (property.setup_status !== "READY") return (
+        <SiteLayout>
+            <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-12 md:px-12">
+                <Link
+                    to="/my/properties"
+                    className="text-sm text-on-surface-variant hover:text-primary-container"
+                >
+                    ← 返回我的物件
+                </Link>
+                <p className="text-sm text-on-surface-variant">
+                    此物件尚未完成設定（setup_status: {property.setup_status}），無法上架。請先補齊必填欄位。
+                </p>
+            </main>
+        </SiteLayout>
+    );
+
     return (
         <SiteLayout>
             <main className="mx-auto flex w-full max-w-[720px] flex-col gap-8 px-6 py-12 md:px-12">
