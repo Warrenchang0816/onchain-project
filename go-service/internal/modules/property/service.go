@@ -15,9 +15,11 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("property not found")
-	ErrForbidden = errors.New("only the property owner can perform this action")
-	ErrNotOwner  = errors.New("KYC verified owner credential required")
+	ErrNotFound       = errors.New("property not found")
+	ErrForbidden      = errors.New("only the property owner can perform this action")
+	ErrNotOwner       = errors.New("KYC verified owner credential required")
+	ErrPropertyListed = errors.New("物件上架中，無法移除")
+	ErrInvalidStatus  = errors.New("only DRAFT or READY properties can be removed")
 )
 
 type Store interface {
@@ -26,6 +28,7 @@ type Store interface {
 	ListByOwner(ownerUserID int64) ([]*model.Property, error)
 	Update(p *model.Property) error
 	SetSetupStatus(id int64, status string, updatedAt time.Time) error
+	HasActiveListing(propertyID int64) (bool, error)
 	AddAttachment(propertyID int64, attachType, url string) (int64, error)
 	DeleteAttachment(propertyID, attachmentID int64) error
 	ListAttachments(propertyID int64) ([]*model.PropertyAttachment, error)
@@ -99,6 +102,9 @@ func (s *Service) Update(id int64, wallet string, req UpdatePropertyRequest) err
 	if err != nil {
 		return err
 	}
+	if p.SetupStatus == model.PropertySetupRemoved || p.SetupStatus == model.PropertySetupArchived {
+		return ErrInvalidStatus
+	}
 	applyUpdate(p, req)
 	p.SetupStatus = computeSetupStatus(p)
 	p.UpdatedAt = time.Now()
@@ -117,7 +123,7 @@ func (s *Service) AddAttachment(propertyID int64, wallet, attachType, url string
 		return 0, fmt.Errorf("property: AddAttachment: %w", err)
 	}
 	p, _ := s.repo.FindByID(propertyID)
-	if p != nil {
+	if p != nil && (p.SetupStatus == model.PropertySetupDraft || p.SetupStatus == model.PropertySetupReady) {
 		atts, _ := s.repo.ListAttachments(propertyID)
 		p.Attachments = atts
 		newStatus := computeSetupStatus(p)
@@ -133,6 +139,34 @@ func (s *Service) DeleteAttachment(propertyID, attachmentID int64, wallet string
 		return err
 	}
 	return s.repo.DeleteAttachment(propertyID, attachmentID)
+}
+
+func (s *Service) RemoveProperty(ctx context.Context, propertyID int64, wallet string) error {
+	user, err := s.requireOwner(wallet)
+	if err != nil {
+		return err
+	}
+	prop, err := s.repo.FindByID(propertyID)
+	if err != nil {
+		return fmt.Errorf("property: RemoveProperty: %w", err)
+	}
+	if prop == nil {
+		return ErrNotFound
+	}
+	if prop.OwnerUserID != user.ID {
+		return ErrForbidden
+	}
+	if prop.SetupStatus != model.PropertySetupDraft && prop.SetupStatus != model.PropertySetupReady {
+		return ErrInvalidStatus
+	}
+	hasActive, err := s.repo.HasActiveListing(propertyID)
+	if err != nil {
+		return err
+	}
+	if hasActive {
+		return ErrPropertyListed
+	}
+	return s.repo.SetSetupStatus(propertyID, model.PropertySetupRemoved, time.Now())
 }
 
 func computeSetupStatus(p *model.Property) string {
@@ -312,7 +346,7 @@ func (s *Service) UploadPhoto(ctx context.Context, propertyID int64, wallet stri
 	}
 	// Update setup status without re-checking ownership.
 	p, _ := s.repo.FindByID(propertyID)
-	if p != nil {
+	if p != nil && (p.SetupStatus == model.PropertySetupDraft || p.SetupStatus == model.PropertySetupReady) {
 		updatedAtts, _ := s.repo.ListAttachments(propertyID)
 		p.Attachments = updatedAtts
 		newStatus := computeSetupStatus(p)

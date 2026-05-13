@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	PropertySetupDraft = "DRAFT"
-	PropertySetupReady = "READY"
+	PropertySetupDraft    = "DRAFT"
+	PropertySetupReady    = "READY"
+	PropertySetupRemoved  = "REMOVED"
+	PropertySetupArchived = "ARCHIVED"
 
 	BuildingTypeApartment = "APARTMENT"
 	BuildingTypeBuilding  = "BUILDING"

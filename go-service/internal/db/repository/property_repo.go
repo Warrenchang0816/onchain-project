@@ -61,7 +61,7 @@ func (r *PropertyRepository) ListByOwner(ownerUserID int64) ([]*model.Property, 
 		       building_orientation, window_orientation,
 		       parking_type, management_fee, security_type,
 		       setup_status, created_at, updated_at
-		FROM property WHERE owner_user_id = $1 ORDER BY created_at DESC`, ownerUserID)
+		FROM property WHERE owner_user_id = $1 AND setup_status <> 'REMOVED' ORDER BY created_at DESC`, ownerUserID)
 	if err != nil {
 		return nil, fmt.Errorf("property_repo: ListByOwner: %w", err)
 	}
@@ -155,6 +155,24 @@ func (r *PropertyRepository) SetSetupStatus(id int64, status string, updatedAt t
 	_, err := r.db.Exec(`UPDATE property SET setup_status=$1, updated_at=$2 WHERE id=$3`,
 		status, updatedAt, id)
 	return err
+}
+
+func (r *PropertyRepository) HasActiveListing(propertyID int64) (bool, error) {
+	var count int
+	err := r.db.QueryRow(`
+		SELECT COUNT(*) FROM (
+			SELECT id FROM rental_listing
+			WHERE property_id=$1 AND status IN ('ACTIVE','NEGOTIATING','LOCKED','SIGNING')
+			UNION ALL
+			SELECT id FROM sale_listing
+			WHERE property_id=$1 AND status IN ('ACTIVE','NEGOTIATING','LOCKED','SIGNING')
+		) AS t`,
+		propertyID,
+	).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("property_repo: HasActiveListing: %w", err)
+	}
+	return count > 0, nil
 }
 
 func scanProperty(row *sql.Row) (*model.Property, error) {

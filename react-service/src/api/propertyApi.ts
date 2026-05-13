@@ -1,6 +1,6 @@
 const API = import.meta.env.VITE_API_GO_SERVICE_URL || "http://localhost:8081/api";
 
-export type PropertySetupStatus = "DRAFT" | "READY";
+export type PropertySetupStatus = "DRAFT" | "READY" | "ARCHIVED" | "REMOVED";
 export type BuildingType = "APARTMENT" | "BUILDING" | "TOWNHOUSE" | "STUDIO";
 export type ParkingType = "NONE" | "RAMP" | "MECHANICAL" | "TOWER";
 export type SecurityType = "NONE" | "FULLTIME" | "PARTTIME";
@@ -157,4 +157,12 @@ export async function uploadPropertyPhoto(
     });
     const data = await parse<{ data: { id: number; url: string } }>(res);
     return data.data;
+}
+
+export async function removeProperty(id: number): Promise<void> {
+    const res = await fetch(`${API}/property/${id}/remove`, {
+        method: "PUT",
+        credentials: "include",
+    });
+    await parse<unknown>(res);
 }
