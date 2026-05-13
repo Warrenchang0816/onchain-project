@@ -29,3 +29,22 @@ func TestApplyRentalUpdate_FurnitureNearby(t *testing.T) {
 		t.Error("expected NearConvenienceStore false")
 	}
 }
+
+func TestApplyRentalUpdate_NilFieldsAreNoOp(t *testing.T) {
+	rl := &model.RentalListing{
+		HasBed:          true,
+		NearSupermarket: true,
+		MonthlyRent:     25000,
+	}
+	req := UpdateRentalListingRequest{} // all nil
+	applyRentalUpdate(rl, req)
+	if !rl.HasBed {
+		t.Error("nil HasBed should not change existing true value")
+	}
+	if !rl.NearSupermarket {
+		t.Error("nil NearSupermarket should not change existing true value")
+	}
+	if rl.MonthlyRent != 25000 {
+		t.Error("nil MonthlyRent should not change existing value")
+	}
+}

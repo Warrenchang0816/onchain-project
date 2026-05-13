@@ -47,7 +47,10 @@ func (s *Service) Create(propertyID int64, wallet string, req CreateRentalListin
 	if err := s.assertOwnsProperty(wallet, propertyID); err != nil {
 		return 0, err
 	}
-	prop, _ := s.propertyRepo.FindByID(propertyID)
+	prop, err := s.propertyRepo.FindByID(propertyID)
+	if err != nil {
+		return 0, fmt.Errorf("rental_listing: Create: find property: %w", err)
+	}
 	if prop == nil || prop.SetupStatus != model.PropertySetupReady {
 		return 0, ErrPropertyNotReady
 	}
@@ -135,7 +138,10 @@ func (s *Service) GetActiveByProperty(propertyID int64, wallet string) (*model.R
 
 func (s *Service) Update(id int64, wallet string, req UpdateRentalListingRequest) error {
 	rl, err := s.repo.FindByID(id)
-	if err != nil || rl == nil {
+	if err != nil {
+		return fmt.Errorf("rental_listing: Update: %w", err)
+	}
+	if rl == nil {
 		return ErrNotFound
 	}
 	if err := s.assertOwnsProperty(wallet, rl.PropertyID); err != nil {
@@ -147,7 +153,10 @@ func (s *Service) Update(id int64, wallet string, req UpdateRentalListingRequest
 
 func (s *Service) Publish(id int64, wallet string, durationDays int) error {
 	rl, err := s.repo.FindByID(id)
-	if err != nil || rl == nil {
+	if err != nil {
+		return fmt.Errorf("rental_listing: Publish: %w", err)
+	}
+	if rl == nil {
 		return ErrNotFound
 	}
 	if err := s.assertOwnsProperty(wallet, rl.PropertyID); err != nil {
@@ -158,7 +167,10 @@ func (s *Service) Publish(id int64, wallet string, durationDays int) error {
 
 func (s *Service) Close(id int64, wallet string) error {
 	rl, err := s.repo.FindByID(id)
-	if err != nil || rl == nil {
+	if err != nil {
+		return fmt.Errorf("rental_listing: Close: %w", err)
+	}
+	if rl == nil {
 		return ErrNotFound
 	}
 	if err := s.assertOwnsProperty(wallet, rl.PropertyID); err != nil {
