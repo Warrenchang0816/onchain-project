@@ -26,6 +26,12 @@ type FormState = {
     min_lease_months: string; allow_pets: boolean;
     allow_cooking: boolean; gender_restriction: string;
     notes: string; duration_days: string;
+    has_sofa: boolean; has_bed: boolean; has_wardrobe: boolean;
+    has_tv: boolean; has_fridge: boolean; has_ac: boolean;
+    has_washer: boolean; has_water_heater: boolean;
+    has_gas: boolean; has_internet: boolean; has_cable_tv: boolean;
+    near_school: boolean; near_supermarket: boolean;
+    near_convenience_store: boolean; near_park: boolean;
 };
 
 const EMPTY_FORM: FormState = {
@@ -33,6 +39,12 @@ const EMPTY_FORM: FormState = {
     management_fee_payer: "TENANT", min_lease_months: "12",
     allow_pets: false, allow_cooking: true,
     gender_restriction: "", notes: "", duration_days: "30",
+    has_sofa: false, has_bed: false, has_wardrobe: false,
+    has_tv: false, has_fridge: false, has_ac: false,
+    has_washer: false, has_water_heater: false,
+    has_gas: false, has_internet: false, has_cable_tv: false,
+    near_school: false, near_supermarket: false,
+    near_convenience_store: false, near_park: false,
 };
 
 function listingToForm(rl: RentalListing): FormState {
@@ -44,6 +56,12 @@ function listingToForm(rl: RentalListing): FormState {
         allow_pets: rl.allow_pets, allow_cooking: rl.allow_cooking,
         gender_restriction: rl.gender_restriction ?? "",
         notes: rl.notes ?? "", duration_days: String(rl.duration_days),
+        has_sofa: rl.has_sofa, has_bed: rl.has_bed, has_wardrobe: rl.has_wardrobe,
+        has_tv: rl.has_tv, has_fridge: rl.has_fridge, has_ac: rl.has_ac,
+        has_washer: rl.has_washer, has_water_heater: rl.has_water_heater,
+        has_gas: rl.has_gas, has_internet: rl.has_internet, has_cable_tv: rl.has_cable_tv,
+        near_school: rl.near_school, near_supermarket: rl.near_supermarket,
+        near_convenience_store: rl.near_convenience_store, near_park: rl.near_park,
     };
 }
 
@@ -57,6 +75,12 @@ function formToPayload(f: FormState): CreateRentalListingPayload {
         gender_restriction: f.gender_restriction || undefined,
         notes: f.notes || undefined,
         duration_days: parseInt(f.duration_days, 10) || 30,
+        has_sofa: f.has_sofa, has_bed: f.has_bed, has_wardrobe: f.has_wardrobe,
+        has_tv: f.has_tv, has_fridge: f.has_fridge, has_ac: f.has_ac,
+        has_washer: f.has_washer, has_water_heater: f.has_water_heater,
+        has_gas: f.has_gas, has_internet: f.has_internet, has_cable_tv: f.has_cable_tv,
+        near_school: f.near_school, near_supermarket: f.near_supermarket,
+        near_convenience_store: f.near_convenience_store, near_park: f.near_park,
     };
 }
 
@@ -191,6 +215,36 @@ export default function RentalListingForm({ propertyId, property }: Props) {
                                 {label}
                             </label>
                         ))}
+                    </div>
+                    <div className="flex flex-col gap-3 md:col-span-2">
+                        <label className="text-xs font-semibold text-on-surface-variant">傢俱設備</label>
+                        <div className="flex flex-wrap gap-x-6 gap-y-3">
+                            {([
+                                ["has_sofa", "沙發"], ["has_bed", "床組"], ["has_wardrobe", "衣櫃"],
+                                ["has_tv", "電視"], ["has_fridge", "冰箱"], ["has_ac", "冷氣"],
+                                ["has_washer", "洗衣機"], ["has_water_heater", "熱水器"],
+                                ["has_gas", "天然瓦斯"], ["has_internet", "網路"], ["has_cable_tv", "第四台"],
+                            ] as const).map(([key, label]) => (
+                                <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-on-surface-variant">
+                                    <input type="checkbox" checked={form[key]} onChange={(e) => setField(key, e.target.checked)} className="h-4 w-4 rounded accent-primary-container" />
+                                    {label}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-3 md:col-span-2">
+                        <label className="text-xs font-semibold text-on-surface-variant">周邊環境</label>
+                        <div className="flex flex-wrap gap-x-6 gap-y-3">
+                            {([
+                                ["near_school", "近學區"], ["near_supermarket", "近超市"],
+                                ["near_convenience_store", "近便利商店"], ["near_park", "近公園"],
+                            ] as const).map(([key, label]) => (
+                                <label key={key} className="flex cursor-pointer items-center gap-2 text-sm text-on-surface-variant">
+                                    <input type="checkbox" checked={form[key]} onChange={(e) => setField(key, e.target.checked)} className="h-4 w-4 rounded accent-primary-container" />
+                                    {label}
+                                </label>
+                            ))}
+                        </div>
                     </div>
                     <div className="flex flex-col gap-1.5 md:col-span-2">
                         <label className="text-xs font-semibold text-on-surface-variant">備注</label>

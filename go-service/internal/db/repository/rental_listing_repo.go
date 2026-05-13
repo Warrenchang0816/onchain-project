@@ -15,16 +15,27 @@ func NewRentalListingRepository(db *sql.DB) *RentalListingRepository {
 	return &RentalListingRepository{db: db}
 }
 
-func (r *RentalListingRepository) Create(propertyID int64, monthlyRent, depositMonths float64, minLeaseMonths int, managementFeePayer string, allowPets, allowCooking bool, durationDays int) (int64, error) {
+func (r *RentalListingRepository) Create(rl *model.RentalListing) (int64, error) {
 	var id int64
 	err := r.db.QueryRow(`
 		INSERT INTO rental_listing
 		    (property_id, status, duration_days, monthly_rent, deposit_months,
-		     management_fee_payer, min_lease_months, allow_pets, allow_cooking, created_at, updated_at)
-		VALUES ($1, 'DRAFT', $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+		     management_fee_payer, min_lease_months, allow_pets, allow_cooking,
+		     gender_restriction, notes,
+		     has_sofa, has_bed, has_wardrobe, has_tv, has_fridge,
+		     has_ac, has_washer, has_water_heater, has_gas, has_internet, has_cable_tv,
+		     near_school, near_supermarket, near_convenience_store, near_park,
+		     created_at, updated_at)
+		VALUES ($1, 'DRAFT', $2, $3, $4, $5, $6, $7, $8, $9, $10,
+		        $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21,
+		        $22, $23, $24, $25, NOW(), NOW())
 		RETURNING id`,
-		propertyID, durationDays, monthlyRent, depositMonths,
-		managementFeePayer, minLeaseMonths, allowPets, allowCooking,
+		rl.PropertyID, rl.DurationDays, rl.MonthlyRent, rl.DepositMonths,
+		rl.ManagementFeePayer, rl.MinLeaseMonths, rl.AllowPets, rl.AllowCooking,
+		rl.GenderRestriction, rl.Notes,
+		rl.HasSofa, rl.HasBed, rl.HasWardrobe, rl.HasTV, rl.HasFridge,
+		rl.HasAC, rl.HasWasher, rl.HasWaterHeater, rl.HasGas, rl.HasInternet, rl.HasCableTV,
+		rl.NearSchool, rl.NearSupermarket, rl.NearConvenienceStore, rl.NearPark,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("rental_listing_repo: Create: %w", err)
@@ -102,12 +113,20 @@ func (r *RentalListingRepository) Update(rl *model.RentalListing) error {
 		    duration_days=$1, monthly_rent=$2, deposit_months=$3,
 		    management_fee_payer=$4, min_lease_months=$5,
 		    allow_pets=$6, allow_cooking=$7,
-		    gender_restriction=$8, notes=$9, updated_at=NOW()
-		WHERE id=$10`,
+		    gender_restriction=$8, notes=$9,
+		    has_sofa=$10, has_bed=$11, has_wardrobe=$12, has_tv=$13, has_fridge=$14,
+		    has_ac=$15, has_washer=$16, has_water_heater=$17, has_gas=$18, has_internet=$19, has_cable_tv=$20,
+		    near_school=$21, near_supermarket=$22, near_convenience_store=$23, near_park=$24,
+		    updated_at=NOW()
+		WHERE id=$25`,
 		rl.DurationDays, rl.MonthlyRent, rl.DepositMonths,
 		rl.ManagementFeePayer, rl.MinLeaseMonths,
 		rl.AllowPets, rl.AllowCooking,
-		rl.GenderRestriction, rl.Notes, rl.ID,
+		rl.GenderRestriction, rl.Notes,
+		rl.HasSofa, rl.HasBed, rl.HasWardrobe, rl.HasTV, rl.HasFridge,
+		rl.HasAC, rl.HasWasher, rl.HasWaterHeater, rl.HasGas, rl.HasInternet, rl.HasCableTV,
+		rl.NearSchool, rl.NearSupermarket, rl.NearConvenienceStore, rl.NearPark,
+		rl.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("rental_listing_repo: Update: %w", err)

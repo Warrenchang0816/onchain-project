@@ -72,6 +72,21 @@ export type CreateRentalListingPayload = {
     gender_restriction?: string;
     notes?: string;
     duration_days: number;
+    has_sofa: boolean;
+    has_bed: boolean;
+    has_wardrobe: boolean;
+    has_tv: boolean;
+    has_fridge: boolean;
+    has_ac: boolean;
+    has_washer: boolean;
+    has_water_heater: boolean;
+    has_gas: boolean;
+    has_internet: boolean;
+    has_cable_tv: boolean;
+    near_school: boolean;
+    near_supermarket: boolean;
+    near_convenience_store: boolean;
+    near_park: boolean;
 };
 
 export type UpdateRentalListingPayload = Partial<CreateRentalListingPayload>;
