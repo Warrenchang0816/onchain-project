@@ -23,6 +23,7 @@ type APIService interface {
 	DeleteAttachment(propertyID, attachmentID int64, wallet string) error
 	UploadPhoto(ctx context.Context, propertyID int64, wallet string, data []byte, contentType string) (int64, string, error)
 	DownloadPhoto(ctx context.Context, propertyID int64, filename string) ([]byte, string, error)
+	RemoveProperty(ctx context.Context, propertyID int64, wallet string) error
 }
 
 type Handler struct {
@@ -138,6 +139,19 @@ func (h *Handler) DeleteAttachment(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "deleted"})
 }
 
+func (h *Handler) RemoveProperty(c *gin.Context) {
+	id, err := parseID(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"success": false, "message": "invalid property id"})
+		return
+	}
+	if err := h.svc.RemoveProperty(c.Request.Context(), id, walletFrom(c)); err != nil {
+		handleErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
 func toPropertyResponse(p *model.Property) PropertyResponse {
 	resp := PropertyResponse{
 		ID:           p.ID,
@@ -247,6 +261,8 @@ func handleErr(c *gin.Context, err error) {
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error()})
 	case errors.Is(err, ErrNotOwner):
 		c.JSON(http.StatusUnauthorized, gin.H{"success": false, "message": err.Error()})
+	case errors.Is(err, ErrPropertyListed):
+		c.JSON(http.StatusConflict, gin.H{"success": false, "message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"success": false, "message": "internal error"})
 	}

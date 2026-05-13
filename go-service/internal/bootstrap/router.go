@@ -102,6 +102,7 @@ func SetupRouter(
 			protected.POST("/property/:id/attachment", newPropertyHandler.AddAttachment)
 			protected.DELETE("/property/:id/attachment/:aid", newPropertyHandler.DeleteAttachment)
 			protected.POST("/property/:id/attachment/photo", newPropertyHandler.UploadPhoto)
+			protected.PUT("/property/:id/remove", newPropertyHandler.RemoveProperty)
 
 			// Rental listing (owner)
 			protected.POST("/property/:id/rental-listing", rentalListingHandler.Create)
