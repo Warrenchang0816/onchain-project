@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	ErrNotFound  = errors.New("property not found")
-	ErrForbidden = errors.New("only the property owner can perform this action")
-	ErrNotOwner  = errors.New("KYC verified owner credential required")
+	ErrNotFound       = errors.New("property not found")
+	ErrForbidden      = errors.New("only the property owner can perform this action")
+	ErrNotOwner       = errors.New("KYC verified owner credential required")
+	ErrPropertyListed = errors.New("物件上架中，無法移除")
 )
 
 type Store interface {
@@ -134,6 +135,34 @@ func (s *Service) DeleteAttachment(propertyID, attachmentID int64, wallet string
 		return err
 	}
 	return s.repo.DeleteAttachment(propertyID, attachmentID)
+}
+
+func (s *Service) RemoveProperty(ctx context.Context, propertyID int64, wallet string) error {
+	user, err := s.requireOwner(wallet)
+	if err != nil {
+		return err
+	}
+	prop, err := s.repo.FindByID(propertyID)
+	if err != nil {
+		return fmt.Errorf("property: RemoveProperty: %w", err)
+	}
+	if prop == nil {
+		return ErrNotFound
+	}
+	if prop.OwnerUserID != user.ID {
+		return ErrForbidden
+	}
+	if prop.SetupStatus != model.PropertySetupDraft && prop.SetupStatus != model.PropertySetupReady {
+		return fmt.Errorf("only DRAFT or READY properties can be removed")
+	}
+	hasActive, err := s.repo.HasActiveListing(propertyID)
+	if err != nil {
+		return err
+	}
+	if hasActive {
+		return ErrPropertyListed
+	}
+	return s.repo.SetSetupStatus(propertyID, model.PropertySetupRemoved, time.Now())
 }
 
 func computeSetupStatus(p *model.Property) string {
