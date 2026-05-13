@@ -20,6 +20,7 @@ func (m *mockStore) FindByID(id int64) (*model.Property, error)                 
 func (m *mockStore) ListByOwner(ownerUserID int64) ([]*model.Property, error)       { return nil, nil }
 func (m *mockStore) Update(p *model.Property) error                                 { return nil }
 func (m *mockStore) SetSetupStatus(id int64, status string, _ time.Time) error      { return nil }
+func (m *mockStore) HasActiveListing(propertyID int64) (bool, error)                 { return false, nil }
 func (m *mockStore) AddAttachment(propertyID int64, attachType, url string) (int64, error) {
 	m.nextID++
 	m.attachments = append(m.attachments, &model.PropertyAttachment{

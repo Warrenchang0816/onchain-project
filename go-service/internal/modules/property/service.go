@@ -26,6 +26,7 @@ type Store interface {
 	ListByOwner(ownerUserID int64) ([]*model.Property, error)
 	Update(p *model.Property) error
 	SetSetupStatus(id int64, status string, updatedAt time.Time) error
+	HasActiveListing(propertyID int64) (bool, error)
 	AddAttachment(propertyID int64, attachType, url string) (int64, error)
 	DeleteAttachment(propertyID, attachmentID int64) error
 	ListAttachments(propertyID int64) ([]*model.PropertyAttachment, error)
