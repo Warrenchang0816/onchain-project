@@ -27,6 +27,7 @@ import PropertyCreatePage from "../pages/PropertyCreatePage";
 import PropertyEditPage from "../pages/PropertyEditPage";
 import RentalListingPage from "../pages/RentalListingPage";
 import SaleListingPage from "../pages/SaleListingPage";
+import PropertyListingPage from "../pages/PropertyListingPage";
 import RentListPage from "../pages/RentListPage";
 import RentDetailPage from "../pages/RentDetailPage";
 import SaleListPage from "../pages/SaleListPage";
@@ -177,6 +178,14 @@ const router = createBrowserRouter([
         element: (
             <RequireCredential requiredRole="OWNER">
                 <PropertyEditPage />
+            </RequireCredential>
+        ),
+    },
+    {
+        path: "/my/properties/:id/listing",
+        element: (
+            <RequireCredential requiredRole="OWNER">
+                <PropertyListingPage />
             </RequireCredential>
         ),
     },
