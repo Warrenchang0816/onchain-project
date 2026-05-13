@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import {
     addAttachment,
     deleteAttachment,
@@ -106,7 +106,6 @@ function formToPayload(f: FormState): UpdatePropertyPayload {
 
 export default function PropertyEditPage() {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const propertyId = id ? parseInt(id, 10) : NaN;
 
     const [property, setProperty] = useState<Property | null>(null);
@@ -180,7 +179,6 @@ export default function PropertyEditPage() {
     }
 
     const progress = computeProgress(property);
-    const isReady = property.setup_status === "READY";
 
     const photoAttachments = property.attachments.filter((a) => a.type === "PHOTO");
     const photoUrls = photoAttachments.map((a) => a.url);
@@ -224,14 +222,6 @@ export default function PropertyEditPage() {
                 <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
                     <h2 className="mb-6 text-lg font-bold text-on-surface">Section A — 基本資料</h2>
                     <div className="grid gap-5 md:grid-cols-2">
-                        <div className="flex flex-col gap-1.5 md:col-span-2">
-                            <label className="text-xs font-semibold text-on-surface-variant">物件名稱 *</label>
-                            <input type="text" value={form.title} onChange={(e) => setField("title", e.target.value)} className={inputCls} />
-                        </div>
-                        <div className="flex flex-col gap-1.5 md:col-span-2">
-                            <label className="text-xs font-semibold text-on-surface-variant">地址 *</label>
-                            <input type="text" value={form.address} onChange={(e) => setField("address", e.target.value)} className={inputCls} />
-                        </div>
                         <div className="flex flex-col gap-1.5">
                             <label className="text-xs font-semibold text-on-surface-variant">建物類型 *</label>
                             <select value={form.building_type} onChange={(e) => setField("building_type", e.target.value)} className={selectCls}>
@@ -433,30 +423,6 @@ export default function PropertyEditPage() {
                         </button>
                     </div>
                     {attachError ? <p className="mt-2 text-sm text-error">{attachError}</p> : null}
-                </section>
-
-                <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
-                    <h2 className="mb-2 text-lg font-bold text-on-surface">上架刊登</h2>
-                    {isReady ? (
-                        <div className="flex flex-col gap-3 md:flex-row">
-                            <button
-                                type="button"
-                                onClick={() => navigate(`/my/properties/${propertyId}/rent`)}
-                                className="flex-1 rounded-xl bg-[#E8A000] px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
-                            >
-                                上架出租
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => navigate(`/my/properties/${propertyId}/sale`)}
-                                className="flex-1 rounded-xl bg-[#2196F3] px-6 py-3 font-bold text-white transition-opacity hover:opacity-90"
-                            >
-                                上架出售
-                            </button>
-                        </div>
-                    ) : (
-                        <p className="text-sm text-on-surface-variant">物件完成度達 100%（名稱＋地址＋建物類型＋照片）後，上架按鈕才會出現。</p>
-                    )}
                 </section>
             </main>
         </SiteLayout>
