@@ -5,7 +5,7 @@ import { getMyAgentProfile } from "@/api/agentApi";
 import { getAuthMe } from "@/api/authApi";
 import { getCredentialCenter, type CredentialCenterResponse, type CredentialType } from "@/api/credentialApi";
 import { getKYCStatus, type KYCStatus, type KYCStatusResponse } from "@/api/kycApi";
-import { getMyListings, type Listing } from "@/api/listingApi";
+import { listMyProperties, type Property } from "@/api/propertyApi";
 import { getMyRequirements, getMyTenantProfile, type TenantProfile, type TenantRequirement } from "@/api/tenantApi";
 import SiteLayout from "../layouts/SiteLayout";
 import {
@@ -21,7 +21,7 @@ type IdentityCenterState = {
     address?: string;
     kyc?: KYCStatusResponse;
     center?: CredentialCenterResponse;
-    ownerListings: Listing[];
+    ownerProperties: Property[];
     tenantRequirements: TenantRequirement[];
     tenantProfile?: TenantProfile;
     agentProfile: AgentDetailResponse | null;
@@ -101,7 +101,7 @@ export default function IdentityCenterPage() {
     const [state, setState] = useState<IdentityCenterState>({
         loading: true,
         authenticated: false,
-        ownerListings: [],
+        ownerProperties: [],
         tenantRequirements: [],
         agentProfile: null,
         roleErrors: {},
@@ -122,10 +122,10 @@ export default function IdentityCenterPage() {
                 const credentials = kyc?.credentials ?? [];
                 const roleErrors: Partial<Record<CredentialType, string>> = {};
 
-                const ownerListings = credentials.includes("OWNER")
-                    ? await getMyListings().catch((err: unknown) => {
+                const ownerProperties = credentials.includes("OWNER")
+                    ? await listMyProperties().catch((err: unknown) => {
                           roleErrors.OWNER = err instanceof Error ? err.message : "房東資料讀取失敗";
-                          return [] as Listing[];
+                          return [] as Property[];
                       })
                     : [];
 
@@ -156,7 +156,7 @@ export default function IdentityCenterPage() {
                     address: auth.address,
                     kyc,
                     center,
-                    ownerListings,
+                    ownerProperties,
                     tenantRequirements,
                     tenantProfile,
                     agentProfile,
@@ -167,7 +167,7 @@ export default function IdentityCenterPage() {
                 setState({
                     loading: false,
                     authenticated: false,
-                    ownerListings: [],
+                    ownerProperties: [],
                     tenantRequirements: [],
                     agentProfile: null,
                     roleErrors: {},
@@ -203,7 +203,7 @@ export default function IdentityCenterPage() {
     const tenantItem = centerItems.find((item) => item.credentialType === "TENANT");
     const agentItem = centerItems.find((item) => item.credentialType === "AGENT");
 
-    const ownerSummary = buildOwnerSummary(ownerItem, state.ownerListings);
+    const ownerSummary = buildOwnerSummary(ownerItem, state.ownerProperties);
     const tenantSummary = buildTenantSummary(tenantItem, state.tenantRequirements, state.tenantProfile);
     const agentSummary = buildAgentSummary(agentItem, state.agentProfile, state.address);
 

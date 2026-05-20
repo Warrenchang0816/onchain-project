@@ -146,7 +146,7 @@ func (r *RentalListingRepository) Publish(id int64, durationDays int) error {
 	_, err := r.db.Exec(`
 		UPDATE rental_listing
 		SET status='ACTIVE', duration_days=$1,
-		    published_at=NOW(), expires_at=NOW() + ($1 * INTERVAL '1 day'),
+		    published_at=NOW(), expires_at=NOW() + ($1::int * INTERVAL '1 day'),
 		    updated_at=NOW()
 		WHERE id=$2`, durationDays, id)
 	if err != nil {
