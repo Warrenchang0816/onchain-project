@@ -225,7 +225,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	// ── 13. Listing and credential modules ────────────────────────────────────────
 	customerSvc := customermod.NewService(propertyRepo, userRepo)
 	customerHandler := customermod.NewHandler(customerSvc)
-	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo)
+	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo, credentialRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
 	credentialSvc := credentialmod.NewService(
@@ -256,10 +256,10 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	newPropertySvc := propertymod.NewService(newPropertyRepo, userRepo, minioClient, appPublicURL)
 	newPropertyHandler := propertymod.NewHandler(newPropertySvc)
 
-	rentalListingSvc := rentallistingmod.NewService(rentalListingRepo, newPropertyRepo, userRepo)
+	rentalListingSvc := rentallistingmod.NewService(rentalListingRepo, newPropertyRepo, userRepo, credentialRepo)
 	rentalListingHandler := rentallistingmod.NewHandler(rentalListingSvc)
 
-	saleListingSvc := salelistingmod.NewService(saleListingRepo, newPropertyRepo, userRepo)
+	saleListingSvc := salelistingmod.NewService(saleListingRepo, newPropertyRepo, userRepo, credentialRepo)
 	saleListingHandler := salelistingmod.NewHandler(saleListingSvc)
 
 	// ── 16. Tenant module ─────────────────────────────────────
