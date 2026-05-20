@@ -253,7 +253,20 @@ export default function ListingDetailPage() {
                                             預約看屋
                                         </ActionButton>
                                     ) : null}
-                                    {!canBook ? <p className="text-center text-sm text-on-surface-variant">目前無法預約此物件。</p> : null}
+                                    {!canBook && !isOwner && listing.status === "ACTIVE" && isAuthenticated ? (
+                                        <div className="flex flex-col items-center gap-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-5 text-center">
+                                            <p className="text-sm text-on-surface-variant">預約看房需要租客身份憑證。</p>
+                                            <button
+                                                type="button"
+                                                onClick={() => navigate("/credential/tenant")}
+                                                className="rounded-xl bg-primary-container px-5 py-2.5 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90"
+                                            >
+                                                前往取得租客身份 →
+                                            </button>
+                                        </div>
+                                    ) : !canBook ? (
+                                        <p className="text-center text-sm text-on-surface-variant">目前無法預約此物件。</p>
+                                    ) : null}
                                 </>
                             ) : (
                                 <ActionButton variant="primary" onClick={() => navigate("/login")}>
