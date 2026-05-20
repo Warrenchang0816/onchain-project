@@ -243,6 +243,8 @@ func handleErr(c *gin.Context, err error) {
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})
 	case errors.Is(err, ErrForbidden):
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error()})
+	case errors.Is(err, ErrNoOwnerCredential):
+		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error()})
 	case errors.Is(err, ErrPropertyNotReady):
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"success": false, "message": err.Error()})
 	default:
