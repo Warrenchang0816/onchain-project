@@ -19,13 +19,13 @@ func (m *mockCredRepo) FindByUserAndType(_ int64, _ string) (*model.UserCredenti
 
 type stubSaleStore struct{}
 
-func (s *stubSaleStore) Create(_ int64, _ float64, _ int) (int64, error)         { return 1, nil }
-func (s *stubSaleStore) FindByID(_ int64) (*model.SaleListing, error)            { return nil, nil }
+func (s *stubSaleStore) Create(_ int64, _ float64, _ int) (int64, error)          { return 1, nil }
+func (s *stubSaleStore) FindByID(_ int64) (*model.SaleListing, error)             { return nil, nil }
 func (s *stubSaleStore) FindActiveByProperty(_ int64) (*model.SaleListing, error) { return nil, nil }
-func (s *stubSaleStore) ListPublic() ([]*model.SaleListing, error)               { return nil, nil }
-func (s *stubSaleStore) Update(_ *model.SaleListing) error                       { return nil }
-func (s *stubSaleStore) SetStatus(_ int64, _ string) error                       { return nil }
-func (s *stubSaleStore) Publish(_ int64, _ int) error                            { return nil }
+func (s *stubSaleStore) ListPublic() ([]*model.SaleListing, error)                { return nil, nil }
+func (s *stubSaleStore) Update(_ *model.SaleListing) error                        { return nil }
+func (s *stubSaleStore) SetStatus(_ int64, _ string) error                        { return nil }
+func (s *stubSaleStore) Publish(_ int64, _ int) error                             { return nil }
 
 type stubPropertyStore struct{}
 

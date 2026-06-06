@@ -13,8 +13,8 @@ func TestApplyRentalUpdate_FieldsAreApplied(t *testing.T) {
 	rent := 30000.0
 	rl := &model.RentalListing{}
 	req := UpdateRentalListingRequest{
-		MonthlyRent: &rent,
-		AllowPets:   &trueVal,
+		MonthlyRent:  &rent,
+		AllowPets:    &trueVal,
 		AllowCooking: &falseVal,
 	}
 	applyRentalUpdate(rl, req)
@@ -61,12 +61,14 @@ type stubRentalStore struct{}
 func (s *stubRentalStore) Create(_ int64, _, _ float64, _ int, _ string, _, _ bool, _ int) (int64, error) {
 	return 1, nil
 }
-func (s *stubRentalStore) FindByID(_ int64) (*model.RentalListing, error)             { return nil, nil }
-func (s *stubRentalStore) FindActiveByProperty(_ int64) (*model.RentalListing, error) { return nil, nil }
-func (s *stubRentalStore) ListPublic() ([]*model.RentalListing, error)                { return nil, nil }
-func (s *stubRentalStore) Update(_ *model.RentalListing) error                        { return nil }
-func (s *stubRentalStore) SetStatus(_ int64, _ string) error                          { return nil }
-func (s *stubRentalStore) Publish(_ int64, _ int) error                               { return nil }
+func (s *stubRentalStore) FindByID(_ int64) (*model.RentalListing, error) { return nil, nil }
+func (s *stubRentalStore) FindActiveByProperty(_ int64) (*model.RentalListing, error) {
+	return nil, nil
+}
+func (s *stubRentalStore) ListPublic() ([]*model.RentalListing, error) { return nil, nil }
+func (s *stubRentalStore) Update(_ *model.RentalListing) error         { return nil }
+func (s *stubRentalStore) SetStatus(_ int64, _ string) error           { return nil }
+func (s *stubRentalStore) Publish(_ int64, _ int) error                { return nil }
 
 type stubPropertyStore struct{}
 
