@@ -145,3 +145,14 @@ func (s *Service) assertOwnsProperty(wallet string, propertyID int64) error {
 	}
 	return nil
 }
+
+func (s *Service) BookForRentalListingByWallet(rentalListingID int64, wallet string, preferredTime time.Time, note *string) (int64, error) {
+	user, err := s.users.FindByWallet(wallet)
+	if err != nil {
+		return 0, fmt.Errorf("appointment: find user: %w", err)
+	}
+	if user == nil {
+		return 0, ErrForbidden
+	}
+	return s.BookForRentalListing(rentalListingID, user.ID, preferredTime, note)
+}
