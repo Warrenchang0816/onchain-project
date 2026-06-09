@@ -38,20 +38,20 @@
 > 進度標記：`[ ]` 未開始 ｜ `[~]` 進行中 ｜ `[x]` 完成（附驗證證據連結/commit）
 > 每階段一律走：feature branch（先問使用者）→ spec → plan → TDD 實作 → 驗證 → dev_log → 繁中總結。
 
-### 階段 S1：預約看房接通新租屋物件　狀態：[ ]
+### 階段 S1：預約看房接通新租屋物件　狀態：[~]（程式碼完成且自動驗證通過；手動端到端待跑）
 
 **目標事項**
-- [ ] 先實機/讀碼查清 `listing_appointments` 現況：是否仍綁舊 `listings`、新 `/rent/:id` 是否能發起預約（systematic-debugging 釐清「修復」或「接線」）。
-- [ ] `/rent/:id` 詳情頁可由 TENANT 發起預約看房，預約綁 `properties` / 租屋刊登。
-- [ ] 屋主（OWNER）端可看到並確認/取消該物件的預約。
-- [ ] 預約狀態與既有狀態機一致（排隊 / 確認 / 已看 / 有意願 / 取消）。
+- [x] 調查確認 `listing_appointments` 綁舊 `listings`、新 `/rent/:id` 無預約 UI → 屬「接線」非修復。
+- [x] `/rent/:id` 詳情頁可由登入者發起預約看房，預約綁 `property`（單數表）/ 租屋刊登（`RentDetailPage` 預約區塊 + `appointmentApi`）。
+- [x] 屋主端可看到並確認/取消該物件的預約（`MyPropertiesPage` + `PropertyAppointments` 元件）。
+- [x] 預約狀態與既有狀態機一致（PENDING→CONFIRMED→VIEWED→INTERESTED，任意→CANCELLED）。
 
 **驗證事項**
-- [ ] `go test` 預約相關模組 PASS。
-- [ ] `npm run lint` + `npm run build` 0 errors。
-- [ ] 手動端到端：TENANT 在 `/rent/:id` 預約 → OWNER 端看到並確認。
-- [ ] 無孤兒舊表參照（不殘留指向舊 `listings` 的死碼）。
-- [ ] `listing_appointments` 的 table 決策符合上節治理並更新 DB spec。
+- [x] `go test ./...` PASS（含 appointment service 7 測試）、`go build`、`gofmt` 乾淨。
+- [x] `npm run lint` + `npm run build` 0 errors。
+- [ ] 手動端到端：TENANT 在 `/rent/:id` 預約 → OWNER 端看到並確認（**待使用者於 running env 驗證**）。
+- [x] 無孤兒舊表參照：退場舊 `listing` 預約 handler/service/route 與 `ListingDetailPage` 預約 UI、`listingApi` 失效函式。
+- [x] table 決策符合治理（複用 `listing_appointments`、加 `property_id`、唯一索引排除 CANCELLED）；`docs/database/relational-database-spec.md` 不存在，已記註待補。
 
 ### 階段 S2：雙向配對查詢　狀態：[ ]
 
@@ -100,15 +100,16 @@
 
 | 階段 | 狀態 | 最近更新 | 證據 |
 |------|------|----------|------|
-| S1 預約看房接通 | [ ] 未開始 | 2026-06-09 | — |
+| S1 預約看房接通 | [~] 程式碼完成、自動驗證綠；手動 e2e 待跑 | 2026-06-10 | commits `1da4308`..`61971bd`（branch feat/rent-appointment-wiring）|
 | S2 雙向配對 | [ ] 未開始 | — | — |
 | S3 案件狀態機 | [ ] 未開始 | — | — |
 | S4 端到端 + 文件 | [ ] 未開始 | — | — |
 
-**目前指針**：S1（待啟動；第一步為釐清 `listing_appointments` 現況）。
+**目前指針**：S1 收尾（待使用者跑手動端到端 + 決定 push/PR）；之後進 S2 雙向配對。
 
 ---
 
 ## 變更紀錄
 
 - 2026-06-09：建立錨點；方案 A 與 S1–S4 切分經使用者核可；加入底層 table 治理為最高約束。錨點置於 `docs/superpowers/goals/`（`/docs/*` ignore 下唯一被追蹤的可放路徑）。
+- 2026-06-10：S1 程式碼完成（subagent-driven，10 commits）。`listing_appointments` 改 property-based、新 `appointment` 模組（service+dto+handler，7 單元測試）、退場舊 listing 預約接線、前端租客/屋主預約 UI。後端 build/test/gofmt + 前端 lint/build 全綠。手動 e2e 待使用者跑；未 push。
