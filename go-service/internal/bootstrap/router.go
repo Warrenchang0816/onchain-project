@@ -5,6 +5,7 @@ import (
 
 	"go-service/internal/db/repository"
 	agentmod "go-service/internal/modules/agent"
+	appointmentmod "go-service/internal/modules/appointment"
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	customermod "go-service/internal/modules/customer"
@@ -44,6 +45,7 @@ func SetupRouter(
 	rentalListingHandler *rentallistingmod.Handler,
 	saleListingHandler *salelistingmod.Handler,
 	favoritesHandler *favoritesmod.Handler,
+	appointmentHandler *appointmentmod.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -118,11 +120,12 @@ func SetupRouter(
 			protected.GET("/property/:id/rental-listing", rentalListingHandler.GetForProperty)
 			protected.GET("/property/:id/sale-listing", saleListingHandler.GetForProperty)
 
-			// Appointment management
-			protected.POST("/listings/:id/appointments", listingHandler.BookAppointment)
-			protected.PUT("/listings/:id/appointments/:appt_id/confirm", listingHandler.ConfirmAppointment)
-			protected.PUT("/listings/:id/appointments/:appt_id/status", listingHandler.UpdateAppointmentStatus)
-			protected.PUT("/listings/:id/appointments/:appt_id/cancel", listingHandler.CancelAppointment)
+			// Appointment (property-based)
+			protected.POST("/rental-listing/:id/appointments", appointmentHandler.Book)
+			protected.GET("/property/:id/appointments", appointmentHandler.ListForProperty)
+			protected.PUT("/appointments/:id/confirm", appointmentHandler.Confirm)
+			protected.PUT("/appointments/:id/status", appointmentHandler.SetStatus)
+			protected.PUT("/appointments/:id/cancel", appointmentHandler.Cancel)
 
 			// KYC submission
 			protected.POST("/kyc/submissions", userHandler.CreateKYCSubmission)

@@ -7,6 +7,7 @@ import (
 
 	"go-service/internal/db/repository"
 	agentmod "go-service/internal/modules/agent"
+	appointmentmod "go-service/internal/modules/appointment"
 	authmod "go-service/internal/modules/auth"
 	credentialmod "go-service/internal/modules/credential"
 	customermod "go-service/internal/modules/customer"
@@ -275,7 +276,11 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	// ── 17. Favorites module ──────────────────────────────────
 	favoritesHandler := favoritesmod.NewHandler(favoritesRepo)
 
-	// ── 16. Router ────────────────────────────────────────────
+	// ── 18. Appointment module ────────────────────────────────
+	appointmentSvc := appointmentmod.NewService(apptRepo, rentalListingRepo, newPropertyRepo, userRepo)
+	appointmentHandler := appointmentmod.NewHandler(appointmentSvc)
+
+	// ── 19. Router ────────────────────────────────────────────
 	r := SetupRouter(
 		listingHandler,
 		logHandler,
@@ -296,6 +301,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 		rentalListingHandler,
 		saleListingHandler,
 		favoritesHandler,
+		appointmentHandler,
 	)
 
 	return r, cleanupFn, nil

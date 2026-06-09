@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/lib/pq"
 
@@ -54,13 +53,7 @@ type ListingStore interface {
 }
 
 type AppointmentStore interface {
-	FindByListing(listingID int64) ([]*model.ListingAppointment, error)
 	FindByID(id int64) (*model.ListingAppointment, error)
-	FindByListingAndVisitor(listingID, visitorUserID int64) (*model.ListingAppointment, error)
-	NextQueuePosition(listingID int64) (int, error)
-	Create(listingID, visitorUserID int64, queuePosition int, preferredTime time.Time, note *string) (int64, error)
-	Confirm(id int64, confirmedTime time.Time) error
-	SetStatus(id int64, status string) error
 }
 
 type UserStore interface {
@@ -177,7 +170,7 @@ func (s *Service) ListByOwner(walletAddress string) ([]*model.Listing, error) {
 	return listings, nil
 }
 
-// GetDetail returns a listing with its full appointments queue.
+// GetDetail returns a listing with its details and property info.
 func (s *Service) GetDetail(id int64) (*model.Listing, []*model.ListingAppointment, error) {
 	l, err := s.listingRepo.FindByID(id)
 	if err != nil {
@@ -186,17 +179,13 @@ func (s *Service) GetDetail(id int64) (*model.Listing, []*model.ListingAppointme
 	if l == nil {
 		return nil, nil, ErrNotFound
 	}
-	appts, err := s.apptRepo.FindByListing(id)
-	if err != nil {
-		return nil, nil, fmt.Errorf("listing: GetDetail appointments: %w", err)
-	}
 	if err := s.attachProperty(l); err != nil {
 		return nil, nil, fmt.Errorf("listing: GetDetail property: %w", err)
 	}
 	if err := s.listingRepo.AttachDetails(l); err != nil {
 		return nil, nil, fmt.Errorf("listing: GetDetail details: %w", err)
 	}
-	return l, appts, nil
+	return l, nil, nil
 }
 
 func (s *Service) IsListingOwner(ownerUserID int64, callerWallet string) (bool, error) {
@@ -663,122 +652,4 @@ func (s *Service) UnlockNegotiation(listingID int64, walletAddress string) error
 		return ErrInvalidStatus
 	}
 	return s.listingRepo.UnlockNegotiation(listingID)
-}
-
-// ── Appointments ──────────────────────────────────────────────────────────────
-
-// BookAppointment creates a new appointment for a visitor (must be KYC VERIFIED).
-func (s *Service) BookAppointment(listingID int64, walletAddress string, req CreateAppointmentRequest) (int64, error) {
-	visitor, err := s.requireVerifiedUser(walletAddress)
-	if err != nil {
-		return 0, err
-	}
-
-	l, err := s.listingRepo.FindByID(listingID)
-	if err != nil {
-		return 0, fmt.Errorf("listing: BookAppointment: %w", err)
-	}
-	if l == nil {
-		return 0, ErrNotFound
-	}
-	if l.Status != model.ListingStatusActive && l.Status != model.ListingStatusNegotiating {
-		return 0, ErrInvalidStatus
-	}
-
-	existing, err := s.apptRepo.FindByListingAndVisitor(listingID, visitor.ID)
-	if err != nil {
-		return 0, fmt.Errorf("listing: BookAppointment: %w", err)
-	}
-	if existing != nil && existing.Status != model.AppointmentStatusCancelled {
-		return 0, ErrAlreadyBooked
-	}
-
-	pos, err := s.apptRepo.NextQueuePosition(listingID)
-	if err != nil {
-		return 0, fmt.Errorf("listing: BookAppointment: %w", err)
-	}
-
-	return s.apptRepo.Create(listingID, visitor.ID, pos, req.PreferredTime, req.Note)
-}
-
-// ConfirmAppointment lets the owner confirm a time slot for a PENDING appointment.
-func (s *Service) ConfirmAppointment(apptID int64, walletAddress string, req ConfirmAppointmentRequest) error {
-	caller, err := s.requireUser(walletAddress)
-	if err != nil {
-		return err
-	}
-
-	appt, err := s.apptRepo.FindByID(apptID)
-	if err != nil {
-		return fmt.Errorf("listing: ConfirmAppointment: %w", err)
-	}
-	if appt == nil {
-		return ErrNotFound
-	}
-
-	l, err := s.listingRepo.FindByID(appt.ListingID)
-	if err != nil {
-		return fmt.Errorf("listing: ConfirmAppointment listing: %w", err)
-	}
-	if l == nil || l.OwnerUserID != caller.ID {
-		return ErrForbidden
-	}
-	if appt.Status != model.AppointmentStatusPending {
-		return ErrInvalidStatus
-	}
-	return s.apptRepo.Confirm(apptID, req.ConfirmedTime)
-}
-
-// UpdateAppointmentStatus lets the visitor update their own appointment status.
-// Allowed transitions: VIEWED, INTERESTED, CANCELLED.
-func (s *Service) UpdateAppointmentStatus(apptID int64, walletAddress string, req UpdateAppointmentStatusRequest) error {
-	caller, err := s.requireUser(walletAddress)
-	if err != nil {
-		return err
-	}
-
-	appt, err := s.apptRepo.FindByID(apptID)
-	if err != nil {
-		return fmt.Errorf("listing: UpdateAppointmentStatus: %w", err)
-	}
-	if appt == nil {
-		return ErrNotFound
-	}
-	if appt.VisitorUserID != caller.ID {
-		return ErrForbidden
-	}
-	terminal := appt.Status == model.AppointmentStatusCancelled ||
-		appt.Status == model.AppointmentStatusInterested
-	if terminal {
-		return ErrInvalidStatus
-	}
-	return s.apptRepo.SetStatus(apptID, req.Status)
-}
-
-// CancelAppointmentByOwner lets the listing owner cancel any appointment.
-func (s *Service) CancelAppointmentByOwner(apptID int64, walletAddress string) error {
-	caller, err := s.requireUser(walletAddress)
-	if err != nil {
-		return err
-	}
-
-	appt, err := s.apptRepo.FindByID(apptID)
-	if err != nil {
-		return fmt.Errorf("listing: CancelAppointmentByOwner: %w", err)
-	}
-	if appt == nil {
-		return ErrNotFound
-	}
-
-	l, err := s.listingRepo.FindByID(appt.ListingID)
-	if err != nil {
-		return fmt.Errorf("listing: CancelAppointmentByOwner listing: %w", err)
-	}
-	if l == nil || l.OwnerUserID != caller.ID {
-		return ErrForbidden
-	}
-	if appt.Status == model.AppointmentStatusCancelled {
-		return ErrInvalidStatus
-	}
-	return s.apptRepo.SetStatus(apptID, model.AppointmentStatusCancelled)
 }
