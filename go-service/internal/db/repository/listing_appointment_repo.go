@@ -17,7 +17,7 @@ func NewListingAppointmentRepository(db *sql.DB) *ListingAppointmentRepository {
 }
 
 const apptSelectCols = `
-	SELECT id, listing_id, visitor_user_id,
+	SELECT id, listing_id, property_id, visitor_user_id,
 	       queue_position, preferred_time, confirmed_time,
 	       status, note,
 	       created_at, updated_at
@@ -25,8 +25,9 @@ const apptSelectCols = `
 
 func scanAppointment(row *sql.Row) (*model.ListingAppointment, error) {
 	a := &model.ListingAppointment{}
+	var propertyID sql.NullInt64
 	err := row.Scan(
-		&a.ID, &a.ListingID, &a.VisitorUserID,
+		&a.ID, &a.ListingID, &propertyID, &a.VisitorUserID,
 		&a.QueuePosition, &a.PreferredTime, &a.ConfirmedTime,
 		&a.Status, &a.Note,
 		&a.CreatedAt, &a.UpdatedAt,
@@ -37,6 +38,7 @@ func scanAppointment(row *sql.Row) (*model.ListingAppointment, error) {
 	if err != nil {
 		return nil, err
 	}
+	a.PropertyID = propertyID.Int64
 	return a, nil
 }
 
@@ -44,8 +46,9 @@ func scanAppointments(rows *sql.Rows) ([]*model.ListingAppointment, error) {
 	var result []*model.ListingAppointment
 	for rows.Next() {
 		a := &model.ListingAppointment{}
+		var propertyID sql.NullInt64
 		err := rows.Scan(
-			&a.ID, &a.ListingID, &a.VisitorUserID,
+			&a.ID, &a.ListingID, &propertyID, &a.VisitorUserID,
 			&a.QueuePosition, &a.PreferredTime, &a.ConfirmedTime,
 			&a.Status, &a.Note,
 			&a.CreatedAt, &a.UpdatedAt,
@@ -53,6 +56,7 @@ func scanAppointments(rows *sql.Rows) ([]*model.ListingAppointment, error) {
 		if err != nil {
 			return nil, err
 		}
+		a.PropertyID = propertyID.Int64
 		result = append(result, a)
 	}
 	return result, rows.Err()
@@ -68,84 +72,42 @@ func (r *ListingAppointmentRepository) FindByID(id int64) (*model.ListingAppoint
 	return a, nil
 }
 
-// FindByListing returns all appointments for a listing ordered by queue_position.
-func (r *ListingAppointmentRepository) FindByListing(listingID int64) ([]*model.ListingAppointment, error) {
-	rows, err := r.db.Query(
-		apptSelectCols+` WHERE listing_id = $1 ORDER BY queue_position ASC`,
-		listingID,
-	)
+// FindByProperty returns all appointments for a property ordered by queue_position.
+func (r *ListingAppointmentRepository) FindByProperty(propertyID int64) ([]*model.ListingAppointment, error) {
+	rows, err := r.db.Query(apptSelectCols+` WHERE property_id = $1 ORDER BY queue_position ASC`, propertyID)
 	if err != nil {
-		return nil, fmt.Errorf("appt_repo: FindByListing: %w", err)
+		return nil, fmt.Errorf("appt_repo: FindByProperty: %w", err)
 	}
 	defer rows.Close()
-
-	result, err := scanAppointments(rows)
-	if err != nil {
-		return nil, fmt.Errorf("appt_repo: FindByListing scan: %w", err)
-	}
-	return result, nil
+	return scanAppointments(rows)
 }
 
-// FindByVisitor returns all active appointments for a visitor across all listings.
-func (r *ListingAppointmentRepository) FindByVisitor(visitorUserID int64) ([]*model.ListingAppointment, error) {
-	rows, err := r.db.Query(
-		apptSelectCols+` WHERE visitor_user_id = $1 ORDER BY preferred_time ASC`,
-		visitorUserID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("appt_repo: FindByVisitor: %w", err)
-	}
-	defer rows.Close()
-
-	result, err := scanAppointments(rows)
-	if err != nil {
-		return nil, fmt.Errorf("appt_repo: FindByVisitor scan: %w", err)
-	}
-	return result, nil
+// FindByPropertyAndVisitor finds an existing appointment for this (property, visitor) pair.
+func (r *ListingAppointmentRepository) FindByPropertyAndVisitor(propertyID, visitorUserID int64) (*model.ListingAppointment, error) {
+	row := r.db.QueryRow(apptSelectCols+` WHERE property_id=$1 AND visitor_user_id=$2`, propertyID, visitorUserID)
+	return scanAppointment(row)
 }
 
-// FindByListingAndVisitor finds an existing appointment for this (listing, visitor) pair.
-func (r *ListingAppointmentRepository) FindByListingAndVisitor(listingID, visitorUserID int64) (*model.ListingAppointment, error) {
-	row := r.db.QueryRow(
-		apptSelectCols+` WHERE listing_id=$1 AND visitor_user_id=$2`,
-		listingID, visitorUserID,
-	)
-	a, err := scanAppointment(row)
-	if err != nil {
-		return nil, fmt.Errorf("appt_repo: FindByListingAndVisitor: %w", err)
-	}
-	return a, nil
-}
-
-// NextQueuePosition returns (current max queue_position + 1) for a listing.
-func (r *ListingAppointmentRepository) NextQueuePosition(listingID int64) (int, error) {
+// NextQueuePosition returns (current max queue_position + 1) for a property.
+func (r *ListingAppointmentRepository) NextQueuePosition(propertyID int64) (int, error) {
 	var pos int
 	err := r.db.QueryRow(`
 		SELECT COALESCE(MAX(queue_position), 0) + 1
-		FROM listing_appointments
-		WHERE listing_id = $1`,
-		listingID,
-	).Scan(&pos)
+		FROM listing_appointments WHERE property_id = $1`, propertyID).Scan(&pos)
 	if err != nil {
 		return 0, fmt.Errorf("appt_repo: NextQueuePosition: %w", err)
 	}
 	return pos, nil
 }
 
-// Create inserts a new appointment and returns the new ID.
-func (r *ListingAppointmentRepository) Create(
-	listingID, visitorUserID int64,
-	queuePosition int,
-	preferredTime time.Time,
-	note *string,
-) (int64, error) {
+// Create inserts a new property-based appointment and returns the new ID.
+func (r *ListingAppointmentRepository) Create(propertyID, visitorUserID int64, queuePosition int, preferredTime time.Time, note *string) (int64, error) {
 	var id int64
 	err := r.db.QueryRow(`
 		INSERT INTO listing_appointments
-		    (listing_id, visitor_user_id, queue_position, preferred_time, note)
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING id`,
-		listingID, visitorUserID, queuePosition, preferredTime, note,
+		    (property_id, visitor_user_id, queue_position, preferred_time, note)
+		VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+		propertyID, visitorUserID, queuePosition, preferredTime, note,
 	).Scan(&id)
 	if err != nil {
 		return 0, fmt.Errorf("appt_repo: Create: %w", err)
