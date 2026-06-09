@@ -84,7 +84,7 @@ func (r *ListingAppointmentRepository) FindByProperty(propertyID int64) ([]*mode
 
 // FindByPropertyAndVisitor finds an existing appointment for this (property, visitor) pair.
 func (r *ListingAppointmentRepository) FindByPropertyAndVisitor(propertyID, visitorUserID int64) (*model.ListingAppointment, error) {
-	row := r.db.QueryRow(apptSelectCols+` WHERE property_id=$1 AND visitor_user_id=$2`, propertyID, visitorUserID)
+	row := r.db.QueryRow(apptSelectCols+` WHERE property_id=$1 AND visitor_user_id=$2 ORDER BY id DESC LIMIT 1`, propertyID, visitorUserID)
 	return scanAppointment(row)
 }
 

@@ -130,14 +130,17 @@ func (s *Service) ownerAppt(apptID int64, wallet string) (*model.ListingAppointm
 
 func (s *Service) assertOwnsProperty(wallet string, propertyID int64) error {
 	user, err := s.users.FindByWallet(wallet)
-	if err != nil || user == nil {
+	if err != nil {
+		return fmt.Errorf("appointment: find user: %w", err)
+	}
+	if user == nil {
 		return ErrForbidden
 	}
 	prop, err := s.props.FindByID(propertyID)
-	if err != nil || prop == nil {
-		return ErrNotFound
+	if err != nil {
+		return fmt.Errorf("appointment: find property: %w", err)
 	}
-	if prop.OwnerUserID != user.ID {
+	if prop == nil || prop.OwnerUserID != user.ID {
 		return ErrForbidden
 	}
 	return nil

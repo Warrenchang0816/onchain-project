@@ -12,6 +12,7 @@ type fakeAppts struct {
 	byPropVis map[[2]int64]*model.ListingAppointment
 	created   []*model.ListingAppointment
 	nextPos   int
+	confirmed bool
 }
 
 func (f *fakeAppts) FindByID(id int64) (*model.ListingAppointment, error)        { return f.byID[id], nil }
@@ -27,7 +28,7 @@ func (f *fakeAppts) Create(p, v int64, pos int, t time.Time, note *string) (int6
 	return 100, nil
 }
 func (f *fakeAppts) SetStatus(id int64, s string) error  { return nil }
-func (f *fakeAppts) Confirm(id int64, t time.Time) error { return nil }
+func (f *fakeAppts) Confirm(id int64, t time.Time) error { f.confirmed = true; return nil }
 
 type fakeRentals struct{ rl *model.RentalListing }
 
@@ -87,6 +88,39 @@ func TestConfirm_nonOwnerForbidden(t *testing.T) {
 	svc, _, users := newSvc(a)
 	users.user = &model.User{ID: 999}
 	if err := svc.Confirm(1, "0xother", time.Now()); err != ErrForbidden {
+		t.Fatalf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestBookForRentalListing_allowedAfterCancelled(t *testing.T) {
+	a := &fakeAppts{byID: map[int64]*model.ListingAppointment{}, byPropVis: map[[2]int64]*model.ListingAppointment{
+		{7, 99}: {ID: 1, PropertyID: 7, VisitorUserID: 99, Status: model.AppointmentStatusCancelled},
+	}, nextPos: 2}
+	svc, _, _ := newSvc(a)
+	id, err := svc.BookForRentalListing(5, 99, time.Now(), nil)
+	if err != nil || id != 100 {
+		t.Fatalf("re-book after CANCELLED should succeed, got id=%d err=%v", id, err)
+	}
+}
+
+func TestConfirm_ownerValidTransitionSucceeds(t *testing.T) {
+	a := &fakeAppts{byID: map[int64]*model.ListingAppointment{
+		1: {ID: 1, PropertyID: 7, Status: model.AppointmentStatusPending},
+	}, byPropVis: map[[2]int64]*model.ListingAppointment{}}
+	svc, _, _ := newSvc(a) // owner user ID 42 matches property owner
+	if err := svc.Confirm(1, "0xowner", time.Now()); err != nil {
+		t.Fatalf("owner confirming PENDING appt should succeed, got %v", err)
+	}
+	if !a.confirmed {
+		t.Fatalf("expected Confirm to be called on store")
+	}
+}
+
+func TestListForOwner_nonOwnerForbidden(t *testing.T) {
+	a := &fakeAppts{byID: map[int64]*model.ListingAppointment{}, byPropVis: map[[2]int64]*model.ListingAppointment{}}
+	svc, _, users := newSvc(a)
+	users.user = &model.User{ID: 999} // not the owner (42)
+	if _, err := svc.ListForOwner(7, "0xother"); err != ErrForbidden {
 		t.Fatalf("want ErrForbidden, got %v", err)
 	}
 }

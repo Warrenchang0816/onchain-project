@@ -278,7 +278,7 @@ BEGIN
         ALTER TABLE listing_appointments DROP CONSTRAINT IF EXISTS uq_listing_visitor;
         CREATE UNIQUE INDEX uq_listing_appointments_property_visitor
             ON listing_appointments (property_id, visitor_user_id)
-            WHERE property_id IS NOT NULL;
+            WHERE property_id IS NOT NULL AND status <> 'CANCELLED';
     END IF;
 END $$`,
 
