@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getRentalListing, type RentalListing } from "../api/rentalListingApi";
+import { bookAppointment } from "../api/appointmentApi";
 import { getAuthMe } from "@/api/authApi";
 import HeartButton from "@/components/common/HeartButton";
 import PropertyPhotoGallery from "@/components/property/PropertyPhotoGallery";
@@ -72,6 +73,10 @@ export default function RentDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const [authenticated, setAuthenticated] = useState(false);
+    const [preferredTime, setPreferredTime] = useState("");
+    const [apptNote, setApptNote] = useState("");
+    const [booking, setBooking] = useState(false);
+    const [bookMsg, setBookMsg] = useState("");
 
     useEffect(() => {
         getAuthMe().then((r) => setAuthenticated(r.authenticated)).catch(() => undefined);
@@ -84,6 +89,20 @@ export default function RentDetailPage() {
             .catch((err: unknown) => setError(err instanceof Error ? err.message : "讀取失敗"))
             .finally(() => setLoading(false));
     }, [listingId]);
+
+    async function handleBook() {
+        if (!preferredTime) { setBookMsg("請選擇希望看房時間"); return; }
+        setBooking(true); setBookMsg("");
+        try {
+            await bookAppointment(listing!.id, new Date(preferredTime).toISOString(), apptNote || undefined);
+            setBookMsg("預約已送出，等待屋主確認");
+            setPreferredTime(""); setApptNote("");
+        } catch (e) {
+            setBookMsg(e instanceof Error ? e.message : "預約失敗");
+        } finally {
+            setBooking(false);
+        }
+    }
 
     if (loading) return <SiteLayout><div className="p-12 text-sm text-on-surface-variant">載入中...</div></SiteLayout>;
     if (error || !listing) return <SiteLayout><div className="p-12 text-sm text-error">{error || "找不到此刊登"}</div></SiteLayout>;
@@ -230,6 +249,30 @@ export default function RentDetailPage() {
                         <p className="text-xs font-semibold text-on-surface-variant">交通資訊</p>
                         <p className="mt-1 text-sm text-on-surface-variant">—</p>
                     </div>
+                </section>
+                <section className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest p-8">
+                    <h2 className="mb-6 text-xl font-bold text-on-surface">預約看房</h2>
+                    {!authenticated ? (
+                        <p className="text-sm text-on-surface-variant">請先 <Link to="/login" className="text-primary underline">登入</Link> 後預約看房。</p>
+                    ) : (
+                        <div className="flex flex-col gap-4">
+                            <label className="flex flex-col gap-1 text-sm">
+                                <span className="font-semibold text-on-surface-variant">希望看房時間</span>
+                                <input type="datetime-local" value={preferredTime} onChange={(e) => setPreferredTime(e.target.value)}
+                                    className="rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-on-surface" />
+                            </label>
+                            <label className="flex flex-col gap-1 text-sm">
+                                <span className="font-semibold text-on-surface-variant">留言給屋主（選填）</span>
+                                <textarea value={apptNote} onChange={(e) => setApptNote(e.target.value)} rows={3}
+                                    className="rounded-lg border border-outline-variant/30 bg-surface-container-low px-3 py-2 text-on-surface" />
+                            </label>
+                            <button type="button" onClick={handleBook} disabled={booking}
+                                className="self-start rounded-full bg-primary px-6 py-2 text-sm font-bold text-on-primary disabled:opacity-50">
+                                {booking ? "送出中..." : "送出預約"}
+                            </button>
+                            {bookMsg && <p className="text-sm text-on-surface-variant">{bookMsg}</p>}
+                        </div>
+                    )}
                 </section>
             </main>
         </SiteLayout>
