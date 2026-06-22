@@ -27,7 +27,6 @@ var (
 
 type Service struct {
 	listingRepo  ListingStore
-	apptRepo     AppointmentStore
 	userRepo     UserStore
 	customerRepo CustomerReader
 }
@@ -52,10 +51,6 @@ type ListingStore interface {
 	AttachDetails(l *model.Listing) error
 }
 
-type AppointmentStore interface {
-	FindByID(id int64) (*model.ListingAppointment, error)
-}
-
 type UserStore interface {
 	FindByWallet(walletAddress string) (*model.User, error)
 }
@@ -66,13 +61,11 @@ type CustomerReader interface {
 
 func NewService(
 	listingRepo ListingStore,
-	apptRepo AppointmentStore,
 	userRepo UserStore,
 	customerRepo CustomerReader,
 ) *Service {
 	return &Service{
 		listingRepo:  listingRepo,
-		apptRepo:     apptRepo,
 		userRepo:     userRepo,
 		customerRepo: customerRepo,
 	}
@@ -171,7 +164,7 @@ func (s *Service) ListByOwner(walletAddress string) ([]*model.Listing, error) {
 }
 
 // GetDetail returns a listing with its details and property info.
-func (s *Service) GetDetail(id int64) (*model.Listing, []*model.ListingAppointment, error) {
+func (s *Service) GetDetail(id int64) (*model.Listing, []*model.ViewingAppointment, error) {
 	l, err := s.listingRepo.FindByID(id)
 	if err != nil {
 		return nil, nil, fmt.Errorf("listing: GetDetail: %w", err)
@@ -618,14 +611,6 @@ func (s *Service) LockForNegotiation(listingID int64, walletAddress string, appo
 	}
 	if l.Status != model.ListingStatusActive && l.Status != model.ListingStatusNegotiating {
 		return ErrInvalidStatus
-	}
-
-	appt, err := s.apptRepo.FindByID(appointmentID)
-	if err != nil {
-		return fmt.Errorf("listing: LockForNegotiation appt: %w", err)
-	}
-	if appt == nil || appt.ListingID != listingID {
-		return errors.New("appointment does not belong to this listing")
 	}
 
 	return s.listingRepo.LockForNegotiation(listingID, appointmentID)

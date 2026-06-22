@@ -20,7 +20,7 @@ func walletFrom(c *gin.Context) string {
 	return s
 }
 
-func toResp(a *model.ListingAppointment) AppointmentResponse {
+func toResp(a *model.ViewingAppointment) AppointmentResponse {
 	r := AppointmentResponse{
 		ID: a.ID, PropertyID: a.PropertyID, VisitorUserID: a.VisitorUserID,
 		QueuePosition: a.QueuePosition, PreferredTime: a.PreferredTime, Status: a.Status,

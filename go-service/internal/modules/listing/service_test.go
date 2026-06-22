@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"reflect"
 	"testing"
-	"time"
 
 	"go-service/internal/db/model"
 	"go-service/internal/db/repository"
@@ -78,20 +77,6 @@ func (f *fakeListingStore) UnlockNegotiation(int64) error         { return nil }
 func (f *fakeListingStore) Close(int64) error                     { return nil }
 func (f *fakeListingStore) AttachDetails(*model.Listing) error    { return nil }
 
-type fakeApptStore struct{}
-
-func (f *fakeApptStore) FindByListing(int64) ([]*model.ListingAppointment, error) { return nil, nil }
-func (f *fakeApptStore) FindByID(int64) (*model.ListingAppointment, error)        { return nil, nil }
-func (f *fakeApptStore) FindByListingAndVisitor(int64, int64) (*model.ListingAppointment, error) {
-	return nil, nil
-}
-func (f *fakeApptStore) NextQueuePosition(int64) (int, error) { return 1, nil }
-func (f *fakeApptStore) Create(int64, int64, int, time.Time, *string) (int64, error) {
-	return 0, nil
-}
-func (f *fakeApptStore) Confirm(int64, time.Time) error { return nil }
-func (f *fakeApptStore) SetStatus(int64, string) error  { return nil }
-
 type fakeListingUserStore struct {
 	byWallet map[string]*model.User
 }
@@ -102,7 +87,7 @@ func (f *fakeListingUserStore) FindByWallet(wallet string) (*model.User, error) 
 
 func TestListPublicNormalizesMultiDistrictFilters(t *testing.T) {
 	listings := &fakeListingStore{}
-	svc := NewService(listings, &fakeApptStore{}, &fakeListingUserStore{}, nil)
+	svc := NewService(listings, &fakeListingUserStore{}, nil)
 
 	_, err := svc.ListPublic(model.ListingTypeRent, []string{
 		"台北市:大安區:106",
@@ -140,7 +125,7 @@ func TestUpdateRentDetailsStoresRentDetailsAndMarksReady(t *testing.T) {
 	users := &fakeListingUserStore{byWallet: map[string]*model.User{
 		"0xowner": {ID: 7, WalletAddress: "0xowner"},
 	}}
-	svc := NewService(listings, &fakeApptStore{}, users, nil)
+	svc := NewService(listings, users, nil)
 
 	err := svc.UpdateRentDetails(11, "0xowner", UpdateRentDetailsRequest{
 		Title:              "Draft rent",
@@ -182,7 +167,7 @@ func TestUpdateSaleDetailsStoresSaleDetailsAndMarksReady(t *testing.T) {
 	users := &fakeListingUserStore{byWallet: map[string]*model.User{
 		"0xowner": {ID: 7, WalletAddress: "0xowner"},
 	}}
-	svc := NewService(listings, &fakeApptStore{}, users, nil)
+	svc := NewService(listings, users, nil)
 
 	err := svc.UpdateSaleDetails(22, "0xowner", UpdateSaleDetailsRequest{
 		Title:          "Draft sale",

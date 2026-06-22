@@ -68,7 +68,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	credentialSubmissionRepo := repository.NewCredentialSubmissionRepository(postgresDB)
 	listingRepo := repository.NewListingRepository(postgresDB)
 	propertyRepo := repository.NewCustomerRepository(postgresDB)
-	apptRepo := repository.NewListingAppointmentRepository(postgresDB)
+	apptRepo := repository.NewViewingAppointmentRepository(postgresDB)
 	tenantProfileRepo := repository.NewTenantProfileRepository(postgresDB)
 	tenantRequirementRepo := repository.NewTenantRequirementRepository(postgresDB)
 	agentProfileRepo := repository.NewAgentProfileRepository(postgresDB)
@@ -226,7 +226,7 @@ func Wire(ctx context.Context) (*gin.Engine, func(), error) {
 	// ── 13. Listing and credential modules ────────────────────────────────────────
 	customerSvc := customermod.NewService(propertyRepo, userRepo)
 	customerHandler := customermod.NewHandler(customerSvc)
-	listingSvc := listingmod.NewService(listingRepo, apptRepo, userRepo, propertyRepo)
+	listingSvc := listingmod.NewService(listingRepo, userRepo, propertyRepo)
 	listingHandler := listingmod.NewHandler(listingSvc)
 
 	credentialSvc := credentialmod.NewService(

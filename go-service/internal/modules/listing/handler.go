@@ -26,7 +26,7 @@ func getWallet(c *gin.Context) string {
 	return s
 }
 
-func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, isOwner bool) ListingResponse {
+func toListingResponse(l *model.Listing, appts []*model.ViewingAppointment, isOwner bool) ListingResponse {
 	resp := ListingResponse{
 		ID:                l.ID,
 		OwnerUserID:       l.OwnerUserID,
@@ -154,10 +154,9 @@ func toListingResponse(l *model.Listing, appts []*model.ListingAppointment, isOw
 	return resp
 }
 
-func toApptResponse(a *model.ListingAppointment) AppointmentResponse {
+func toApptResponse(a *model.ViewingAppointment) AppointmentResponse {
 	ar := AppointmentResponse{
 		ID:            a.ID,
-		ListingID:     a.ListingID,
 		VisitorUserID: a.VisitorUserID,
 		QueuePosition: a.QueuePosition,
 		PreferredTime: a.PreferredTime.Format("2006-01-02T15:04:05Z07:00"),

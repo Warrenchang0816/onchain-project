@@ -16,9 +16,9 @@ var (
 )
 
 type ApptStore interface {
-	FindByID(id int64) (*model.ListingAppointment, error)
-	FindByProperty(propertyID int64) ([]*model.ListingAppointment, error)
-	FindByPropertyAndVisitor(propertyID, visitorUserID int64) (*model.ListingAppointment, error)
+	FindByID(id int64) (*model.ViewingAppointment, error)
+	FindByProperty(propertyID int64) ([]*model.ViewingAppointment, error)
+	FindByPropertyAndVisitor(propertyID, visitorUserID int64) (*model.ViewingAppointment, error)
 	NextQueuePosition(propertyID int64) (int, error)
 	Create(propertyID, visitorUserID int64, queuePosition int, preferredTime time.Time, note *string) (int64, error)
 	SetStatus(id int64, status string) error
@@ -85,7 +85,7 @@ func (s *Service) BookForRentalListing(rentalListingID, visitorUserID int64, pre
 	return s.appts.Create(rl.PropertyID, visitorUserID, pos, preferredTime, note)
 }
 
-func (s *Service) ListForOwner(propertyID int64, wallet string) ([]*model.ListingAppointment, error) {
+func (s *Service) ListForOwner(propertyID int64, wallet string) ([]*model.ViewingAppointment, error) {
 	if err := s.assertOwnsProperty(wallet, propertyID); err != nil {
 		return nil, err
 	}
@@ -114,7 +114,7 @@ func (s *Service) SetStatus(apptID int64, wallet, status string) error {
 	return s.appts.SetStatus(apptID, status)
 }
 
-func (s *Service) ownerAppt(apptID int64, wallet string) (*model.ListingAppointment, error) {
+func (s *Service) ownerAppt(apptID int64, wallet string) (*model.ViewingAppointment, error) {
 	appt, err := s.appts.FindByID(apptID)
 	if err != nil {
 		return nil, err

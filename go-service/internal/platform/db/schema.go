@@ -264,26 +264,34 @@ CREATE TABLE IF NOT EXISTS listing_sale_details (
 
 		`CREATE INDEX IF NOT EXISTS idx_user_favorites_wallet ON user_favorites (wallet, listing_type)`,
 
-		`ALTER TABLE listing_appointments
+		`DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='listing_appointments')
+       AND NOT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname='public' AND tablename='viewing_appointments') THEN
+        ALTER TABLE listing_appointments RENAME TO viewing_appointments;
+    END IF;
+END $$`,
+
+		`ALTER TABLE viewing_appointments
 	    ADD COLUMN IF NOT EXISTS property_id BIGINT REFERENCES property(id)`,
 
-		`ALTER TABLE listing_appointments ALTER COLUMN listing_id DROP NOT NULL`,
+		`ALTER TABLE viewing_appointments DROP COLUMN IF EXISTS listing_id`,
 
 		`DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_indexes
-        WHERE schemaname = 'public' AND indexname = 'uq_listing_appointments_property_visitor'
+        WHERE schemaname = 'public' AND indexname = 'uq_viewing_appointments_property_visitor'
     ) THEN
-        ALTER TABLE listing_appointments DROP CONSTRAINT IF EXISTS uq_listing_visitor;
-        CREATE UNIQUE INDEX uq_listing_appointments_property_visitor
-            ON listing_appointments (property_id, visitor_user_id)
-            WHERE property_id IS NOT NULL AND status <> 'CANCELLED';
+        ALTER TABLE viewing_appointments DROP CONSTRAINT IF EXISTS uq_listing_visitor;
+        CREATE UNIQUE INDEX uq_viewing_appointments_property_visitor
+            ON viewing_appointments (property_id, visitor_user_id)
+            WHERE status <> 'CANCELLED';
     END IF;
 END $$`,
 
-		`CREATE INDEX IF NOT EXISTS idx_listing_appointments_property_id
-	    ON listing_appointments (property_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_viewing_appointments_property_id
+	    ON viewing_appointments (property_id)`,
 	}
 
 	for _, statement := range statements {
