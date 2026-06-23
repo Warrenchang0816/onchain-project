@@ -9,9 +9,10 @@ import (
 )
 
 var (
-	ErrNotFound         = errors.New("rental listing not found")
-	ErrForbidden        = errors.New("only the property owner can manage this listing")
-	ErrPropertyNotReady = errors.New("property must be READY before creating a listing")
+	ErrNotFound          = errors.New("rental listing not found")
+	ErrForbidden         = errors.New("only the property owner can manage this listing")
+	ErrPropertyNotReady  = errors.New("property must be READY before creating a listing")
+	ErrNoOwnerCredential = errors.New("需要屋主身份憑證才能操作")
 )
 
 type Store interface {
@@ -33,17 +34,40 @@ type UserStore interface {
 	FindByWallet(wallet string) (*model.User, error)
 }
 
+type CredentialReader interface {
+	FindByUserAndType(userID int64, credType string) (*model.UserCredential, error)
+}
+
 type Service struct {
 	repo         Store
 	propertyRepo PropertyStore
 	userRepo     UserStore
+	credRepo     CredentialReader
 }
 
-func NewService(repo Store, propertyRepo PropertyStore, userRepo UserStore) *Service {
-	return &Service{repo: repo, propertyRepo: propertyRepo, userRepo: userRepo}
+func NewService(repo Store, propertyRepo PropertyStore, userRepo UserStore, credRepo CredentialReader) *Service {
+	return &Service{repo: repo, propertyRepo: propertyRepo, userRepo: userRepo, credRepo: credRepo}
+}
+
+func (s *Service) requireOwnerCredential(wallet string) (*model.User, error) {
+	user, err := s.userRepo.FindByWallet(wallet)
+	if err != nil || user == nil {
+		return nil, ErrForbidden
+	}
+	cred, err := s.credRepo.FindByUserAndType(user.ID, model.CredentialTypeOwner)
+	if err != nil {
+		return nil, fmt.Errorf("rental_listing: check owner credential: %w", err)
+	}
+	if cred == nil {
+		return nil, ErrNoOwnerCredential
+	}
+	return user, nil
 }
 
 func (s *Service) Create(propertyID int64, wallet string, req CreateRentalListingRequest) (int64, error) {
+	if _, err := s.requireOwnerCredential(wallet); err != nil {
+		return 0, err
+	}
 	if err := s.assertOwnsProperty(wallet, propertyID); err != nil {
 		return 0, err
 	}
@@ -152,6 +176,9 @@ func (s *Service) Update(id int64, wallet string, req UpdateRentalListingRequest
 }
 
 func (s *Service) Publish(id int64, wallet string, durationDays int) error {
+	if _, err := s.requireOwnerCredential(wallet); err != nil {
+		return err
+	}
 	rl, err := s.repo.FindByID(id)
 	if err != nil {
 		return fmt.Errorf("rental_listing: Publish: %w", err)

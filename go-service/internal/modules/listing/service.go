@@ -17,18 +17,21 @@ const defaultDurationDays = 30
 const defaultDailyFeeNTD = 40.0
 
 var (
-	ErrNotFound         = errors.New("listing not found")
-	ErrForbidden        = errors.New("only the listing owner can perform this action")
-	ErrInvalidStatus    = errors.New("this action is not allowed in the current listing status")
-	ErrNotKYCVerified   = errors.New("KYC verification required to perform this action")
-	ErrAlreadyBooked    = errors.New("you have already booked an appointment for this listing")
-	ErrDurationTooShort = errors.New("minimum listing duration is 7 days")
+	ErrNotFound           = errors.New("listing not found")
+	ErrForbidden          = errors.New("only the listing owner can perform this action")
+	ErrInvalidStatus      = errors.New("this action is not allowed in the current listing status")
+	ErrNotKYCVerified     = errors.New("KYC verification required to perform this action")
+	ErrAlreadyBooked      = errors.New("you have already booked an appointment for this listing")
+	ErrDurationTooShort   = errors.New("minimum listing duration is 7 days")
+	ErrNoOwnerCredential  = errors.New("需要屋主身份憑證才能操作")
+	ErrNoTenantCredential = errors.New("需要租客身份憑證才能預約")
 )
 
 type Service struct {
 	listingRepo  ListingStore
 	userRepo     UserStore
 	customerRepo CustomerReader
+	credRepo     CredentialReader
 }
 
 type ListingStore interface {
@@ -59,15 +62,21 @@ type CustomerReader interface {
 	FindByID(id int64) (*model.Customer, error)
 }
 
+type CredentialReader interface {
+	FindByUserAndType(userID int64, credType string) (*model.UserCredential, error)
+}
+
 func NewService(
 	listingRepo ListingStore,
 	userRepo UserStore,
 	customerRepo CustomerReader,
+	credRepo CredentialReader,
 ) *Service {
 	return &Service{
 		listingRepo:  listingRepo,
 		userRepo:     userRepo,
 		customerRepo: customerRepo,
+		credRepo:     credRepo,
 	}
 }
 
@@ -91,6 +100,36 @@ func (s *Service) requireUser(wallet string) (*model.User, error) {
 	}
 	if user == nil {
 		return nil, errors.New("user not found")
+	}
+	return user, nil
+}
+
+func (s *Service) requireOwnerCredential(wallet string) (*model.User, error) {
+	user, err := s.requireUser(wallet)
+	if err != nil {
+		return nil, err
+	}
+	cred, err := s.credRepo.FindByUserAndType(user.ID, model.CredentialTypeOwner)
+	if err != nil {
+		return nil, fmt.Errorf("listing: check owner credential: %w", err)
+	}
+	if cred == nil {
+		return nil, ErrNoOwnerCredential
+	}
+	return user, nil
+}
+
+func (s *Service) requireTenantCredential(wallet string) (*model.User, error) {
+	user, err := s.requireUser(wallet)
+	if err != nil {
+		return nil, err
+	}
+	cred, err := s.credRepo.FindByUserAndType(user.ID, model.CredentialTypeTenant)
+	if err != nil {
+		return nil, fmt.Errorf("listing: check tenant credential: %w", err)
+	}
+	if cred == nil {
+		return nil, ErrNoTenantCredential
 	}
 	return user, nil
 }
@@ -193,9 +232,9 @@ func (s *Service) IsListingOwner(ownerUserID int64, callerWallet string) (bool, 
 }
 
 // Create creates a new listing in DRAFT status.
-// The caller must be KYC VERIFIED.
+// The caller must have an OWNER credential.
 func (s *Service) Create(walletAddress string, req CreateListingRequest) (int64, error) {
-	owner, err := s.requireVerifiedUser(walletAddress)
+	owner, err := s.requireOwnerCredential(walletAddress)
 	if err != nil {
 		return 0, err
 	}
@@ -426,7 +465,7 @@ func (s *Service) UpdateSaleDetails(listingID int64, walletAddress string, req U
 
 // Publish transitions a DRAFT listing to ACTIVE.
 func (s *Service) Publish(listingID int64, walletAddress string, durationDays int) error {
-	caller, err := s.requireUser(walletAddress)
+	caller, err := s.requireOwnerCredential(walletAddress)
 	if err != nil {
 		return err
 	}

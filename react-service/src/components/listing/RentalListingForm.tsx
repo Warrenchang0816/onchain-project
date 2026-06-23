@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     closeRentalListing,
     createRentalListing,
@@ -253,7 +254,14 @@ export default function RentalListingForm({ propertyId, property }: Props) {
                 </div>
 
                 {msg.ok ? <p className="mt-4 text-sm text-[#2E7D32]">✓ {msg.ok}</p> : null}
-                {msg.err ? <p className="mt-4 rounded-lg bg-error-container p-3 text-sm text-on-error-container">{msg.err}</p> : null}
+                {msg.err ? (
+                    <p className="mt-4 rounded-lg bg-error-container p-3 text-sm text-on-error-container">
+                        {msg.err}
+                        {msg.err.includes("憑證") && (
+                            <Link to="/credential/owner" className="ml-2 underline">前往取得屋主身份 →</Link>
+                        )}
+                    </p>
+                ) : null}
 
                 <div className="mt-6 flex flex-col gap-3">
                     <button type="button" onClick={() => void handleSave()} disabled={saving}

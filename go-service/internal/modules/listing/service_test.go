@@ -2,6 +2,7 @@ package listing
 
 import (
 	"database/sql"
+	"errors"
 	"reflect"
 	"testing"
 
@@ -85,9 +86,15 @@ func (f *fakeListingUserStore) FindByWallet(wallet string) (*model.User, error) 
 	return f.byWallet[wallet], nil
 }
 
+type fakeCredRepo struct{ cred *model.UserCredential }
+
+func (f *fakeCredRepo) FindByUserAndType(_ int64, _ string) (*model.UserCredential, error) {
+	return f.cred, nil
+}
+
 func TestListPublicNormalizesMultiDistrictFilters(t *testing.T) {
 	listings := &fakeListingStore{}
-	svc := NewService(listings, &fakeListingUserStore{}, nil)
+	svc := NewService(listings, &fakeListingUserStore{}, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 
 	_, err := svc.ListPublic(model.ListingTypeRent, []string{
 		"台北市:大安區:106",
@@ -125,7 +132,7 @@ func TestUpdateRentDetailsStoresRentDetailsAndMarksReady(t *testing.T) {
 	users := &fakeListingUserStore{byWallet: map[string]*model.User{
 		"0xowner": {ID: 7, WalletAddress: "0xowner"},
 	}}
-	svc := NewService(listings, users, nil)
+	svc := NewService(listings, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 
 	err := svc.UpdateRentDetails(11, "0xowner", UpdateRentDetailsRequest{
 		Title:              "Draft rent",
@@ -167,7 +174,7 @@ func TestUpdateSaleDetailsStoresSaleDetailsAndMarksReady(t *testing.T) {
 	users := &fakeListingUserStore{byWallet: map[string]*model.User{
 		"0xowner": {ID: 7, WalletAddress: "0xowner"},
 	}}
-	svc := NewService(listings, users, nil)
+	svc := NewService(listings, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 
 	err := svc.UpdateSaleDetails(22, "0xowner", UpdateSaleDetailsRequest{
 		Title:          "Draft sale",
@@ -187,6 +194,33 @@ func TestUpdateSaleDetailsStoresSaleDetailsAndMarksReady(t *testing.T) {
 	if listings.updatedSaleStatus != model.ListingSetupStatusReady {
 		t.Fatalf("setup status = %s, want %s", listings.updatedSaleStatus, model.ListingSetupStatusReady)
 	}
+}
+
+func TestCreateRequiresOwnerCredential(t *testing.T) {
+	listings := &fakeListingStore{}
+	users := &fakeListingUserStore{byWallet: map[string]*model.User{
+		"0xowner": {ID: 1, KYCStatus: model.KYCStatusVerified},
+	}}
+
+	t.Run("no credential → ErrNoOwnerCredential", func(t *testing.T) {
+		svc := NewService(listings, users, nil, &fakeCredRepo{cred: nil})
+		_, err := svc.Create("0xowner", CreateListingRequest{
+			Title: "Test", Address: "Test St", ListType: "RENT", Price: 20000,
+		})
+		if !errors.Is(err, ErrNoOwnerCredential) {
+			t.Errorf("want ErrNoOwnerCredential, got %v", err)
+		}
+	})
+
+	t.Run("has credential → proceeds past guard", func(t *testing.T) {
+		svc := NewService(listings, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
+		_, err := svc.Create("0xowner", CreateListingRequest{
+			Title: "Test", Address: "Test St", ListType: "RENT", Price: 20000,
+		})
+		if errors.Is(err, ErrNoOwnerCredential) {
+			t.Errorf("should not get ErrNoOwnerCredential when credential present")
+		}
+	})
 }
 
 func floatPtr(v float64) *float64 { return &v }

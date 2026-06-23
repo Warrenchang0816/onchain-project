@@ -42,11 +42,17 @@ type fakeUsers struct{ user *model.User }
 
 func (f *fakeUsers) FindByWallet(w string) (*model.User, error) { return f.user, nil }
 
+type fakeCreds struct{ cred *model.UserCredential }
+
+func (f *fakeCreds) FindByUserAndType(_ int64, _ string) (*model.UserCredential, error) {
+	return f.cred, nil
+}
+
 func newSvc(a *fakeAppts) (*Service, *fakeProps, *fakeUsers) {
 	props := &fakeProps{prop: &model.Property{ID: 7, OwnerUserID: 42}}
 	users := &fakeUsers{user: &model.User{ID: 42}}
 	rentals := &fakeRentals{rl: &model.RentalListing{ID: 5, PropertyID: 7}}
-	return NewService(a, rentals, props, users), props, users
+	return NewService(a, rentals, props, users, &fakeCreds{cred: &model.UserCredential{}}), props, users
 }
 
 func TestBookForRentalListing_resolvesPropertyAndCreates(t *testing.T) {
@@ -122,5 +128,21 @@ func TestListForOwner_nonOwnerForbidden(t *testing.T) {
 	users.user = &model.User{ID: 999} // not the owner (42)
 	if _, err := svc.ListForOwner(7, "0xother"); err != ErrForbidden {
 		t.Fatalf("want ErrForbidden, got %v", err)
+	}
+}
+
+func TestBookForRentalListingByWallet_requiresTenantCredential(t *testing.T) {
+	a := &fakeAppts{byID: map[int64]*model.ViewingAppointment{}, byPropVis: map[[2]int64]*model.ViewingAppointment{}, nextPos: 1}
+	props := &fakeProps{prop: &model.Property{ID: 7, OwnerUserID: 42}}
+	users := &fakeUsers{user: &model.User{ID: 99}}
+	rentals := &fakeRentals{rl: &model.RentalListing{ID: 5, PropertyID: 7}}
+	svc := NewService(a, rentals, props, users, &fakeCreds{cred: nil})
+
+	_, err := svc.BookForRentalListingByWallet(5, "0xtenant", time.Now(), nil)
+	if err != ErrNoTenantCredential {
+		t.Fatalf("want ErrNoTenantCredential, got %v", err)
+	}
+	if len(a.created) != 0 {
+		t.Fatalf("appointment should not be created without tenant credential")
 	}
 }

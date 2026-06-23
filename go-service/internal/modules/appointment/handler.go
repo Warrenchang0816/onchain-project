@@ -119,7 +119,7 @@ func writeErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrInvalidStatus):
 		c.JSON(http.StatusUnprocessableEntity, gin.H{"success": false, "message": err.Error()})
-	case errors.Is(err, ErrForbidden):
+	case errors.Is(err, ErrForbidden), errors.Is(err, ErrNoTenantCredential):
 		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": err.Error()})
 	case errors.Is(err, ErrNotFound), errors.Is(err, ErrListingNotFound):
 		c.JSON(http.StatusNotFound, gin.H{"success": false, "message": err.Error()})

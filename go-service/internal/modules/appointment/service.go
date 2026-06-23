@@ -9,10 +9,11 @@ import (
 )
 
 var (
-	ErrNotFound        = errors.New("appointment not found")
-	ErrForbidden       = errors.New("not allowed")
-	ErrInvalidStatus   = errors.New("invalid status transition")
-	ErrListingNotFound = errors.New("rental listing not found")
+	ErrNotFound           = errors.New("appointment not found")
+	ErrForbidden          = errors.New("not allowed")
+	ErrInvalidStatus      = errors.New("invalid status transition")
+	ErrListingNotFound    = errors.New("rental listing not found")
+	ErrNoTenantCredential = errors.New("需要租客身份憑證才能預約")
 )
 
 type ApptStore interface {
@@ -37,15 +38,20 @@ type UserStore interface {
 	FindByWallet(wallet string) (*model.User, error)
 }
 
+type CredentialReader interface {
+	FindByUserAndType(userID int64, credType string) (*model.UserCredential, error)
+}
+
 type Service struct {
 	appts   ApptStore
 	rentals RentalListingStore
 	props   PropertyStore
 	users   UserStore
+	creds   CredentialReader
 }
 
-func NewService(appts ApptStore, rentals RentalListingStore, props PropertyStore, users UserStore) *Service {
-	return &Service{appts: appts, rentals: rentals, props: props, users: users}
+func NewService(appts ApptStore, rentals RentalListingStore, props PropertyStore, users UserStore, creds CredentialReader) *Service {
+	return &Service{appts: appts, rentals: rentals, props: props, users: users, creds: creds}
 }
 
 var allowedTransitions = map[string][]string{
@@ -153,6 +159,13 @@ func (s *Service) BookForRentalListingByWallet(rentalListingID int64, wallet str
 	}
 	if user == nil {
 		return 0, ErrForbidden
+	}
+	cred, err := s.creds.FindByUserAndType(user.ID, model.CredentialTypeTenant)
+	if err != nil {
+		return 0, fmt.Errorf("appointment: check tenant credential: %w", err)
+	}
+	if cred == nil {
+		return 0, ErrNoTenantCredential
 	}
 	return s.BookForRentalListing(rentalListingID, user.ID, preferredTime, note)
 }
