@@ -329,50 +329,6 @@ export async function unlockNegotiation(id: number): Promise<void> {
     await parseResponse<unknown>(res);
 }
 
-// ── Appointments ─────────────────────────────────────────────────────────────
-
-export async function bookAppointment(listingId: number, preferredTime: string, note?: string): Promise<{ id: number }> {
-    const res = await fetch(`${API_BASE_URL}/listings/${listingId}/appointments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ preferred_time: preferredTime, note }),
-    });
-    const data = await parseResponse<{ data: { id: number } }>(res);
-    return data.data;
-}
-
-export async function confirmAppointment(listingId: number, apptId: number, confirmedTime: string): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/listings/${listingId}/appointments/${apptId}/confirm`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ confirmed_time: confirmedTime }),
-    });
-    await parseResponse<unknown>(res);
-}
-
-export async function updateAppointmentStatus(
-    listingId: number,
-    apptId: number,
-    status: "VIEWED" | "INTERESTED" | "CANCELLED",
-): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/listings/${listingId}/appointments/${apptId}/status`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ status }),
-    });
-    await parseResponse<unknown>(res);
-}
-
-export async function cancelAppointment(listingId: number, apptId: number): Promise<void> {
-    const res = await fetch(`${API_BASE_URL}/listings/${listingId}/appointments/${apptId}/cancel`, {
-        method: "PUT",
-        credentials: "include",
-    });
-    await parseResponse<unknown>(res);
-}
 
 /** 鏈上足跡會用到先暫留，後續再修改調整 **/
 export type BlockchainLog = {

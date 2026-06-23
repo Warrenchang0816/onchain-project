@@ -5,7 +5,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	"go-service/internal/db/model"
 	"go-service/internal/db/repository"
@@ -79,20 +78,6 @@ func (f *fakeListingStore) UnlockNegotiation(int64) error         { return nil }
 func (f *fakeListingStore) Close(int64) error                     { return nil }
 func (f *fakeListingStore) AttachDetails(*model.Listing) error    { return nil }
 
-type fakeApptStore struct{}
-
-func (f *fakeApptStore) FindByListing(int64) ([]*model.ListingAppointment, error) { return nil, nil }
-func (f *fakeApptStore) FindByID(int64) (*model.ListingAppointment, error)        { return nil, nil }
-func (f *fakeApptStore) FindByListingAndVisitor(int64, int64) (*model.ListingAppointment, error) {
-	return nil, nil
-}
-func (f *fakeApptStore) NextQueuePosition(int64) (int, error) { return 1, nil }
-func (f *fakeApptStore) Create(int64, int64, int, time.Time, *string) (int64, error) {
-	return 0, nil
-}
-func (f *fakeApptStore) Confirm(int64, time.Time) error { return nil }
-func (f *fakeApptStore) SetStatus(int64, string) error  { return nil }
-
 type fakeListingUserStore struct {
 	byWallet map[string]*model.User
 }
@@ -109,7 +94,7 @@ func (f *fakeCredRepo) FindByUserAndType(_ int64, _ string) (*model.UserCredenti
 
 func TestListPublicNormalizesMultiDistrictFilters(t *testing.T) {
 	listings := &fakeListingStore{}
-	svc := NewService(listings, &fakeApptStore{}, &fakeListingUserStore{}, nil, &fakeCredRepo{cred: &model.UserCredential{}})
+	svc := NewService(listings, &fakeListingUserStore{}, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 
 	_, err := svc.ListPublic(model.ListingTypeRent, []string{
 		"台北市:大安區:106",
@@ -147,7 +132,7 @@ func TestUpdateRentDetailsStoresRentDetailsAndMarksReady(t *testing.T) {
 	users := &fakeListingUserStore{byWallet: map[string]*model.User{
 		"0xowner": {ID: 7, WalletAddress: "0xowner"},
 	}}
-	svc := NewService(listings, &fakeApptStore{}, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
+	svc := NewService(listings, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 
 	err := svc.UpdateRentDetails(11, "0xowner", UpdateRentDetailsRequest{
 		Title:              "Draft rent",
@@ -189,7 +174,7 @@ func TestUpdateSaleDetailsStoresSaleDetailsAndMarksReady(t *testing.T) {
 	users := &fakeListingUserStore{byWallet: map[string]*model.User{
 		"0xowner": {ID: 7, WalletAddress: "0xowner"},
 	}}
-	svc := NewService(listings, &fakeApptStore{}, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
+	svc := NewService(listings, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 
 	err := svc.UpdateSaleDetails(22, "0xowner", UpdateSaleDetailsRequest{
 		Title:          "Draft sale",
@@ -218,7 +203,7 @@ func TestCreateRequiresOwnerCredential(t *testing.T) {
 	}}
 
 	t.Run("no credential → ErrNoOwnerCredential", func(t *testing.T) {
-		svc := NewService(listings, &fakeApptStore{}, users, nil, &fakeCredRepo{cred: nil})
+		svc := NewService(listings, users, nil, &fakeCredRepo{cred: nil})
 		_, err := svc.Create("0xowner", CreateListingRequest{
 			Title: "Test", Address: "Test St", ListType: "RENT", Price: 20000,
 		})
@@ -228,40 +213,12 @@ func TestCreateRequiresOwnerCredential(t *testing.T) {
 	})
 
 	t.Run("has credential → proceeds past guard", func(t *testing.T) {
-		svc := NewService(listings, &fakeApptStore{}, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
+		svc := NewService(listings, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
 		_, err := svc.Create("0xowner", CreateListingRequest{
 			Title: "Test", Address: "Test St", ListType: "RENT", Price: 20000,
 		})
 		if errors.Is(err, ErrNoOwnerCredential) {
 			t.Errorf("should not get ErrNoOwnerCredential when credential present")
-		}
-	})
-}
-
-func TestBookAppointmentRequiresTenantCredential(t *testing.T) {
-	listing := &model.Listing{ID: 10, OwnerUserID: 99, Status: model.ListingStatusActive}
-	listings := &fakeListingStore{byID: map[int64]*model.Listing{10: listing}}
-	users := &fakeListingUserStore{byWallet: map[string]*model.User{
-		"0xtenant": {ID: 2, KYCStatus: model.KYCStatusVerified},
-	}}
-
-	t.Run("no credential → ErrNoTenantCredential", func(t *testing.T) {
-		svc := NewService(listings, &fakeApptStore{}, users, nil, &fakeCredRepo{cred: nil})
-		_, err := svc.BookAppointment(10, "0xtenant", CreateAppointmentRequest{
-			PreferredTime: time.Now().Add(24 * time.Hour),
-		})
-		if !errors.Is(err, ErrNoTenantCredential) {
-			t.Errorf("want ErrNoTenantCredential, got %v", err)
-		}
-	})
-
-	t.Run("has credential → proceeds past guard", func(t *testing.T) {
-		svc := NewService(listings, &fakeApptStore{}, users, nil, &fakeCredRepo{cred: &model.UserCredential{}})
-		_, err := svc.BookAppointment(10, "0xtenant", CreateAppointmentRequest{
-			PreferredTime: time.Now().Add(24 * time.Hour),
-		})
-		if errors.Is(err, ErrNoTenantCredential) {
-			t.Errorf("should not get ErrNoTenantCredential when credential present")
 		}
 	})
 }

@@ -1,9 +1,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { getAuthMe } from "../api/authApi";
-import { useIdentity } from "../hooks/useIdentity";
 import {
-    bookAppointment,
     closeListing,
     getListing,
     publishListing,
@@ -25,7 +23,7 @@ import { listingToEditorValues } from "../components/listing/listingEditorValues
 import { buildListingDisplayModel } from "../components/listing/listingDisplayModel";
 import SiteLayout from "../layouts/SiteLayout";
 
-type ModalType = "publish" | "edit" | "book" | "rentDetails" | "saleDetails" | null;
+type ModalType = "publish" | "edit" | "rentDetails" | "saleDetails" | null;
 
 function ActionButton(props: { children: ReactNode; onClick?: () => void; variant?: "primary" | "secondary" | "danger"; disabled?: boolean }) {
     const cls = {
@@ -63,7 +61,6 @@ export default function ListingDetailPage() {
     const { id } = useParams<{ id: string }>();
     const location = useLocation();
     const navigate = useNavigate();
-    const { hasRole } = useIdentity();
     const [listing, setListing] = useState<Listing | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -72,8 +69,6 @@ export default function ListingDetailPage() {
     const [modal, setModal] = useState<ModalType>(null);
     const [isActionLoading, setIsActionLoading] = useState(false);
     const [publishDays, setPublishDays] = useState(30);
-    const [preferredTime, setPreferredTime] = useState("");
-    const [bookingNote, setBookingNote] = useState("");
 
     const listingId = id ? parseInt(id, 10) : Number.NaN;
 
@@ -152,8 +147,6 @@ export default function ListingDetailPage() {
     const isOwner = listing.is_owner || location.pathname.startsWith("/my/listings/");
     const backPath = isOwner ? "/my/listings" : "/listings";
     const backLabel = isOwner ? "返回我的刊登" : "返回房源列表";
-    const canBook = hasRole("TENANT") && !isOwner && listing.status === "ACTIVE";
-    const appointments = listing.appointments ?? [];
     const propertyReady =
         listing.property?.verification_status === "VERIFIED" &&
         listing.property?.completeness_status === "READY_FOR_LISTING" &&
@@ -170,10 +163,6 @@ export default function ListingDetailPage() {
     const handleSaleDetails = (payload: UpdateSaleDetailsPayload) => runAction(() => updateSaleDetails(listingId, payload), "賣屋資料已更新");
     const handleRemove = () => runAction(() => removeListing(listingId), "物件已下架");
     const handleClose = () => runAction(() => closeListing(listingId), "物件已結案");
-    const handleBook = () => {
-        if (!preferredTime) return;
-        return runAction(() => bookAppointment(listingId, new Date(preferredTime).toISOString(), bookingNote).then(() => undefined), "預約已送出");
-    };
 
     return (
         <SiteLayout>
@@ -246,40 +235,12 @@ export default function ListingDetailPage() {
                                         <ActionButton onClick={() => void handleClose()}>結案</ActionButton>
                                     ) : null}
                                 </>
-                            ) : isAuthenticated ? (
-                                <>
-                                    {canBook ? (
-                                        <ActionButton variant="primary" onClick={() => setModal("book")}>
-                                            預約看屋
-                                        </ActionButton>
-                                    ) : null}
-                                    {!canBook && !isOwner && listing.status === "ACTIVE" && isAuthenticated ? (
-                                        <div className="flex flex-col items-center gap-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest p-5 text-center">
-                                            <p className="text-sm text-on-surface-variant">預約看房需要租客身份憑證。</p>
-                                            <button
-                                                type="button"
-                                                onClick={() => navigate("/credential/tenant")}
-                                                className="rounded-xl bg-primary-container px-5 py-2.5 text-sm font-bold text-on-primary-container transition-opacity hover:opacity-90"
-                                            >
-                                                前往取得租客身份 →
-                                            </button>
-                                        </div>
-                                    ) : !canBook ? (
-                                        <p className="text-center text-sm text-on-surface-variant">目前無法預約此物件。</p>
-                                    ) : null}
-                                </>
-                            ) : (
+                            ) : isAuthenticated ? null : (
                                 <ActionButton variant="primary" onClick={() => navigate("/login")}>
                                     登入後聯絡
                                 </ActionButton>
                             )}
 
-                            {appointments.length > 0 ? (
-                                <div className="mt-4 border-t border-surface-container pt-4">
-                                    <h2 className="text-sm font-bold text-on-surface">預約紀錄</h2>
-                                    <p className="mt-2 text-sm text-on-surface-variant">目前共有 {appointments.length} 筆預約。</p>
-                                </div>
-                            ) : null}
                         </>
                     }
                 />
@@ -318,25 +279,6 @@ export default function ListingDetailPage() {
             </Modal>
             <Modal isOpen={modal === "saleDetails"} title="賣屋刊登資料" onClose={() => setModal(null)}>
                 <ListingDetailsForm mode="sale" listing={listing} submitting={isActionLoading} onSubmit={handleSaleDetails} onCancel={() => setModal(null)} />
-            </Modal>
-            <Modal isOpen={modal === "book"} title="預約看屋" onClose={() => setModal(null)}>
-                <div className="flex flex-col gap-4">
-                    <input
-                        className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
-                        type="datetime-local"
-                        value={preferredTime}
-                        onChange={(e) => setPreferredTime(e.target.value)}
-                    />
-                    <input
-                        className="rounded-lg border-0 bg-surface-container-low px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-primary-container"
-                        value={bookingNote}
-                        onChange={(e) => setBookingNote(e.target.value)}
-                        placeholder="補充說明"
-                    />
-                    <ActionButton variant="primary" disabled={!preferredTime || isActionLoading} onClick={() => void handleBook()}>
-                        送出預約
-                    </ActionButton>
-                </div>
             </Modal>
         </SiteLayout>
     );

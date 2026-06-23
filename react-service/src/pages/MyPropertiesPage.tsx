@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { listMyProperties, removeProperty, type Property, type PropertySetupStatus } from "../api/propertyApi";
+import PropertyAppointments from "../components/property/PropertyAppointments";
 import SiteLayout from "../layouts/SiteLayout";
 
 const BUILDING_TYPE_LABEL: Record<string, string> = {
@@ -206,6 +207,7 @@ export default function MyPropertiesPage() {
                                         )}
                                     </div>
                                 </div>
+                                <PropertyAppointments propertyId={item.id} />
                             </article>
                         ))}
                     </section>

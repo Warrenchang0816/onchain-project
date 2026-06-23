@@ -1,7 +1,9 @@
 # Secrets / local machine config
 .env
 *.local
-.claude/
+.claude/*
+# Share team slash commands; keep local settings ignored (settings.local.json also matched by *.local above)
+!.claude/commands/
 
 # OS / editor
 .DS_Store

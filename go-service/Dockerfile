@@ -13,7 +13,7 @@ COPY . .
 
 RUN go build -o server ./cmd/server
 
-FROM debian:stable-slim
+FROM debian:12-slim
 
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 

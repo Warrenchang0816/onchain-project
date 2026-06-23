@@ -73,6 +73,9 @@ CREATE INDEX IF NOT EXISTS idx_listings_district
 
 -- ------------------------------------------------------------
 -- listing_appointments（預約看房）
+-- 注意：此表已由 platform/db/schema.go EnsureSchema 改名為 viewing_appointments，
+--       並移除 listing_id 欄位（改以 property_id 為主鍵關聯）。
+-- property_id 由 platform/db/schema.go EnsureSchema 於 property 表建立後加入（property-based 預約）
 -- 規則：
 --   - visitor_user_id 須為 kyc_status = VERIFIED 的使用者
 --   - queue_position：同 listing 內依 created_at 順序指派，從 1 開始

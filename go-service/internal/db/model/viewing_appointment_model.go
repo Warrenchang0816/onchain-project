@@ -14,9 +14,9 @@ const (
 	AppointmentStatusCancelled  = "CANCELLED"
 )
 
-type ListingAppointment struct {
+type ViewingAppointment struct {
 	ID            int64
-	ListingID     int64
+	PropertyID    int64
 	VisitorUserID int64
 
 	QueuePosition int
