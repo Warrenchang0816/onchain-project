@@ -1,6 +1,6 @@
 import type { AgentDetailResponse } from "@/api/agentApi";
 import type { CredentialCenterItem, CredentialType } from "@/api/credentialApi";
-import type { Listing } from "@/api/listingApi";
+import type { Property } from "@/api/propertyApi";
 import type { TenantProfile, TenantRequirement } from "@/api/tenantApi";
 
 export type RoleActivationState = "inactive" | "pending" | "ready" | "active" | "rejected";
@@ -43,30 +43,28 @@ function inactiveSummary(type: CredentialType, title: string, nextStep: string):
     };
 }
 
-export function buildOwnerSummary(item: CredentialCenterItem | undefined, listings: Listing[]): RoleDashboardSummary {
+export function buildOwnerSummary(item: CredentialCenterItem | undefined, properties: Property[]): RoleDashboardSummary {
     const state = activationState(item);
     if (state !== "active") {
         return inactiveSummary("OWNER", "房東工作台", "啟用房東身分後，可以管理物件、補齊刊登資料並發布出租或出售資訊。");
     }
 
-    const draft = listings.filter((listing) => listing.status === "DRAFT");
-    const active = listings.filter((listing) => listing.status === "ACTIVE");
-    const incomplete = draft.filter((listing) => listing.setup_status === "INCOMPLETE");
-    const ready = draft.filter((listing) => listing.setup_status === "READY");
+    const draft = properties.filter((p) => p.setup_status === "DRAFT");
+    const ready = properties.filter((p) => p.setup_status === "READY");
 
     return {
         title: "房東工作台",
         state,
         statusLabel: "已啟用",
         primaryActionLabel: "管理物件",
-        primaryActionPath: "/my/listings",
-        secondaryActions: [{ label: "新增刊登", path: "/my/listings/new" }],
+        primaryActionPath: "/my/properties",
+        secondaryActions: [{ label: "新增物件", path: "/my/properties/new" }],
         metrics: [
-            { label: "待補資料", value: incomplete.length },
-            { label: "可發布草稿", value: ready.length },
-            { label: "已上架", value: active.length },
+            { label: "物件總數", value: properties.length },
+            { label: "草稿", value: draft.length },
+            { label: "完整", value: ready.length },
         ],
-        nextStep: listings.length === 0 ? "目前沒有物件，先建立或啟用房東資料來產生第一筆草稿。" : "檢查草稿是否已補齊出租或出售明細。",
+        nextStep: properties.length === 0 ? "目前沒有物件，先新增第一筆物件資料。" : "前往物件頁面補齊資料，讓物件達到可刊登狀態。",
     };
 }
 

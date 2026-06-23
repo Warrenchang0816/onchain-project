@@ -29,22 +29,53 @@ func TestApplyRentalUpdate_FieldsAreApplied(t *testing.T) {
 	}
 }
 
+func TestApplyRentalUpdate_FurnitureNearby(t *testing.T) {
+	trueVal := true
+	falseVal := false
+	rl := &model.RentalListing{}
+	req := UpdateRentalListingRequest{
+		HasSofa:              &trueVal,
+		HasAC:                &falseVal,
+		NearPark:             &trueVal,
+		NearConvenienceStore: &falseVal,
+	}
+	applyRentalUpdate(rl, req)
+	if !rl.HasSofa {
+		t.Error("expected HasSofa true")
+	}
+	if rl.HasAC {
+		t.Error("expected HasAC false")
+	}
+	if !rl.NearPark {
+		t.Error("expected NearPark true")
+	}
+	if rl.NearConvenienceStore {
+		t.Error("expected NearConvenienceStore false")
+	}
+}
+
 func TestApplyRentalUpdate_NilFieldsAreNoOp(t *testing.T) {
 	rl := &model.RentalListing{
-		AllowPets:   true,
-		MonthlyRent: 25000,
+		AllowPets:       true,
+		HasBed:          true,
+		NearSupermarket: true,
+		MonthlyRent:     25000,
 	}
-	req := UpdateRentalListingRequest{} // all nil
+	req := UpdateRentalListingRequest{}
 	applyRentalUpdate(rl, req)
 	if !rl.AllowPets {
 		t.Error("nil AllowPets should not change existing true value")
+	}
+	if !rl.HasBed {
+		t.Error("nil HasBed should not change existing true value")
+	}
+	if !rl.NearSupermarket {
+		t.Error("nil NearSupermarket should not change existing true value")
 	}
 	if rl.MonthlyRent != 25000 {
 		t.Error("nil MonthlyRent should not change existing value")
 	}
 }
-
-// ── Credential guard tests ────────────────────────────────────────────────────
 
 type mockUserStore struct{ user *model.User }
 
@@ -58,9 +89,7 @@ func (m *mockCredRepo) FindByUserAndType(_ int64, _ string) (*model.UserCredenti
 
 type stubRentalStore struct{}
 
-func (s *stubRentalStore) Create(_ int64, _, _ float64, _ int, _ string, _, _ bool, _ int) (int64, error) {
-	return 1, nil
-}
+func (s *stubRentalStore) Create(_ *model.RentalListing) (int64, error)   { return 1, nil }
 func (s *stubRentalStore) FindByID(_ int64) (*model.RentalListing, error) { return nil, nil }
 func (s *stubRentalStore) FindActiveByProperty(_ int64) (*model.RentalListing, error) {
 	return nil, nil
@@ -73,7 +102,7 @@ func (s *stubRentalStore) Publish(_ int64, _ int) error                { return 
 type stubPropertyStore struct{}
 
 func (s *stubPropertyStore) FindByID(_ int64) (*model.Property, error) {
-	return &model.Property{SetupStatus: model.PropertySetupReady}, nil
+	return &model.Property{ID: 1, OwnerUserID: 1, SetupStatus: model.PropertySetupReady}, nil
 }
 func (s *stubPropertyStore) ListAttachments(_ int64) ([]*model.PropertyAttachment, error) {
 	return nil, nil
@@ -82,7 +111,7 @@ func (s *stubPropertyStore) ListAttachments(_ int64) ([]*model.PropertyAttachmen
 func TestRentalCreateRequiresOwnerCredential(t *testing.T) {
 	user := &model.User{ID: 1}
 
-	t.Run("no credential → ErrNoOwnerCredential", func(t *testing.T) {
+	t.Run("no credential returns ErrNoOwnerCredential", func(t *testing.T) {
 		svc := NewService(&stubRentalStore{}, &stubPropertyStore{}, &mockUserStore{user: user}, &mockCredRepo{cred: nil})
 		_, err := svc.Create(1, "0xwallet", CreateRentalListingRequest{MonthlyRent: 20000, DurationDays: 30})
 		if !errors.Is(err, ErrNoOwnerCredential) {
@@ -90,7 +119,7 @@ func TestRentalCreateRequiresOwnerCredential(t *testing.T) {
 		}
 	})
 
-	t.Run("has credential → credential check passes", func(t *testing.T) {
+	t.Run("has credential passes credential check", func(t *testing.T) {
 		svc := NewService(&stubRentalStore{}, &stubPropertyStore{}, &mockUserStore{user: user}, &mockCredRepo{cred: &model.UserCredential{}})
 		_, err := svc.Create(1, "0xwallet", CreateRentalListingRequest{MonthlyRent: 20000, DurationDays: 30})
 		if errors.Is(err, ErrNoOwnerCredential) {

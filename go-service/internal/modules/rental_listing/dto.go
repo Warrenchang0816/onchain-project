@@ -35,6 +35,23 @@ type CreateRentalListingRequest struct {
 	GenderRestriction  *string `json:"gender_restriction"`
 	Notes              *string `json:"notes"`
 	DurationDays       int     `json:"duration_days" binding:"min=7"`
+
+	HasSofa        bool `json:"has_sofa"`
+	HasBed         bool `json:"has_bed"`
+	HasWardrobe    bool `json:"has_wardrobe"`
+	HasTV          bool `json:"has_tv"`
+	HasFridge      bool `json:"has_fridge"`
+	HasAC          bool `json:"has_ac"`
+	HasWasher      bool `json:"has_washer"`
+	HasWaterHeater bool `json:"has_water_heater"`
+	HasGas         bool `json:"has_gas"`
+	HasInternet    bool `json:"has_internet"`
+	HasCableTV     bool `json:"has_cable_tv"`
+
+	NearSchool           bool `json:"near_school"`
+	NearSupermarket      bool `json:"near_supermarket"`
+	NearConvenienceStore bool `json:"near_convenience_store"`
+	NearPark             bool `json:"near_park"`
 }
 
 type UpdateRentalListingRequest struct {
@@ -47,6 +64,23 @@ type UpdateRentalListingRequest struct {
 	GenderRestriction  *string  `json:"gender_restriction"`
 	Notes              *string  `json:"notes"`
 	DurationDays       *int     `json:"duration_days"`
+
+	HasSofa        *bool `json:"has_sofa"`
+	HasBed         *bool `json:"has_bed"`
+	HasWardrobe    *bool `json:"has_wardrobe"`
+	HasTV          *bool `json:"has_tv"`
+	HasFridge      *bool `json:"has_fridge"`
+	HasAC          *bool `json:"has_ac"`
+	HasWasher      *bool `json:"has_washer"`
+	HasWaterHeater *bool `json:"has_water_heater"`
+	HasGas         *bool `json:"has_gas"`
+	HasInternet    *bool `json:"has_internet"`
+	HasCableTV     *bool `json:"has_cable_tv"`
+
+	NearSchool           *bool `json:"near_school"`
+	NearSupermarket      *bool `json:"near_supermarket"`
+	NearConvenienceStore *bool `json:"near_convenience_store"`
+	NearPark             *bool `json:"near_park"`
 }
 
 type RentalListingResponse struct {
