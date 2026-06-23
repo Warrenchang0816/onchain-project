@@ -8,7 +8,7 @@ import { parsePropertyFields } from "@/components/credential/ownerFieldParsers";
 import OwnerStep1Form from "@/components/credential/OwnerStep1Form";
 import OwnerStep2Upload from "@/components/credential/OwnerStep2Upload";
 
-const DRAFT_KEY = "owner_credential_draft_v1";
+const DRAFT_KEY = "owner_credential_draft_v2";
 
 type DraftData = {
     fields: Record<string, string>;
